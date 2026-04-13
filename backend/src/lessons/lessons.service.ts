@@ -6,9 +6,16 @@ export class LessonsService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: any) {
-    // Get the highest order for the course
+    const section = await this.prisma.section.findUnique({
+      where: { id: data.sectionId },
+    });
+
+    if (!section) {
+      throw new Error('Section not found');
+    }
+
     const maxOrder = await this.prisma.lesson.findFirst({
-      where: { courseId: data.courseId },
+      where: { sectionId: data.sectionId },
       orderBy: { order: 'desc' },
       select: { order: true },
     });
@@ -23,9 +30,14 @@ export class LessonsService {
     });
   }
 
-  async findAll(courseId: number) {
+  async findAll(sectionId?: string) {
+    if (sectionId) {
+      return this.prisma.lesson.findMany({
+        where: { sectionId },
+        orderBy: { order: 'asc' },
+      });
+    }
     return this.prisma.lesson.findMany({
-      where: { courseId: courseId.toString() },
       orderBy: { order: 'asc' },
     });
   }

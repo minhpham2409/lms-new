@@ -219,10 +219,14 @@ export class AdminService {
   async getAllLessons() {
     return this.prisma.lesson.findMany({
       include: {
-        course: {
-          select: {
-            id: true,
-            title: true,
+        section: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
           },
         },
       },

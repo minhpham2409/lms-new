@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -41,13 +42,28 @@ model Course {
   title          String
   description    String?
   price          Float
+  thumbnail      String?
+  status         String          @default("draft")
   authorId       String
   author         User            @relation("AuthoredCourses", fields: [authorId], references: [id])
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
-  lessons        Lesson[]
+  sections       Section[]
   enrollments    Enrollment[]
-  videoProgress  VideoProgress[]
+}
+
+model Section {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  order       Int
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([courseId, order])
 }
 
 model Lesson {
@@ -55,12 +71,15 @@ model Lesson {
   title         String
   content       String?
   videoUrl      String?
+  duration      Int?
   order         Int
-  courseId      String
-  course        Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sectionId     String
+  section       Section         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   videoProgress VideoProgress[]
+
+  @@unique([sectionId, order])
 }
 
 model Enrollment {
@@ -81,12 +100,10 @@ model VideoProgress {
   id         String   @id @default(uuid())
   userId     String
   lessonId   String
-  courseId   String
   completed  Boolean  @default(false)
-  watchTime  Int      @default(0) // in seconds
+  watchTime  Int      @default(0)
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
