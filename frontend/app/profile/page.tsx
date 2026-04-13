@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import {
   User,
   Mail,
@@ -21,345 +23,232 @@ import {
   Trophy,
   Calendar,
   CheckCircle,
+  Award,
 } from 'lucide-react';
 import { MainNav } from '@/components/layout/main-nav';
 import { Footer } from '@/components/layout/footer';
-import { fetchEnrollments, getCourseVideosProgress } from '@/lib/api';
-
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  author: {
-    id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-  };
-  lessons: {
-    id: string;
-    title: string;
-    order: number;
-  }[];
-}
-
-interface Enrollment {
-  id: string;
-  status: string;
-  progress: number;
-  course: Course;
-  createdAt: string;
-}
-
-interface VideoProgress {
-  lessonId: string;
-  completed: boolean;
-  watchTime: number;
-}
+import { enrollmentsApi, authApi, certificatesApi } from '@/lib/api-service';
+import type { Enrollment, Certificate } from '@/types';
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [videoProgress, setVideoProgress] = useState<
-    Record<string, VideoProgress[]>
-  >({});
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({
-    name: '',
-    email: '',
-  });
+  const [saving, setSaving] = useState(false);
+  const [editData, setEditData] = useState({ firstName: '', lastName: '', bio: '' });
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/auth/signin');
-    }
+    if (status === 'unauthenticated') redirect('/auth/signin');
   }, [status]);
+
+  useEffect(() => {
+    if (!session?.accessToken) return;
+    Promise.all([
+      enrollmentsApi.getMyCourses(),
+      certificatesApi.getMine().catch(() => []),
+    ]).then(([e, c]) => {
+      setEnrollments(e);
+      setCertificates(c);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [session?.accessToken]);
 
   useEffect(() => {
     if (session?.user) {
       setEditData({
-        name: session.user.name || '',
-        email: session.user.email || '',
+        firstName: (session.user as { firstName?: string }).firstName ?? '',
+        lastName: (session.user as { lastName?: string }).lastName ?? '',
+        bio: '',
       });
     }
   }, [session]);
 
-  useEffect(() => {
-    const loadEnrollments = async () => {
-      if (session?.accessToken) {
-        try {
-          const data = await fetchEnrollments(session.accessToken);
-          setEnrollments(data);
-          
-          // Fetch video progress for each enrolled course
-          const progressData: Record<string, VideoProgress[]> = {};
-          for (const enrollment of data) {
-            try {
-              const progress = await getCourseVideosProgress(
-                enrollment.course.id,
-                session.accessToken
-              );
-              
-              // Handle different response formats
-              if (Array.isArray(progress)) {
-                progressData[enrollment.course.id] = progress;
-              } else if (progress && typeof progress === 'object') {
-                progressData[enrollment.course.id] = progress.data || progress.progress || [];
-              } else {
-                progressData[enrollment.course.id] = [];
-              }
-            } catch (error) {
-              console.error(`Error fetching progress for course ${enrollment.course.id}:`, error);
-              progressData[enrollment.course.id] = [];
-            }
-          }
-          setVideoProgress(progressData);
-        } catch (error) {
-          console.error('Error loading enrollments:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadEnrollments();
-  }, [session]);
-
   const handleSave = async () => {
-    // In a real app, you'd make an API call to update the user profile
-    console.log('Saving profile:', editData);
-    setIsEditing(false);
+    try {
+      setSaving(true);
+      await authApi.updateProfile(editData);
+      toast.success('Profile updated!');
+      setIsEditing(false);
+    } catch {
+      toast.error('Failed to update profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleCancel = () => {
-    setEditData({
-      name: session?.user?.name || '',
-      email: session?.user?.email || '',
-    });
-    setIsEditing(false);
-  };
-
-  if (status === 'loading') {
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-background">
         <MainNav />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-96">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          </div>
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
         </div>
         <Footer />
       </div>
     );
   }
 
-  if (!session) {
-    return null;
-  }
+  if (!session) return null;
 
-  const completedCourses = (enrollments || []).filter(e => e.progress >= 100).length;
-  const totalLessons = (enrollments || []).reduce((acc, e) => acc + (e.course.lessons?.length || 0), 0);
-  const completedLessons = (enrollments || []).reduce((acc, e) => {
-    const courseProgress = videoProgress[e.course.id] || [];
-    if (!Array.isArray(courseProgress)) return acc;
-    const completed = courseProgress.filter(p => p.completed).length;
-    return acc + completed;
-  }, 0);
-  const memberSince = new Date(session.user.email ? '2024-01-01' : Date.now()).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-  });
+  const completedCourses = enrollments.filter((e) => e.progress >= 100).length;
+  const totalLessons = enrollments.reduce(
+    (acc, e) => acc + (e.course.sections?.reduce((s, sec) => s + (sec.lessons?.length ?? 0), 0) ?? 0),
+    0
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <MainNav />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="flex items-start justify-between mb-8">
+          <div className="flex items-center gap-5">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center ring-2 ring-primary/20">
               <User className="w-10 h-10 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                {session.user.name || 'User'}
-              </h1>
-              <p className="text-muted-foreground flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                {session.user.email}
+              <h1 className="text-2xl font-bold">{session.user?.name || 'User'}</h1>
+              <p className="text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                <Mail className="w-3.5 h-3.5" />
+                {session.user?.email}
               </p>
-              <div className="flex items-center gap-4 mt-2">
+              <div className="flex flex-wrap items-center gap-2 mt-2">
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  Member since {memberSince}
+                  Member
                 </Badge>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Trophy className="w-3 h-3" />
-                  {session.user.role}
+                <Badge variant="outline" className="capitalize">
+                  {session.user?.role ?? 'student'}
                 </Badge>
+                {certificates.length > 0 && (
+                  <Badge className="flex items-center gap-1 bg-yellow-100 text-yellow-700 border-yellow-200">
+                    <Trophy className="w-3 h-3" />
+                    {certificates.length} {certificates.length === 1 ? 'Certificate' : 'Certificates'}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardContent className="pt-5 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <BookOpen className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">{enrollments.length}</div>
+                <p className="text-xs text-muted-foreground">Enrolled Courses</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-5 flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">{completedCourses}</div>
+                <p className="text-xs text-muted-foreground">Completed Courses</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-5 flex items-center gap-3">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Award className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">{totalLessons}</div>
+                <p className="text-xs text-muted-foreground">Total Lessons</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="courses" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="courses">My Courses</TabsTrigger>
+            <TabsTrigger value="certificates">Certificates</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <TabsContent value="courses" className="space-y-4">
+            {enrollments.length === 0 ? (
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Enrolled Courses
-                  </CardTitle>
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{(enrollments || []).length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Active learning paths
-                  </p>
+                <CardContent className="pt-6 text-center py-12">
+                  <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/30" />
+                  <p className="text-muted-foreground mb-4">No courses enrolled yet</p>
+                  <Button asChild>
+                    <Link href="/courses">Browse Courses</Link>
+                  </Button>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Completed Courses
-                  </CardTitle>
-                  <Trophy className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{completedCourses}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Certificates earned
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Completed Lessons
-                  </CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{completedLessons}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Out of {totalLessons} total
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(enrollments || []).length > 0 ? (
-                  <div className="space-y-4">
-                    {(enrollments || []).slice(0, 3).map((enrollment) => (
-                      <div key={enrollment.id} className="flex items-center justify-between p-3 rounded-lg border">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">{enrollment.course.title}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              by {enrollment.course.author.firstName} {enrollment.course.author.lastName}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{enrollment.progress}% complete</p>
-                          <p className="text-xs text-muted-foreground">
-                            {enrollment.course.lessons?.length || 0} lessons
-                          </p>
-                        </div>
+            ) : (
+              <div className="space-y-3">
+                {enrollments.map((enrollment) => (
+                  <div key={enrollment.id} className="p-4 rounded-lg border hover:shadow-sm transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">{enrollment.course.title}</h3>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          by {enrollment.course.author?.username}
+                        </p>
                       </div>
-                    ))}
+                      <Badge variant={enrollment.progress >= 100 ? 'default' : 'secondary'} className="ml-2 shrink-0">
+                        {enrollment.progress >= 100 ? 'Completed' : 'In Progress'}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Progress</span>
+                        <span>{Math.round(enrollment.progress ?? 0)}%</span>
+                      </div>
+                      <Progress value={enrollment.progress ?? 0} className="h-1.5" />
+                      <div className="flex justify-end mt-2">
+                        <Button asChild size="sm">
+                          <Link href={`/courses/${enrollment.course.id}`}>
+                            {enrollment.progress >= 100 ? 'Review' : 'Continue'}
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No courses enrolled yet</p>
-                    <Button asChild className="mt-4">
-                      <Link href="/courses">Browse Courses</Link>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
-          <TabsContent value="courses" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>My Enrolled Courses</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : (enrollments || []).length > 0 ? (
-                  <div className="space-y-4">
-                    {(enrollments || []).map((enrollment) => (
-                      <div key={enrollment.id} className="p-4 rounded-lg border">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-semibold text-lg">{enrollment.course.title}</h3>
-                            <p className="text-muted-foreground">{enrollment.course.description}</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              by {enrollment.course.author.firstName} {enrollment.course.author.lastName}
-                            </p>
-                          </div>
-                          <Badge variant={enrollment.progress >= 100 ? 'default' : 'secondary'}>
-                            {enrollment.progress >= 100 ? 'Completed' : 'In Progress'}
-                          </Badge>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Progress</span>
-                            <span>{enrollment.progress}%</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div
-                              className="bg-primary h-2 rounded-full transition-all"
-                              style={{ width: `${enrollment.progress}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between items-center mt-3">
-                            <span className="text-sm text-muted-foreground">
-                              {enrollment.course.lessons?.length || 0} lessons
-                            </span>
-                            <Button asChild size="sm">
-                              <Link href={`/courses/${enrollment.course.id}`}>
-                                {enrollment.progress >= 100 ? 'Review' : 'Continue'}
-                              </Link>
-                            </Button>
-                          </div>
-                        </div>
+          <TabsContent value="certificates" className="space-y-4">
+            {certificates.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center py-12">
+                  <Trophy className="w-14 h-14 mx-auto mb-4 text-muted-foreground/30" />
+                  <p className="text-muted-foreground">No certificates yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Complete courses to earn certificates</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {certificates.map((cert) => (
+                  <Card key={cert.id} className="border-yellow-200 bg-yellow-50/30">
+                    <CardContent className="pt-5 flex items-center gap-4">
+                      <div className="p-3 bg-yellow-100 rounded-full shrink-0">
+                        <Trophy className="h-6 w-6 text-yellow-600" />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No courses enrolled yet</p>
-                    <Button asChild className="mt-4">
-                      <Link href="/courses">Browse Courses</Link>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold truncate">{cert.course?.title ?? 'Course'}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Issued {new Date(cert.issuedAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{cert.code}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
@@ -368,57 +257,57 @@ export default function ProfilePage() {
                 <CardTitle>Account Information</CardTitle>
                 {!isEditing && (
                   <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit
+                    <Edit3 className="w-4 h-4 mr-2" /> Edit
                   </Button>
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
+                  <div className="space-y-1.5">
+                    <Label>First Name</Label>
                     {isEditing ? (
                       <Input
-                        id="name"
-                        value={editData.name}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        value={editData.firstName}
+                        onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                        placeholder="First name"
                       />
                     ) : (
-                      <p className="text-sm p-2 bg-muted rounded-md">{session.user.name}</p>
+                      <p className="text-sm p-2 bg-muted rounded-md">
+                        {(session.user as { firstName?: string }).firstName || '—'}
+                      </p>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                  <div className="space-y-1.5">
+                    <Label>Last Name</Label>
                     {isEditing ? (
                       <Input
-                        id="email"
-                        type="email"
-                        value={editData.email}
-                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                        value={editData.lastName}
+                        onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                        placeholder="Last name"
                       />
                     ) : (
-                      <p className="text-sm p-2 bg-muted rounded-md">{session.user.email}</p>
+                      <p className="text-sm p-2 bg-muted rounded-md">
+                        {(session.user as { lastName?: string }).lastName || '—'}
+                      </p>
                     )}
                   </div>
+                  <div className="space-y-1.5">
+                    <Label>Email</Label>
+                    <p className="text-sm p-2 bg-muted rounded-md">{session.user?.email}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Role</Label>
+                    <p className="text-sm p-2 bg-muted rounded-md capitalize">{session.user?.role}</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <p className="text-sm p-2 bg-muted rounded-md">{session.user.role}</p>
-                </div>
-                {/* <div className="space-y-2">
-                  <Label>User ID</Label>
-                  <p className="text-sm p-2 bg-muted rounded-md font-mono">{session.user.id}</p>
-                </div> */}
-                
                 {isEditing && (
-                  <div className="flex gap-2 pt-4">
-                    <Button onClick={handleSave} size="sm">
+                  <div className="flex gap-2 pt-2">
+                    <Button onClick={handleSave} size="sm" disabled={saving}>
                       <Save className="w-4 h-4 mr-2" />
-                      Save Changes
+                      {saving ? 'Saving...' : 'Save Changes'}
                     </Button>
-                    <Button variant="outline" onClick={handleCancel} size="sm">
-                      <X className="w-4 h-4 mr-2" />
-                      Cancel
+                    <Button variant="outline" onClick={() => setIsEditing(false)} size="sm">
+                      <X className="w-4 h-4 mr-2" /> Cancel
                     </Button>
                   </div>
                 )}
@@ -434,25 +323,17 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">Email Notifications</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Receive email updates about your courses
-                      </p>
+                      <p className="text-sm text-muted-foreground">Receive updates about your courses</p>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Configure
-                    </Button>
+                    <Button variant="outline" size="sm">Configure</Button>
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">Privacy Settings</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Manage your data and privacy preferences
-                      </p>
+                      <p className="text-sm text-muted-foreground">Manage your data and privacy</p>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Manage
-                    </Button>
+                    <Button variant="outline" size="sm">Manage</Button>
                   </div>
                 </div>
               </CardContent>

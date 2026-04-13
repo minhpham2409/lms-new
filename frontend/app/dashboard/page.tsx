@@ -8,57 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  BookOpen,
-  Clock,
-  Trophy,
-  TrendingUp,
-  Play,
-  CheckCircle,
-} from 'lucide-react';
+import { BookOpen, Clock, Trophy, TrendingUp, Play, CheckCircle, Award } from 'lucide-react';
 import Link from 'next/link';
 import { MainNav } from '@/components/layout/main-nav';
 import { Footer } from '@/components/layout/footer';
-import { fetchEnrollments, getCourseVideosProgress } from '@/lib/api';
-
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  author: {
-    id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-  };
-  lessons: {
-    id: string;
-    title: string;
-    order: number;
-  }[];
-}
-
-interface Enrollment {
-  id: string;
-  status: string;
-  progress: number;
-  course: Course;
-  createdAt: string;
-}
-
-interface VideoProgress {
-  lessonId: string;
-  completed: boolean;
-  watchTime: number;
-}
+import { enrollmentsApi, progressApi, certificatesApi } from '@/lib/api-service';
+import type { Enrollment, Certificate } from '@/types';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [videoProgress, setVideoProgress] = useState<
-    Record<string, VideoProgress[]>
-  >({});
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,49 +29,31 @@ export default function DashboardPage() {
     }
   }, [status]);
 
-  const fetchDashboardData = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!session?.accessToken) return;
-
     try {
       setLoading(true);
       setError(null);
-
-      // Fetch enrollments
-      const enrollmentsData = await fetchEnrollments(session.accessToken);
-      console.log('Enrollments data:', enrollmentsData);
+      const [enrollmentsData, certsData] = await Promise.all([
+        enrollmentsApi.getMyCourses(),
+        certificatesApi.getMine().catch(() => []),
+      ]);
       setEnrollments(enrollmentsData);
+      setCertificates(certsData);
 
-      // Fetch video progress for each enrolled course
-      const progressData: Record<string, VideoProgress[]> = {};
-      for (const enrollment of enrollmentsData) {
-        try {
-          const progress = await getCourseVideosProgress(
-            enrollment.course.id,
-            session.accessToken
-          );
-          console.log(`Progress for course ${enrollment.course.id}:`, progress);
-
-          // Handle different response formats
-          if (Array.isArray(progress)) {
-            progressData[enrollment.course.id] = progress;
-          } else if (progress && typeof progress === 'object') {
-            // If it's an object, try to extract the array
-            progressData[enrollment.course.id] =
-              progress.data || progress.progress || [];
-          } else {
-            progressData[enrollment.course.id] = [];
+      const pMap: Record<string, number> = {};
+      await Promise.all(
+        enrollmentsData.map(async (e) => {
+          try {
+            const p = await progressApi.getCourse(e.course.id);
+            pMap[e.course.id] = p.overallProgress ?? 0;
+          } catch {
+            pMap[e.course.id] = e.progress ?? 0;
           }
-        } catch (error) {
-          console.error(
-            `Error fetching progress for course ${enrollment.course.id}:`,
-            error
-          );
-          progressData[enrollment.course.id] = [];
-        }
-      }
-      setVideoProgress(progressData);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+        })
+      );
+      setProgressMap(pMap);
+    } catch {
       setError('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
@@ -118,71 +61,27 @@ export default function DashboardPage() {
   }, [session?.accessToken]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (session?.accessToken) {
-        await fetchDashboardData();
-      }
-    };
+    loadData();
+  }, [loadData]);
 
-    fetchData();
-  }, [session?.accessToken, fetchDashboardData]);
+  const getTotalLessons = () =>
+    enrollments.reduce((acc, e) => {
+      const count = e.course.sections?.reduce((s, sec) => s + (sec.lessons?.length ?? 0), 0) ?? 0;
+      return acc + count;
+    }, 0);
 
-  const calculateCourseProgress = (courseId: string, totalLessons: number) => {
-    const progress = videoProgress[courseId] || [];
-    if (totalLessons === 0) return 0;
-    if (!Array.isArray(progress)) return 0;
-    const completedLessons = progress.filter((p) => p.completed).length;
-    return Math.round((completedLessons / totalLessons) * 100);
-  };
-
-  const getRecentActivity = () => {
-    return enrollments
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-      .slice(0, 3);
-  };
-
-  const getTotalWatchTime = () => {
-    let totalSeconds = 0;
-    Object.values(videoProgress).forEach((courseProgress) => {
-      if (Array.isArray(courseProgress)) {
-        courseProgress.forEach((progress) => {
-          totalSeconds += progress.watchTime || 0;
-        });
-      }
-    });
-    return Math.round(totalSeconds / 60); // Convert to minutes
-  };
-
-  const getCompletedLessons = () => {
-    let completed = 0;
-    Object.values(videoProgress).forEach((courseProgress) => {
-      if (Array.isArray(courseProgress)) {
-        courseProgress.forEach((progress) => {
-          if (progress.completed) completed++;
-        });
-      }
-    });
-    return completed;
+  const getAvgProgress = () => {
+    if (!enrollments.length) return 0;
+    const sum = enrollments.reduce((acc, e) => acc + (progressMap[e.course.id] ?? 0), 0);
+    return Math.round(sum / enrollments.length);
   };
 
   if (status === 'loading' || loading) {
     return (
-      <div className='flex flex-col min-h-screen items-center'>
+      <div className="flex flex-col min-h-screen">
         <MainNav />
-        <main className='flex-1 flex items-center justify-center py-12'>
-          <div className='container mx-auto px-4 py-8'>
-            <div className='animate-pulse'>
-              <div className='h-8 bg-gray-200 rounded w-1/4 mb-6'></div>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className='h-32 bg-gray-200 rounded-lg'></div>
-                ))}
-              </div>
-            </div>
-          </div>
+        <main className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
         </main>
         <Footer />
       </div>
@@ -191,21 +90,15 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className='flex flex-col min-h-screen items-center'>
+      <div className="flex flex-col min-h-screen">
         <MainNav />
-        <main className='flex-1 flex items-center justify-center py-12'>
-          <div className='container mx-auto px-4 py-8'>
-            <Card>
-              <CardContent className='pt-6'>
-                <div className='text-center py-8'>
-                  <p className='text-red-600 mb-4'>{error}</p>
-                  <Button onClick={() => window.location.reload()}>
-                    Try Again
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <main className="flex-1 flex items-center justify-center">
+          <Card className="max-w-md w-full mx-4">
+            <CardContent className="pt-6 text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <Button onClick={loadData}>Try Again</Button>
+            </CardContent>
+          </Card>
         </main>
         <Footer />
       </div>
@@ -213,178 +106,140 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className='flex flex-col min-h-screen items-center'>
+    <div className="flex flex-col min-h-screen">
       <MainNav />
-      <main className='flex-1 w-full'>
-        <div className='container mx-auto px-4 py-8 max-w-7xl'>
-          <div className='mb-8'>
-            <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-              Welcome back, {session?.user?.name || 'Student'}!
+      <main className="flex-1 w-full bg-gray-50/50">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+              Welcome back, {session?.user?.name || 'Learner'}!
             </h1>
-            <p className='text-gray-600'>Continue your learning journey</p>
+            <p className="text-gray-500">Track your learning progress</p>
           </div>
 
-          {/* Stats Cards */}
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
             <Card>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>
-                  Enrolled Courses
-                </CardTitle>
-                <BookOpen className='h-4 w-4 text-blue-600' />
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Enrolled Courses</CardTitle>
+                <BookOpen className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className='text-2xl font-bold'>{enrollments.length}</div>
-                <p className='text-xs text-gray-500'>Active learning paths</p>
+                <div className="text-2xl font-bold">{enrollments.length}</div>
+                <p className="text-xs text-gray-400 mt-1">Active learning paths</p>
               </CardContent>
             </Card>
-
             <Card>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>
-                  Watch Time
-                </CardTitle>
-                <Clock className='h-4 w-4 text-green-600' />
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Total Lessons</CardTitle>
+                <Clock className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <div className='text-2xl font-bold'>{getTotalWatchTime()}</div>
-                <p className='text-xs text-gray-500'>Minutes watched</p>
+                <div className="text-2xl font-bold">{getTotalLessons()}</div>
+                <p className="text-xs text-gray-400 mt-1">Across all courses</p>
               </CardContent>
             </Card>
-
             <Card>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>
-                  Completed Lessons
-                </CardTitle>
-                <Trophy className='h-4 w-4 text-yellow-600' />
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Avg. Progress</CardTitle>
+                <TrendingUp className="h-4 w-4 text-purple-500" />
               </CardHeader>
               <CardContent>
-                <div className='text-2xl font-bold'>
-                  {getCompletedLessons()}
-                </div>
-                <p className='text-xs text-gray-500'>Lessons finished</p>
+                <div className="text-2xl font-bold">{getAvgProgress()}%</div>
+                <p className="text-xs text-gray-400 mt-1">Overall completion</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Certificates</CardTitle>
+                <Trophy className="h-4 w-4 text-yellow-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{certificates.length}</div>
+                <p className="text-xs text-gray-400 mt-1">Earned so far</p>
               </CardContent>
             </Card>
           </div>
 
-          <Tabs defaultValue='courses' className='space-y-6'>
-            <TabsList className='grid w-full grid-cols-2'>
-              <TabsTrigger value='courses'>My Courses</TabsTrigger>
-              <TabsTrigger value='activity'>Recent Activity</TabsTrigger>
+          <Tabs defaultValue="courses" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="courses">My Courses</TabsTrigger>
+              <TabsTrigger value="certificates">Certificates</TabsTrigger>
             </TabsList>
 
-            <TabsContent value='courses' className='space-y-6'>
+            <TabsContent value="courses">
               {enrollments.length === 0 ? (
                 <Card>
-                  <CardContent className='pt-6'>
-                    <div className='text-center py-8'>
-                      <BookOpen className='h-16 w-16 text-gray-400 mx-auto mb-4' />
-                      <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-                        No courses yet
-                      </h3>
-                      <p className='text-gray-600 mb-4'>
-                        Start learning by enrolling in a course
-                      </p>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-12">
+                      <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No courses yet</h3>
+                      <p className="text-gray-500 mb-4">Start your learning journey today</p>
                       <Button asChild>
-                        <Link href='/courses'>Browse Courses</Link>
+                        <Link href="/courses">Browse Courses</Link>
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
               ) : (
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {enrollments.map((enrollment) => {
-                    const lessons = enrollment.course.lessons || [];
-                    const progress = calculateCourseProgress(
-                      enrollment.course.id,
-                      lessons.length
-                    );
-                    const courseProgress =
-                      videoProgress[enrollment.course.id] || [];
-                    const nextLesson = lessons.find(
-                      (lesson) =>
-                        !Array.isArray(courseProgress) ||
-                        !courseProgress.some(
-                          (p) => p.lessonId === lesson.id && p.completed
-                        )
-                    );
+                    const progress = progressMap[enrollment.course.id] ?? enrollment.progress ?? 0;
+                    const totalLessons = enrollment.course.sections?.reduce(
+                      (acc, s) => acc + (s.lessons?.length ?? 0), 0
+                    ) ?? 0;
+                    const completed = progress === 100;
 
                     return (
-                      <Card
-                        key={enrollment.id}
-                        className='hover:shadow-lg transition-shadow'
-                      >
-                        <CardHeader>
-                          <div className='flex items-start justify-between'>
-                            <div className='flex-1'>
-                              <CardTitle className='text-lg mb-2'>
-                                {enrollment.course.title}
-                              </CardTitle>
-                              <p className='text-sm text-gray-600 mb-2'>
-                                by {enrollment.course.author.firstName}{' '}
-                                {enrollment.course.author.lastName}
-                              </p>
-                              <Badge variant='outline' className='mb-3'>
-                                {lessons.length} lessons
-                              </Badge>
-                            </div>
-                            <Badge
-                              variant={
-                                progress === 100 ? 'default' : 'secondary'
-                              }
-                            >
-                              {progress}% Complete
+                      <Card key={enrollment.id} className="hover:shadow-md transition-shadow overflow-hidden">
+                        {enrollment.course.imageUrl && (
+                          <div className="h-36 bg-gradient-to-br from-blue-500 to-purple-600 relative">
+                            <img
+                              src={enrollment.course.imageUrl}
+                              alt={enrollment.course.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        {!enrollment.course.imageUrl && (
+                          <div className="h-36 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                            <BookOpen className="h-12 w-12 text-white/70" />
+                          </div>
+                        )}
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <CardTitle className="text-base leading-tight line-clamp-2">
+                              {enrollment.course.title}
+                            </CardTitle>
+                            <Badge variant={completed ? 'default' : 'secondary'} className="shrink-0">
+                              {completed ? 'Done' : `${Math.round(progress)}%`}
                             </Badge>
                           </div>
+                          <p className="text-xs text-gray-500">
+                            by {enrollment.course.author?.username}
+                          </p>
                         </CardHeader>
-                        <CardContent>
-                          <div className='space-y-4'>
-                            <div>
-                              <Progress value={progress} className='h-2' />
-                              <p className='text-xs text-gray-500 mt-1'>
-                                {Array.isArray(courseProgress)
-                                  ? courseProgress.filter((p) => p.completed)
-                                      .length
-                                  : 0}{' '}
-                                of {lessons.length} lessons completed
-                              </p>
-                            </div>
-
-                            {nextLesson && (
-                              <div className='bg-blue-50 p-3 rounded-lg'>
-                                <p className='text-sm font-medium text-blue-900 mb-1'>
-                                  Next lesson:
-                                </p>
-                                <p className='text-sm text-blue-700'>
-                                  {nextLesson.title}
-                                </p>
-                              </div>
-                            )}
-
-                            <div className='flex gap-2'>
-                              <Button size='sm' asChild className='flex-1'>
-                                <Link href={`/courses/${enrollment.course.id}`}>
-                                  {progress === 0 ? (
-                                    <>
-                                      <Play className='h-4 w-4 mr-2' />
-                                      Start Course
-                                    </>
-                                  ) : (
-                                    <>
-                                      <TrendingUp className='h-4 w-4 mr-2' />
-                                      Continue
-                                    </>
-                                  )}
+                        <CardContent className="space-y-3">
+                          <div>
+                            <Progress value={progress} className="h-1.5" />
+                            <p className="text-xs text-gray-400 mt-1">{totalLessons} lessons</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" asChild className="flex-1">
+                              <Link href={`/courses/${enrollment.course.id}`}>
+                                {progress === 0 ? (
+                                  <><Play className="h-3 w-3 mr-1" /> Start</>
+                                ) : (
+                                  <><TrendingUp className="h-3 w-3 mr-1" /> Continue</>
+                                )}
+                              </Link>
+                            </Button>
+                            {completed && (
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href="/certificates">
+                                  <Award className="h-3 w-3 mr-1" /> Certificate
                                 </Link>
                               </Button>
-                              {progress === 100 && (
-                                <Button variant='outline' size='sm'>
-                                  <CheckCircle className='h-4 w-4 mr-2' />
-                                  Review
-                                </Button>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -394,51 +249,40 @@ export default function DashboardPage() {
               )}
             </TabsContent>
 
-            <TabsContent value='activity' className='space-y-6'>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {getRecentActivity().length === 0 ? (
-                    <div className='text-center py-8'>
-                      <Clock className='h-16 w-16 text-gray-400 mx-auto mb-4' />
-                      <p className='text-gray-600'>No recent activity</p>
+            <TabsContent value="certificates">
+              {certificates.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-12">
+                      <Trophy className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No certificates yet</h3>
+                      <p className="text-gray-500">Complete courses to earn certificates</p>
                     </div>
-                  ) : (
-                    <div className='space-y-4'>
-                      {getRecentActivity().map((enrollment) => (
-                        <div
-                          key={enrollment.id}
-                          className='flex items-center justify-between p-4 bg-gray-50 rounded-lg'
-                        >
-                          <div className='flex items-center space-x-3'>
-                            <div className='bg-blue-100 p-2 rounded-full'>
-                              <BookOpen className='h-4 w-4 text-blue-600' />
-                            </div>
-                            <div>
-                              <p className='font-medium'>
-                                {enrollment.course.title}
-                              </p>
-                              <p className='text-sm text-gray-600'>
-                                Enrolled{' '}
-                                {new Date(
-                                  enrollment.createdAt
-                                ).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <Button variant='ghost' size='sm' asChild className=' cursor-pointer'>
-                            <Link href={`/courses/${enrollment.course.id}`}>
-                              View Course
-                            </Link>
-                          </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {certificates.map((cert) => (
+                    <Card key={cert.id} className="border-yellow-200 bg-yellow-50/30">
+                      <CardContent className="pt-6 flex items-center gap-4">
+                        <div className="p-3 bg-yellow-100 rounded-full">
+                          <Trophy className="h-6 w-6 text-yellow-600" />
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold truncate">{cert.course?.title ?? 'Course'}</h4>
+                          <p className="text-sm text-gray-500">
+                            Issued {new Date(cert.issuedAt).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-gray-400 font-mono mt-1">{cert.code}</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

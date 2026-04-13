@@ -38,7 +38,7 @@ export default function UsersManagement() {
     }
   };
 
-  const handleUpdateUser = async (id: number, userData: UpdateUserData) => {
+  const handleUpdateUser = async (id: string, userData: UpdateUserData) => {
     try {
       await api.patch(`/admin/users/${id}`, userData);
       fetchUsers();
@@ -47,7 +47,7 @@ export default function UsersManagement() {
     }
   };
 
-  const handleDeleteUser = async (id: number) => {
+  const handleDeleteUser = async (id: string) => {
     try {
       await api.delete(`/admin/users/${id}`);
       fetchUsers();

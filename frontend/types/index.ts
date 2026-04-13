@@ -1,36 +1,22 @@
-// Common types for the application
-
 export interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   role: string;
   isActive: boolean;
+  avatarUrl?: string;
+  bio?: string;
   createdAt?: string;
 }
 
 export interface Instructor {
-  id: number;
+  id: string;
   username: string;
   email: string;
-}
-
-export interface Course {
-  id: string;
-  title: string;
-  description: string;
-  price?: number;
-  authorId?: number;
-  isPublished?: boolean;
-  author: {
-    id: number;
-    username: string;
-  };
-  lessons: Lesson[];
-  _count: {
-    lessons: number;
-    enrollments: number;
-  };
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface Lesson {
@@ -40,26 +26,246 @@ export interface Lesson {
   videoUrl?: string;
   duration?: number;
   order: number;
-  courseId: string;
+  sectionId: string;
   completed?: boolean;
   watchTime?: number;
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  order: number;
+  courseId: string;
+  lessons: Lesson[];
+}
+
+export interface Course {
+  id: string;
+  title: string;
+  description: string;
+  price?: number;
+  imageUrl?: string;
+  level?: string;
+  status?: string;
+  authorId?: string;
+  isPublished?: boolean;
+  author: {
+    id: string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  sections: Section[];
+  _count: {
+    sections?: number;
+    enrollments: number;
+  };
+  averageRating?: number;
+}
+
+export interface Enrollment {
+  id: string;
+  userId: string;
+  courseId: string;
+  progress: number;
+  enrolledAt: string;
+  course: Course;
+}
+
+export interface VideoProgress {
+  id: string;
+  userId: string;
+  lessonId: string;
+  watchTime: number;
+  completed: boolean;
+  lesson?: Lesson;
+}
+
+export interface Assignment {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'essay' | 'quiz';
+  lessonId: string;
+  dueDate?: string;
+  maxScore: number;
+  minScore?: number;
+  lesson?: Lesson;
+  quiz?: Quiz;
+}
+
+export interface Submission {
+  id: string;
+  assignmentId: string;
+  studentId: string;
+  content?: string;
+  fileUrl?: string;
+  score?: number;
+  feedback?: string;
+  status: 'submitted' | 'graded';
+  gradedAt?: string;
+  student?: User;
+}
+
+export interface Quiz {
+  id: string;
+  assignmentId: string;
+  timeLimit?: number;
+  questions: Question[];
+}
+
+export interface Question {
+  id: string;
+  quizId: string;
+  content: string;
+  options: string[];
+  answer: string;
+  score: number;
+  order: number;
+}
+
+export interface QuizAttempt {
+  id: string;
+  quizId: string;
+  studentId: string;
+  answers: Record<string, string>;
+  score: number;
+  maxScore: number;
+}
+
+export interface CartItem {
+  id: string;
+  userId: string;
+  courseId: string;
+  course: Course;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discount: number;
+  maxUses: number;
+  usedCount: number;
+  expiresAt?: string;
+  isActive: boolean;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  couponId?: string;
+  totalPrice: number;
+  finalPrice: number;
+  status: string;
+  createdAt: string;
+  items: OrderItem[];
+  payment?: Payment;
+  coupon?: Coupon;
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  courseId: string;
+  price: number;
+  course?: Course;
+}
+
+export interface Payment {
+  id: string;
+  orderId: string;
+  amount: number;
+  status: string;
+  qrData?: string;
+  txnRef?: string;
+  paidAt?: string;
+}
+
+export interface Review {
+  id: string;
+  courseId: string;
+  userId: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  user?: User;
+}
+
+export interface Comment {
+  id: string;
+  lessonId: string;
+  userId: string;
+  content: string;
+  parentId?: string;
+  createdAt: string;
+  user?: User;
+  replies?: Comment[];
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  type: string;
+  createdAt: string;
+}
+
+export interface Certificate {
+  id: string;
+  userId: string;
+  courseId: string;
+  code: string;
+  issuedAt: string;
+  course?: Course;
+}
+
+export interface ParentChild {
+  id: string;
+  parentId: string;
+  childId: string;
+  status: 'pending' | 'accepted';
+  child?: User;
+  parent?: User;
 }
 
 export interface CreateCourseData {
   title: string;
   description: string;
   price?: number;
-  instructorId: string;
-  isPublished?: boolean;
   imageUrl?: string;
+  level?: string;
 }
 
 export interface UpdateCourseData {
   title?: string;
   description?: string;
   price?: number;
-  authorId?: number;
+  imageUrl?: string;
+  level?: string;
   isPublished?: boolean;
+}
+
+export interface CreateSectionData {
+  title: string;
+  order?: number;
+}
+
+export interface CreateLessonData {
+  title: string;
+  content?: string;
+  videoUrl?: string;
+  duration?: number;
+  sectionId: string;
+}
+
+export interface UpdateLessonData {
+  title?: string;
+  content?: string;
+  videoUrl?: string;
+  duration?: number;
+  order?: number;
 }
 
 export interface CreateUserData {
@@ -77,34 +283,33 @@ export interface UpdateUserData {
   isActive?: boolean;
 }
 
-export interface CreateLessonData {
-  title: string;
-  content?: string;
-  videoUrl?: string;
-  duration?: number;
-  order: number;
-  courseId: number;
-}
-
-export interface UpdateLessonData {
-  title?: string;
-  content?: string;
-  videoUrl?: string;
-  duration?: number;
-  order?: number;
-}
-
 export interface ProgressData {
   courseId: string;
   overallProgress: number;
-  lessons: {
-    id: string;
-    completed: boolean;
-    watchTime: number;
-  }[];
+  completedLessons: number;
+  totalLessons: number;
 }
 
 export interface LessonWithProgress extends Lesson {
   completed: boolean;
   watchTime: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ApiError {
+  message: string;
+  statusCode: number;
+}
+
+export interface CouponPreview {
+  code: string;
+  discount: number;
+  originalTotal: number;
+  finalTotal: number;
 }

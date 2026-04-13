@@ -15,8 +15,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 interface UserTableProps {
   users: User[];
-  onUpdate: (id: number, userData: UpdateUserData) => Promise<void>;
-  onDelete: (id: number) => Promise<void>;
+  onUpdate: (id: string, userData: UpdateUserData) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 export function UserTable({ users, onUpdate, onDelete }: UserTableProps) {

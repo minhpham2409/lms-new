@@ -8,21 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { MainNav } from '@/components/layout/main-nav';
 import {
   CheckCircle,
   PlayCircle,
-  Lock,
   ArrowLeft,
   Download,
   Clock,
+  ChevronDown,
+  ChevronRight,
+  Lock,
 } from 'lucide-react';
-import {
-  fetchCourseById,
-  getCourseVideosProgress,
-  updateVideoProgress,
-  checkEnrollmentStatus,
-} from '@/lib/api';
-import { Course, Lesson, LessonWithProgress } from '@/types';
+import { coursesApi, enrollmentsApi, progressApi } from '@/lib/api-service';
+import type { Course, LessonWithProgress } from '@/types';
 
 interface VideoPlayerProps {
   courseId: string;
@@ -34,65 +32,51 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
   const router = useRouter();
 
   const [course, setCourse] = useState<Course | null>(null);
+  const [allLessons, setAllLessons] = useState<LessonWithProgress[]>([]);
   const [currentLesson, setCurrentLesson] = useState<LessonWithProgress | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [overallProgress, setOverallProgress] = useState(0);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
-  const loadCourseData = useCallback(async () => {
+  const loadData = useCallback(async () => {
+    if (!session) return;
     try {
       setIsLoading(true);
-
-      // Check enrollment status
-      const enrollmentStatus = await checkEnrollmentStatus(
-        courseId,
-        session!.user.accessToken
-      );
-
-      if (!enrollmentStatus.isEnrolled) {
-        toast.error(
-          'You need to enroll in this course to access video lessons'
-        );
+      const status = await enrollmentsApi.checkStatus(courseId);
+      if (!status.enrolled) {
+        toast.error('You need to enroll in this course first.');
         router.push(`/courses/${courseId}`);
         return;
       }
 
-      // Get course data
-      const courseData = await fetchCourseById(courseId);
+      const [courseData, progressData] = await Promise.all([
+        coursesApi.getById(courseId),
+        progressApi.getCourse(courseId).catch(() => ({ overallProgress: 0, completedLessons: 0, totalLessons: 0, courseId })),
+      ]);
 
-      // Get video progress
-      const progressData = await getCourseVideosProgress(
-        courseId,
-        session!.user.accessToken
-      );
+      setOverallProgress(progressData.overallProgress ?? 0);
 
-      // Merge course data with progress
-      const lessonsWithProgress = courseData.lessons.map((lesson: Lesson) => {
-        const progressLesson = progressData.lessons.find(
-          (p: { id: string; completed: boolean; watchTime: number }) => p.id === lesson.id
-        );
-        return {
-          ...lesson,
-          completed: progressLesson?.completed || false,
-          watchTime: progressLesson?.watchTime || 0,
-        };
-      });
+      const flatLessons: LessonWithProgress[] = [];
+      for (const section of (courseData.sections ?? [])) {
+        for (const lesson of (section.lessons ?? [])) {
+          let lessonProgress = { completed: false, watchTime: 0 };
+          try {
+            const lp = await progressApi.getLesson(lesson.id);
+            lessonProgress = { completed: lp.completed, watchTime: lp.watchTime };
+          } catch {}
+          flatLessons.push({ ...lesson, ...lessonProgress });
+        }
+      }
 
-      setCourse({
-        ...courseData,
-        lessons: lessonsWithProgress.sort(
-          (a: LessonWithProgress, b: LessonWithProgress) => a.order - b.order
-        ),
-      });
+      setCourse(courseData);
+      setAllLessons(flatLessons);
+      setExpandedSections(new Set((courseData.sections ?? []).map((s) => s.id)));
 
-      setOverallProgress(progressData.overallProgress);
-
-      // Set current lesson
-      const current = lessonsWithProgress.find((l: LessonWithProgress) => l.id === lessonId);
-      setCurrentLesson(current || null);
-    } catch (error) {
-      console.error('Error loading course data:', error);
-      toast.error('Failed to load course data');
+      const cur = flatLessons.find((l) => l.id === lessonId);
+      setCurrentLesson(cur ?? flatLessons[0] ?? null);
+    } catch {
+      toast.error('Failed to load course');
     } finally {
       setIsLoading(false);
     }
@@ -103,241 +87,234 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
       router.push('/auth/signin');
       return;
     }
-
-    loadCourseData();
-  }, [session, loadCourseData, router]);
-
-  const extractYouTubeId = (url: string): string | null => {
-    const regExp =
-      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
-  };
+    loadData();
+  }, [session, loadData, router]);
 
   const markAsCompleted = async () => {
-    if (!currentLesson || !session) return;
-
+    if (!currentLesson) return;
     try {
       setIsMarkingComplete(true);
-
-      await updateVideoProgress(
-        {
-          lessonId: currentLesson.id,
-          courseId: courseId,
-          completed: true,
-        },
-        session.user.accessToken
-      );
-
+      await progressApi.updateVideo({ lessonId: currentLesson.id, completed: true });
       toast.success('Lesson marked as completed!');
-
-      // Reload data to update progress
-      await loadCourseData();
-    } catch (error) {
-      console.error('Error marking lesson as completed:', error);
-      toast.error('Failed to mark lesson as completed');
+      setAllLessons((prev) =>
+        prev.map((l) => (l.id === currentLesson.id ? { ...l, completed: true } : l))
+      );
+      setCurrentLesson((prev) => prev ? { ...prev, completed: true } : prev);
+      const newCompleted = allLessons.filter((l) => l.id === currentLesson.id ? true : l.completed).length;
+      const pct = allLessons.length > 0 ? Math.round((newCompleted / allLessons.length) * 100) : 0;
+      setOverallProgress(pct);
+    } catch {
+      toast.error('Failed to mark as completed');
     } finally {
       setIsMarkingComplete(false);
     }
   };
 
-  const navigateToLesson = (lesson: Lesson) => {
-    router.push(`/courses/${courseId}/lessons/${lesson.id}`);
+  const extractYouTubeId = (url: string) => {
+    const match = url.match(/(?:youtu\.be\/|v\/|embed\/|watch\?v=|&v=)([^#&?]{11})/);
+    return match?.[1] ?? null;
+  };
+
+  const toggleSection = (id: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
   };
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4'></div>
-          <p>Loading course...</p>
-        </div>
+      <div className="flex flex-col min-h-screen">
+        <MainNav />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-3" />
+            <p className="text-muted-foreground">Loading lesson...</p>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (!course || !currentLesson) {
     return (
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='text-center'>
-          <h2 className='text-2xl font-bold mb-4'>Lesson not found</h2>
-          <Button onClick={() => router.push(`/courses/${courseId}`)}>
-            Back to Course
-          </Button>
-        </div>
+      <div className="flex flex-col min-h-screen">
+        <MainNav />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-bold mb-4">Lesson not found</h2>
+            <Button onClick={() => router.push(`/courses/${courseId}`)}>Back to Course</Button>
+          </div>
+        </main>
       </div>
     );
   }
 
   const youtubeId = currentLesson.videoUrl ? extractYouTubeId(currentLesson.videoUrl) : null;
-  const completedLessons = course.lessons.filter((l) => l.completed).length;
-  const totalLessons = course.lessons.length;
+  const completedCount = allLessons.filter((l) => l.completed).length;
+  const allDone = completedCount === allLessons.length && allLessons.length > 0;
 
   return (
-    <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
-      {/* Main Video Player */}
-      <div className='lg:col-span-2'>
-        <Card>
-          <CardHeader>
-            <div className='flex items-center justify-between'>
+    <div className="flex flex-col min-h-screen bg-gray-50/30">
+      <MainNav />
+      <main className="flex-1 w-full">
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+            <div className="space-y-4">
               <Button
-                variant='ghost'
+                variant="ghost"
+                size="sm"
                 onClick={() => router.push(`/courses/${courseId}`)}
-                className='mb-4'
               >
-                <ArrowLeft className='h-4 w-4 mr-2' />
-                Back to Course
+                <ArrowLeft className="h-4 w-4 mr-1.5" /> Back to Course
               </Button>
 
-              {currentLesson.completed && (
-                <Badge variant='secondary' className='mb-4'>
-                  <CheckCircle className='h-4 w-4 mr-1' />
-                  Completed
-                </Badge>
-              )}
-            </div>
-
-            <CardTitle className='text-2xl'>{currentLesson.title}</CardTitle>
-
-            <div className='flex items-center gap-4 text-sm text-muted-foreground'>
-              <span>Lesson {currentLesson.order}</span>
-              <span>•</span>
-              <span>{course.title}</span>
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            {/* YouTube Video Player */}
-            {youtubeId ? (
-              <div className='relative w-full pb-[56.25%] mb-6'>
-                <iframe
-                  className='absolute top-0 left-0 w-full h-full rounded-lg'
-                  src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&origin=${window.location.origin}`}
-                  title={currentLesson.title}
-                  frameBorder='0'
-                  allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
-                  allowFullScreen
-                ></iframe>
-              </div>
-            ) : (
-              <div className='bg-gray-100 rounded-lg p-8 text-center mb-6'>
-                <PlayCircle className='h-16 w-16 mx-auto mb-4 text-gray-400' />
-                <p className='text-gray-600'>Video not available</p>
-              </div>
-            )}
-
-            {/* Lesson Content */}
-            {currentLesson.content && (
-              <div className='mb-6'>
-                <h3 className='text-lg font-semibold mb-3'>
-                  About this lesson
-                </h3>
-                <div className='prose max-w-none'>
-                  <p className='text-muted-foreground'>
-                    {currentLesson.content}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className='flex gap-3'>
-              {!currentLesson.completed && (
-                <Button
-                  onClick={markAsCompleted}
-                  disabled={isMarkingComplete}
-                  className='flex-1'
-                >
-                  {isMarkingComplete ? (
-                    <>
-                      <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
-                      Marking Complete...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className='h-4 w-4 mr-2' />
-                      Mark as Complete
-                    </>
-                  )}
-                </Button>
-              )}
-
-              {completedLessons === totalLessons && (
-                <Button
-                  variant='outline'
-                  onClick={() =>
-                    router.push(`/courses/${courseId}/certificate`)
-                  }
-                  className='flex-1 cursor-pointer'
-                >
-                  <Download className='h-4 w-4 mr-2' />
-                  Get Certificate
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Playlist Sidebar */}
-      <div className='lg:col-span-1'>
-        <Card>
-          <CardHeader>
-            <CardTitle>Course Progress</CardTitle>
-            <div className='space-y-2'>
-              <div className='flex justify-between text-sm'>
-                <span>Progress</span>
-                <span>
-                  {completedLessons}/{totalLessons} lessons
-                </span>
-              </div>
-              <Progress value={overallProgress} className='w-full' />
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            <div className='space-y-3'>
-              {course.lessons.map((lesson) => (
-                <div
-                  key={lesson.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    lesson.id === currentLesson.id
-                      ? 'bg-primary/5 border-primary'
-                      : 'hover:bg-gray-50'
-                  }`}
-                  onClick={() => navigateToLesson(lesson)}
-                >
-                  <div className='flex-shrink-0'>
-                    {lesson.completed ? (
-                      <CheckCircle className='h-5 w-5 text-green-600' />
-                    ) : lesson.videoUrl ? (
-                      <PlayCircle className='h-5 w-5 text-primary' />
-                    ) : (
-                      <Lock className='h-5 w-5 text-gray-400' />
+              <Card className="overflow-hidden">
+                {youtubeId ? (
+                  <div className="relative w-full pb-[56.25%] bg-black">
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full"
+                      src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1`}
+                      title={currentLesson.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : currentLesson.videoUrl ? (
+                  <div className="relative w-full pb-[56.25%] bg-black">
+                    <video
+                      className="absolute top-0 left-0 w-full h-full"
+                      controls
+                      src={currentLesson.videoUrl}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-56 bg-gray-100 flex items-center justify-center">
+                    <div className="text-center">
+                      <PlayCircle className="h-14 w-14 text-gray-300 mx-auto mb-2" />
+                      <p className="text-muted-foreground">No video for this lesson</p>
+                    </div>
+                  </div>
+                )}
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl">{currentLesson.title}</CardTitle>
+                    {currentLesson.completed && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500" /> Completed
+                      </Badge>
                     )}
                   </div>
-
-                  <div className='flex-1 min-w-0'>
-                    <p className='font-medium text-sm truncate'>
-                      {lesson.title}
-                    </p>
-                    <p className='text-xs text-muted-foreground'>
-                      Lesson {lesson.order}
-                    </p>
-                  </div>
-
-                  {lesson.watchTime && lesson.watchTime > 0 && (
-                    <div className='flex items-center text-xs text-muted-foreground'>
-                      <Clock className='h-3 w-3 mr-1' />
-                      {Math.floor(lesson.watchTime / 60)}m
+                  <p className="text-sm text-muted-foreground">{course.title}</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {currentLesson.content && (
+                    <div className="prose max-w-none text-sm text-muted-foreground">
+                      <p>{currentLesson.content}</p>
                     </div>
                   )}
-                </div>
-              ))}
+                  <div className="flex gap-3">
+                    {!currentLesson.completed && (
+                      <Button
+                        onClick={markAsCompleted}
+                        disabled={isMarkingComplete}
+                        className="flex-1"
+                      >
+                        {isMarkingComplete ? (
+                          <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" /> Saving...</>
+                        ) : (
+                          <><CheckCircle className="h-4 w-4 mr-2" /> Mark Complete</>
+                        )}
+                      </Button>
+                    )}
+                    {allDone && (
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push(`/courses/${courseId}/certificate`)}
+                        className="flex-1"
+                      >
+                        <Download className="h-4 w-4 mr-2" /> Get Certificate
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            <div>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Course Progress</CardTitle>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{completedCount}/{allLessons.length} lessons</span>
+                      <span>{Math.round(overallProgress)}%</span>
+                    </div>
+                    <Progress value={overallProgress} className="h-2" />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0 overflow-y-auto max-h-[60vh]">
+                  {(course.sections ?? []).map((section) => (
+                    <div key={section.id} className="border-b last:border-b-0">
+                      <button
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                        onClick={() => toggleSection(section.id)}
+                      >
+                        <span className="font-medium text-sm">{section.title}</span>
+                        {expandedSections.has(section.id) ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                      </button>
+                      {expandedSections.has(section.id) && (
+                        <div className="bg-gray-50/50">
+                          {(section.lessons ?? []).map((lesson) => {
+                            const lp = allLessons.find((l) => l.id === lesson.id);
+                            const isCurrent = lesson.id === currentLesson?.id;
+                            return (
+                              <button
+                                key={lesson.id}
+                                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+                                  isCurrent
+                                    ? 'bg-primary/10 text-primary border-r-2 border-primary'
+                                    : 'hover:bg-muted/50'
+                                }`}
+                                onClick={() => router.push(`/courses/${courseId}/lessons/${lesson.id}`)}
+                              >
+                                <div className="shrink-0">
+                                  {lp?.completed ? (
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                  ) : lesson.videoUrl ? (
+                                    <PlayCircle className={`h-4 w-4 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  ) : (
+                                    <Lock className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="truncate font-medium text-xs">{lesson.title}</p>
+                                  {lesson.duration && (
+                                    <p className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                      <Clock className="h-3 w-3" />
+                                      {lesson.duration} min
+                                    </p>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

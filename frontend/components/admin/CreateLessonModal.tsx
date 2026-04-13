@@ -70,7 +70,7 @@ export default function CreateLessonModal({
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     onSubmit({
       ...values,
-      courseId: parseInt(values.courseId),
+      sectionId: values.courseId,
     });
     form.reset();
   };
