@@ -28,6 +28,8 @@ model User {
   refreshTokens  RefreshToken[]
   submissions    Submission[]    @relation("StudentSubmissions")
   quizAttempts   QuizAttempt[]   @relation("QuizAttempts")
+  cartItems      CartItem[]
+  orders         Order[]
 }
 
 model RefreshToken {
@@ -52,6 +54,8 @@ model Course {
   updatedAt      DateTime        @updatedAt
   sections       Section[]
   enrollments    Enrollment[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
 }
 
 model Section {
@@ -184,6 +188,68 @@ model QuizAttempt {
   updatedAt   DateTime @updatedAt
 
   @@unique([quizId, studentId])
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
+
+model Coupon {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  discount  Float
+  maxUses   Int?
+  usedCount Int       @default(0)
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+  orders    Order[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  couponId   String?
+  coupon     Coupon?     @relation(fields: [couponId], references: [id])
+  totalPrice Float
+  finalPrice Float
+  status     String      @default("pending")
+  items      OrderItem[]
+  payment    Payment?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  price     Float
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id        String    @id @default(uuid())
+  orderId   String    @unique
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount    Float
+  status    String    @default("pending")
+  qrData    String?
+  txnRef    String?   @unique
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model VideoProgress {

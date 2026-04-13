@@ -14,6 +14,10 @@ import { SectionsModule } from './sections/sections.module';
 import { MaterialsModule } from './materials/materials.module';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
+import { CartModule } from './cart/cart.module';
+import { OrdersModule } from './orders/orders.module';
+import { PaymentsModule } from './payments/payments.module';
+import { CouponsModule } from './coupons/coupons.module';
 
 @Module({
   imports: [
@@ -30,6 +34,10 @@ import { QuizzesModule } from './quizzes/quizzes.module';
     AdminModule,
     AssignmentsModule,
     QuizzesModule,
+    CartModule,
+    OrdersModule,
+    PaymentsModule,
+    CouponsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,3 +7,7 @@ export * from './material.repository';
 export * from './assignment.repository';
 export * from './submission.repository';
 export * from './quiz.repository';
+export * from './cart.repository';
+export * from './order.repository';
+export * from './coupon.repository';
+export * from './payment.repository';
