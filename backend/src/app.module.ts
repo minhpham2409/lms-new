@@ -12,17 +12,18 @@ import { AdminModule } from './admin/admin.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SectionsModule } from './sections/sections.module';
 
+import { MaterialsModule } from './materials/materials.module';
+
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     UsersModule,
     CoursesModule,
     AuthModule,
     SectionsModule,
     LessonsModule,
+    MaterialsModule,
     EnrollmentsModule,
     ProgressModule,
     AdminModule,
@@ -30,4 +31,4 @@ import { SectionsModule } from './sections/sections.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule
+export class AppModule {}

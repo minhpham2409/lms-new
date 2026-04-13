@@ -78,8 +78,22 @@ model Lesson {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   videoProgress VideoProgress[]
+  materials     Material[]
 
   @@unique([sectionId, order])
+}
+
+model Material {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Enrollment {
