@@ -2,22 +2,28 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateCourseDto {
-  @ApiProperty({ description: 'Course title' })
+  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   title: string;
 
-  @ApiPropertyOptional({ description: 'Course description' })
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  description: string;
+  description?: string;
 
-  @ApiPropertyOptional({ description: 'Course price', example: 99.99 })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
   price?: number;
 
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  instructorId: string;
+  thumbnail?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  authorId?: string;
 }

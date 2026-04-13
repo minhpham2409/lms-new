@@ -17,14 +17,12 @@ export class AdminService {
 
   private async createSuperAdminIfNotExists() {
     const adminExists = await this.prisma.user.findFirst({
-      where: {
-        email: 'admin@admin.com',
-      },
+      where: { email: 'admin@admin.com' },
     });
 
     if (!adminExists) {
       const hashedPassword = await bcrypt.hash('password', 10);
-      const superAdmin = await this.prisma.user.create({
+      await this.prisma.user.create({
         data: {
           email: 'admin@admin.com',
           password: hashedPassword,
@@ -33,7 +31,6 @@ export class AdminService {
           username: 'admin',
         },
       });
-      console.log('Super admin created');
     }
   }
 
@@ -55,134 +52,83 @@ export class AdminService {
   async createUser(createUserDto: CreateUserDto) {
     const { email, password, role, username } = createUserDto;
 
-    // Check if user already exists
     const userExists = await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { email },
-          { username },
-        ],
-      },
+      where: { OR: [{ email }, { username }] },
     });
 
     if (userExists) {
-      throw new BadRequestException(
-        'User with this email or username already exists',
-      );
+      throw new BadRequestException('User with this email or username already exists');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await this.prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        role: role || 'student',
-        username,
-      },
+      data: { email, password: hashedPassword, role: role || 'student', username },
     });
 
-    // Remove password from response
     const { password: _, ...result } = user;
     return result;
   }
 
   async updateUser(id: string, updateData: any) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
 
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
 
-    return this.prisma.user.update({
-      where: { id },
-      data: updateData,
-    });
+    return this.prisma.user.update({ where: { id }, data: updateData });
   }
 
   async deleteUser(id: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    await this.prisma.user.delete({
-      where: { id },
-    });
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    await this.prisma.user.delete({ where: { id } });
   }
 
   async getAllCourses() {
     return this.prisma.course.findMany({
       include: {
         author: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
+          select: { id: true, username: true, email: true, firstName: true, lastName: true },
         },
-        lessons: true,
+        sections: {
+          include: { lessons: true },
+        },
       },
     });
   }
 
-  async createCourse(createCourseDto: CreateCourseDto) {
-    const { instructorId, ...courseData } = createCourseDto;
+  async createCourse(dto: CreateCourseDto) {
+    const authorId = dto.authorId;
+    if (!authorId) throw new BadRequestException('authorId is required');
 
-    const author = await this.prisma.user.findUnique({
-      where: { id: instructorId },
-    });
-    if (!author) {
-      throw new NotFoundException('Author not found');
-    }
+    const author = await this.prisma.user.findUnique({ where: { id: authorId } });
+    if (!author) throw new NotFoundException('Author not found');
 
     return this.prisma.course.create({
       data: {
-        title: courseData.title,
-        description: courseData.description,
-        price: courseData.price || 0,
-        authorId: instructorId,
+        title: dto.title,
+        description: dto.description,
+        price: dto.price || 0,
+        thumbnail: dto.thumbnail,
+        authorId,
       },
       include: {
         author: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
+          select: { id: true, username: true, email: true, firstName: true, lastName: true },
         },
       },
     });
   }
 
   async updateCourse(id: string, updateData: any) {
-    const course = await this.prisma.course.findUnique({
-      where: { id },
-    });
-
-    if (!course) {
-      throw new NotFoundException('Course not found');
-    }
+    const course = await this.prisma.course.findUnique({ where: { id } });
+    if (!course) throw new NotFoundException('Course not found');
 
     if (updateData.authorId) {
-      const author = await this.prisma.user.findUnique({
-        where: { id: updateData.authorId },
-      });
-      if (!author) {
-        throw new NotFoundException('Author not found');
-      }
+      const author = await this.prisma.user.findUnique({ where: { id: updateData.authorId } });
+      if (!author) throw new NotFoundException('Author not found');
     }
 
     return this.prisma.course.update({
@@ -190,30 +136,16 @@ export class AdminService {
       data: updateData,
       include: {
         author: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
+          select: { id: true, username: true, email: true, firstName: true, lastName: true },
         },
       },
     });
   }
 
   async deleteCourse(id: string): Promise<void> {
-    const course = await this.prisma.course.findUnique({
-      where: { id },
-    });
-
-    if (!course) {
-      throw new NotFoundException('Course not found');
-    }
-
-    await this.prisma.course.delete({
-      where: { id },
-    });
+    const course = await this.prisma.course.findUnique({ where: { id } });
+    if (!course) throw new NotFoundException('Course not found');
+    await this.prisma.course.delete({ where: { id } });
   }
 
   async getAllLessons() {
@@ -221,96 +153,59 @@ export class AdminService {
       include: {
         section: {
           include: {
-            course: {
-              select: {
-                id: true,
-                title: true,
-              },
-            },
+            course: { select: { id: true, title: true } },
           },
         },
       },
     });
   }
 
-  async createLesson(createLessonDto: CreateLessonDto) {
-    const { courseId, ...lessonData } = createLessonDto;
+  async createLesson(dto: CreateLessonDto) {
+    const section = await this.prisma.section.findUnique({ where: { id: dto.sectionId } });
+    if (!section) throw new NotFoundException('Section not found');
 
-    const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
-    });
-    if (!course) {
-      throw new NotFoundException('Course not found');
-    }
-
-    // Get the next order number for lessons in this course
-    const lessonsCount = await this.prisma.lesson.count({
-      where: { courseId: courseId },
+    const maxOrder = await this.prisma.lesson.findFirst({
+      where: { sectionId: dto.sectionId },
+      orderBy: { order: 'desc' },
+      select: { order: true },
     });
 
     return this.prisma.lesson.create({
       data: {
-        title: lessonData.title,
-        content: lessonData.description, // Map description to content
-        videoUrl: lessonData.videoUrl,
-        order: lessonsCount + 1, // Auto-increment order
-        courseId: courseId,
+        title: dto.title,
+        content: dto.content,
+        videoUrl: dto.videoUrl,
+        duration: dto.duration,
+        order: maxOrder ? maxOrder.order + 1 : 1,
+        sectionId: dto.sectionId,
       },
       include: {
-        course: {
-          select: {
-            id: true,
-            title: true,
-          },
+        section: {
+          include: { course: { select: { id: true, title: true } } },
         },
       },
     });
   }
 
   async updateLesson(id: string, updateData: any) {
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id },
-    });
-
-    if (!lesson) {
-      throw new NotFoundException('Lesson not found');
-    }
-
-    if (updateData.courseId) {
-      const course = await this.prisma.course.findUnique({
-        where: { id: updateData.courseId },
-      });
-      if (!course) {
-        throw new NotFoundException('Course not found');
-      }
-    }
+    const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+    if (!lesson) throw new NotFoundException('Lesson not found');
 
     return this.prisma.lesson.update({
       where: { id },
       data: updateData,
       include: {
-        course: {
-          select: {
-            id: true,
-            title: true,
-          },
+        section: {
+          include: { course: { select: { id: true, title: true } } },
         },
       },
     });
   }
 
   async deleteLesson(id: string): Promise<void> {
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id },
-    });
-
-    if (!lesson) {
-      throw new NotFoundException('Lesson not found');
-    }
-
-    await this.prisma.lesson.delete({
-      where: { id },
-    });
+    const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    await this.prisma.lesson.delete({ where: { id } });
   }
 
   async getDashboardStats() {

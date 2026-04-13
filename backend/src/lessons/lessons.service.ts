@@ -1,17 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class LessonsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: any) {
+  private async getSectionWithCourse(sectionId: string) {
     const section = await this.prisma.section.findUnique({
-      where: { id: data.sectionId },
+      where: { id: sectionId },
+      include: { course: true },
     });
+    if (!section) throw new NotFoundException('Section not found');
+    return section;
+  }
 
-    if (!section) {
-      throw new Error('Section not found');
+  async create(data: any, authorId: string) {
+    const section = await this.getSectionWithCourse(data.sectionId);
+    if (section.course.authorId !== authorId) {
+      throw new ForbiddenException('You can only add lessons to your own sections');
     }
 
     const maxOrder = await this.prisma.lesson.findFirst({
@@ -20,44 +26,45 @@ export class LessonsService {
       select: { order: true },
     });
 
-    const order = maxOrder ? maxOrder.order + 1 : 1;
-
     return this.prisma.lesson.create({
-      data: {
-        ...data,
-        order,
-      },
+      data: { ...data, order: maxOrder ? maxOrder.order + 1 : 1 },
     });
   }
 
   async findAll(sectionId?: string) {
-    if (sectionId) {
-      return this.prisma.lesson.findMany({
-        where: { sectionId },
-        orderBy: { order: 'asc' },
-      });
-    }
     return this.prisma.lesson.findMany({
+      where: sectionId ? { sectionId } : undefined,
       orderBy: { order: 'asc' },
     });
   }
 
-  async findOne(id: number) {
-    return this.prisma.lesson.findUnique({
-      where: { id: id.toString() },
-    });
+  async findOne(id: string) {
+    const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    return lesson;
   }
 
-  async update(id: number, data: any) {
-    return this.prisma.lesson.update({
-      where: { id: id.toString() },
-      data,
+  async update(id: string, data: any, authorId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id },
+      include: { section: { include: { course: true } } },
     });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    if (lesson.section.course.authorId !== authorId) {
+      throw new ForbiddenException('You can only update lessons in your own courses');
+    }
+    return this.prisma.lesson.update({ where: { id }, data });
   }
 
-  async remove(id: number) {
-    return this.prisma.lesson.delete({
-      where: { id: id.toString() },
+  async remove(id: string, authorId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id },
+      include: { section: { include: { course: true } } },
     });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    if (lesson.section.course.authorId !== authorId) {
+      throw new ForbiddenException('You can only delete lessons in your own courses');
+    }
+    return this.prisma.lesson.delete({ where: { id } });
   }
 }

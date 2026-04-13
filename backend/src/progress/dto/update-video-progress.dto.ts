@@ -4,9 +4,6 @@ export class UpdateVideoProgressDto {
   @IsString()
   lessonId: string;
 
-  @IsString()
-  courseId: string;
-
   @IsNumber()
   @IsOptional()
   watchTime?: number;
