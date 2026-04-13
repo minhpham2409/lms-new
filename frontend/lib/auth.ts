@@ -26,30 +26,27 @@ export const authOptions: AuthOptions = {
           const data = response.data;
 
           if (data && data.access_token) {
-            // Return user with token that we'll use to set in the session
             return {
               id: data.user.id.toString(),
               email: data.user.email,
               name: data.user.username,
               role: data.user.role,
               accessToken: data.access_token,
+              refreshToken: data.refresh_token,
+              firstName: data.user.firstName,
+              lastName: data.user.lastName,
             };
           }
 
           return null;
         } catch (error: unknown) {
-          // Handle errors from the API
           if (axios.isAxiosError(error) && error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
             const message =
               error.response.data?.message || error.response.statusText;
             throw new Error(message);
           } else if (axios.isAxiosError(error) && error.request) {
-            // The request was made but no response was received
             throw new Error('No response received from authentication server');
           } else {
-            // Something happened in setting up the request
             throw new Error(error instanceof Error ? error.message : 'Authentication failed');
           }
         }
@@ -58,13 +55,15 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Initial sign in
       if (user) {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
         token.accessToken = user.accessToken;
+        token.refreshToken = user.refreshToken;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
       }
       return token;
     },
@@ -74,7 +73,10 @@ export const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.role = token.role as string;
+        session.user.firstName = token.firstName as string;
+        session.user.lastName = token.lastName as string;
         session.accessToken = token.accessToken as string;
+        session.refreshToken = token.refreshToken as string;
       }
       return session;
     },
@@ -85,7 +87,7 @@ export const authOptions: AuthOptions = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 24 * 60 * 60, // 1 day
   },
   secret:
     process.env.NEXTAUTH_SECRET || 'your-secret-here-replace-in-production',

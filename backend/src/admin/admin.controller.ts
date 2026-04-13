@@ -6,9 +6,9 @@ import { CreateCourseDto } from '../courses/dto/create-course.dto';
 import { UpdateCourseDto } from '../courses/dto/update-course.dto';
 import { CreateLessonDto } from '../lessons/dto/create-lesson.dto';
 import { UpdateLessonDto } from '../lessons/dto/update-lesson.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import RolesGuard from '../auth/guards/roles.guard';
-import Roles from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)

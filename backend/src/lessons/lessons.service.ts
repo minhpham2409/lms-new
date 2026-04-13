@@ -10,7 +10,7 @@ export class LessonsService {
     const maxOrder = await this.prisma.lesson.findFirst({
       where: { courseId: data.courseId },
       orderBy: { order: 'desc' },
-      select: { order: true }
+      select: { order: true },
     });
 
     const order = maxOrder ? maxOrder.order + 1 : 1;
@@ -18,15 +18,15 @@ export class LessonsService {
     return this.prisma.lesson.create({
       data: {
         ...data,
-        order
-      }
+        order,
+      },
     });
   }
 
   async findAll(courseId: number) {
     return this.prisma.lesson.findMany({
       where: { courseId: courseId.toString() },
-      orderBy: { order: 'asc' }
+      orderBy: { order: 'asc' },
     });
   }
 

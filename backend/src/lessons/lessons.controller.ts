@@ -1,6 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { LessonsService } from './lessons.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('lessons')
 export class LessonsController {
@@ -13,7 +23,10 @@ export class LessonsController {
   }
 
   @Get()
-  findAll(@Query('courseId') courseId: string) {
+  findAll(
+    @Query('courseId')
+    courseId: string,
+  ) {
     return this.lessonsService.findAll(+courseId);
   }
 
