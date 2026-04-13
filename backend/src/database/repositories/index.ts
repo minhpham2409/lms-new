@@ -4,3 +4,6 @@ export * from './refresh-token.repository';
 export * from './course.repository';
 export * from './section.repository';
 export * from './material.repository';
+export * from './assignment.repository';
+export * from './submission.repository';
+export * from './quiz.repository';

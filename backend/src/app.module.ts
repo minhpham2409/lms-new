@@ -11,8 +11,9 @@ import { ProgressModule } from './progress/progress.module';
 import { AdminModule } from './admin/admin.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SectionsModule } from './sections/sections.module';
-
 import { MaterialsModule } from './materials/materials.module';
+import { AssignmentsModule } from './assignments/assignments.module';
+import { QuizzesModule } from './quizzes/quizzes.module';
 
 @Module({
   imports: [
@@ -27,6 +28,8 @@ import { MaterialsModule } from './materials/materials.module';
     EnrollmentsModule,
     ProgressModule,
     AdminModule,
+    AssignmentsModule,
+    QuizzesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

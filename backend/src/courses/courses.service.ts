@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { CourseRepository } from '../database/repositories';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -24,14 +28,16 @@ export class CoursesService {
   async update(id: string, dto: UpdateCourseDto, authorId: string) {
     const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
-    if (course.authorId !== authorId) throw new ForbiddenException('You can only update your own courses');
+    if (course.authorId !== authorId)
+      throw new ForbiddenException('You can only update your own courses');
     return this.courseRepository.update(id, dto);
   }
 
   async remove(id: string, authorId: string) {
     const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
-    if (course.authorId !== authorId) throw new ForbiddenException('You can only delete your own courses');
+    if (course.authorId !== authorId)
+      throw new ForbiddenException('You can only delete your own courses');
     return this.courseRepository.delete(id);
   }
 
@@ -46,8 +52,12 @@ export class CoursesService {
   async submitForReview(id: string, authorId: string) {
     const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
-    if (course.authorId !== authorId) throw new ForbiddenException('You can only submit your own courses');
-    if (course.status !== 'draft') throw new ForbiddenException('Only draft courses can be submitted for review');
+    if (course.authorId !== authorId)
+      throw new ForbiddenException('You can only submit your own courses');
+    if (course.status !== 'draft')
+      throw new ForbiddenException(
+        'Only draft courses can be submitted for review',
+      );
     return this.courseRepository.update(id, { status: 'pending' });
   }
 }

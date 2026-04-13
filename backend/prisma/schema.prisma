@@ -26,6 +26,8 @@ model User {
   courses        Course[]        @relation("AuthoredCourses")
   videoProgress  VideoProgress[]
   refreshTokens  RefreshToken[]
+  submissions    Submission[]    @relation("StudentSubmissions")
+  quizAttempts   QuizAttempt[]   @relation("QuizAttempts")
 }
 
 model RefreshToken {
@@ -79,6 +81,7 @@ model Lesson {
   updatedAt     DateTime        @updatedAt
   videoProgress VideoProgress[]
   materials     Material[]
+  assignments   Assignment[]
 
   @@unique([sectionId, order])
 }
@@ -108,6 +111,79 @@ model Enrollment {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, courseId])
+}
+
+model Assignment {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  type        String       @default("essay")
+  lessonId    String
+  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  dueDate     DateTime?
+  maxScore    Float        @default(100)
+  minScore    Float        @default(0)
+  submissions Submission[]
+  quiz        Quiz?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User       @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  content      String?
+  fileUrl      String?
+  score        Float?
+  feedback     String?
+  status       String     @default("pending")
+  gradedAt     DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([assignmentId, studentId])
+}
+
+model Quiz {
+  id           String       @id @default(uuid())
+  assignmentId String       @unique
+  assignment   Assignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  timeLimit    Int?
+  questions    Question[]
+  attempts     QuizAttempt[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  quizId    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  content   String
+  options   String
+  answer    String
+  score     Float    @default(1)
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QuizAttempt {
+  id          String   @id @default(uuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User     @relation("QuizAttempts", fields: [studentId], references: [id], onDelete: Cascade)
+  answers     String
+  score       Float
+  maxScore    Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([quizId, studentId])
 }
 
 model VideoProgress {
