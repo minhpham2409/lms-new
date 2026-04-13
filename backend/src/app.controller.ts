@@ -7,8 +7,8 @@ import {
   Body,
 } from '@nestjs/common';
 import { AuthService } from './auth/auth.service';
-import { LocalAuthGuard } from './auth/guards/local-auth.guard';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { LocalAuthGuard } from './common/guards/local-auth.guard';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AppService } from './app.service';
 
 @Controller()

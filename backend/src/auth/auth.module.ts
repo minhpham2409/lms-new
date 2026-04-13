@@ -8,6 +8,8 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
 import { PrismaModule } from '../prisma/prisma.module';
+import { UserRepository, RefreshTokenRepository } from '../database/repositories';
+import { JwtTokenService, PasswordService, TokenManagerService } from './services';
 
 @Module({
   imports: [
@@ -20,7 +22,16 @@ import { PrismaModule } from '../prisma/prisma.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
-  exports: [AuthService],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    UserRepository,
+    RefreshTokenRepository,
+    JwtTokenService,
+    PasswordService,
+    TokenManagerService,
+  ],
+  exports: [AuthService, JwtTokenService, PasswordService],
 })
 export class AuthModule {}

@@ -12,9 +12,9 @@ import {
   ValidationPipe
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { GetUser } from './decorators/get-user.decorator';
+import { LocalAuthGuard } from '../common/guards/local-auth.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { GetUser } from '../common/decorators/get-user.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';

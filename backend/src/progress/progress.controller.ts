@@ -1,6 +1,6 @@
 import { Controller, Get, Put, Body, Param, Request, UseGuards } from '@nestjs/common';
 import ProgressService from './progress.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateVideoProgressDto } from './dto/update-video-progress.dto';
 

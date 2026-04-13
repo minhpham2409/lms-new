@@ -1,0 +1,24 @@
+export const AUTH_CONSTANTS = {
+  JWT_ACCESS_TOKEN_EXPIRY: '1d',
+  JWT_REFRESH_TOKEN_EXPIRY: '7d',
+  PASSWORD_RESET_TOKEN_EXPIRY: '1h',
+  BCRYPT_SALT_ROUNDS: 10,
+  MIN_PASSWORD_LENGTH: 6,
+} as const;
+
+export const PAGINATION_CONSTANTS = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 10,
+  MAX_LIMIT: 100,
+} as const;
+
+export const VIDEO_CONSTANTS = {
+  MIN_COMPLETION_PERCENT: 80,
+  ALLOWED_VIDEO_FORMATS: ['mp4', 'webm', 'mov'],
+  MAX_VIDEO_SIZE_MB: 500,
+} as const;
+
+export const FILE_CONSTANTS = {
+  ALLOWED_DOCUMENT_FORMATS: ['pdf', 'docx', 'pptx', 'xlsx'],
+  MAX_DOCUMENT_SIZE_MB: 10,
+} as const;
