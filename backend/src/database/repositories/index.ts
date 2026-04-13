@@ -11,3 +11,8 @@ export * from './cart.repository';
 export * from './order.repository';
 export * from './coupon.repository';
 export * from './payment.repository';
+export * from './review.repository';
+export * from './comment.repository';
+export * from './notification.repository';
+export * from './certificate.repository';
+export * from './parent-child.repository';

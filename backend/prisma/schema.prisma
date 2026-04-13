@@ -30,6 +30,12 @@ model User {
   quizAttempts   QuizAttempt[]   @relation("QuizAttempts")
   cartItems      CartItem[]
   orders         Order[]
+  reviews        Review[]        @relation("UserReviews")
+  comments       Comment[]       @relation("UserComments")
+  notifications  Notification[]
+  certificates   Certificate[]
+  parentLinks    ParentChild[]   @relation("ParentRelations")
+  childLinks     ParentChild[]   @relation("ChildRelations")
 }
 
 model RefreshToken {
@@ -56,6 +62,8 @@ model Course {
   enrollments    Enrollment[]
   cartItems      CartItem[]
   orderItems     OrderItem[]
+  reviews        Review[]
+  certificates   Certificate[]
 }
 
 model Section {
@@ -86,6 +94,7 @@ model Lesson {
   videoProgress VideoProgress[]
   materials     Material[]
   assignments   Assignment[]
+  comments      Comment[]
 
   @@unique([sectionId, order])
 }
@@ -250,6 +259,73 @@ model Payment {
   paidAt    DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, userId])
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  lessonId  String
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation("UserComments", fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String   @default("info")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Certificate {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  code     String   @unique
+  issuedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+}
+
+model ParentChild {
+  id        String   @id @default(uuid())
+  parentId  String
+  parent    User     @relation("ParentRelations", fields: [parentId], references: [id], onDelete: Cascade)
+  childId   String
+  child     User     @relation("ChildRelations", fields: [childId], references: [id], onDelete: Cascade)
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([parentId, childId])
 }
 
 model VideoProgress {

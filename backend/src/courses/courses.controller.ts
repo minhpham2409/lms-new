@@ -18,10 +18,15 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { GetUser } from '../common/decorators/get-user.decorator';
 
+import { ReviewsService } from '../reviews/reviews.service';
+
 @ApiTags('Courses')
 @Controller('courses')
 export class CoursesController {
-  constructor(private readonly coursesService: CoursesService) {}
+  constructor(
+    private readonly coursesService: CoursesService,
+    private readonly reviewsService: ReviewsService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -82,6 +87,13 @@ export class CoursesController {
   @ApiResponse({ status: 200, description: 'Course submitted for review' })
   submitReview(@Param('id') id: string, @GetUser() user: any) {
     return this.coursesService.submitForReview(id, user.id);
+  }
+
+  @Get(':id/reviews')
+  @ApiOperation({ summary: 'Get reviews for course' })
+  @ApiResponse({ status: 200, description: 'Reviews retrieved' })
+  getReviews(@Param('id') id: string) {
+    return this.reviewsService.findByCourse(id);
   }
 
   @Delete(':id')

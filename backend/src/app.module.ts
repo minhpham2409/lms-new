@@ -18,6 +18,11 @@ import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { CouponsModule } from './coupons/coupons.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { CommentsModule } from './comments/comments.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { CertificatesModule } from './certificates/certificates.module';
+import { ParentsModule } from './parents/parents.module';
 
 @Module({
   imports: [
@@ -38,6 +43,11 @@ import { CouponsModule } from './coupons/coupons.module';
     OrdersModule,
     PaymentsModule,
     CouponsModule,
+    ReviewsModule,
+    CommentsModule,
+    NotificationsModule,
+    CertificatesModule,
+    ParentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
