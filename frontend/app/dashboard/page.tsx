@@ -98,7 +98,7 @@ export default function DashboardPage() {
   const handleAcceptInvite = async (id: string) => {
     setAcceptingId(id);
     try {
-      await parentsApi.acceptParentLink(id);
+      await parentsApi.acceptIncomingLink(id);
       toast.success('Chấp nhận lời mời từ phụ huynh');
       setParentInvites((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
@@ -113,7 +113,7 @@ export default function DashboardPage() {
   const handleRejectInvite = async (id: string) => {
     setRejectingId(id);
     try {
-      await parentsApi.rejectParentLink(id);
+      await parentsApi.rejectIncomingLink(id);
       toast.success('Từ chối lời mời từ phụ huynh');
       setParentInvites((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
