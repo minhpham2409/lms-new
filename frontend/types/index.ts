@@ -153,6 +153,7 @@ export interface Coupon {
 export interface Order {
   id: string;
   userId: string;
+  user?: User;
   couponId?: string;
   totalPrice: number;
   finalPrice: number;
@@ -226,8 +227,56 @@ export interface ParentChild {
   parentId: string;
   childId: string;
   status: 'pending' | 'accepted';
+  createdAt?: string;
+  updatedAt?: string;
   child?: User;
   parent?: User;
+}
+
+/** GET /parents/children/:id/dashboard */
+export interface ParentChildDashboardEnrollment {
+  id: string;
+  userId: string;
+  courseId: string;
+  status: string;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+  course: Course & {
+    description?: string | null;
+    price?: number;
+    status?: string;
+    thumbnail?: string | null;
+    author: {
+      id: string;
+      username: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      email?: string;
+    };
+    _count: { sections: number };
+  };
+  stats: { totalLessons: number; completedLessons: number };
+}
+
+export interface ParentChildDashboard {
+  child: {
+    id: string;
+    username: string;
+    email: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    createdAt: string;
+    isActive: boolean;
+  };
+  link: { id: string; linkedAt: string; updatedAt: string };
+  enrollments: ParentChildDashboardEnrollment[];
+  certificates: Certificate[];
+  activity: {
+    quizAttempts: number;
+    assignmentSubmissions: number;
+    videoLessonsCompleted: number;
+  };
 }
 
 export interface CreateCourseData {

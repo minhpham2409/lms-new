@@ -7,6 +7,7 @@ import type {
   Review, Comment, Notification, Certificate, ParentChild, User,
   CreateCourseData, UpdateCourseData, CreateSectionData,
   CreateLessonData, UpdateLessonData, ProgressData,
+  ParentChildDashboard,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -38,7 +39,7 @@ api.interceptors.response.use(
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  register: (data: { username: string; email: string; password: string; firstName?: string; lastName?: string }) =>
+  register: (data: { username: string; email: string; password: string; firstName?: string; lastName?: string; role?: string }) =>
     api.post('/auth/register', data).then(r => r.data),
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data).then(r => r.data),
@@ -58,7 +59,9 @@ export const coursesApi = {
   search: (q: string): Promise<Course[]> =>
     api.get(`/courses/search?q=${encodeURIComponent(q)}`).then(r => r.data),
   getMyCourses: (): Promise<Course[]> =>
-    api.get('/courses/my-courses').then(r => r.data),
+    api.get('/courses/my').then(r => r.data),
+  getTeacherStats: () =>
+    api.get('/courses/my/stats').then(r => r.data),
   getById: (id: string): Promise<Course> =>
     api.get(`/courses/${id}`).then(r => r.data),
   create: (data: CreateCourseData): Promise<Course> =>
@@ -84,6 +87,10 @@ export const sectionsApi = {
     api.put(`/sections/${id}`, data).then(r => r.data),
   delete: (id: string) =>
     api.delete(`/sections/${id}`).then(r => r.data),
+  reorder: (courseId: string, sections: { id: string; order: number }[]) =>
+    api
+      .post(`/sections/reorder?courseId=${encodeURIComponent(courseId)}`, { sections })
+      .then((r) => r.data),
 };
 
 // ─── Lessons ─────────────────────────────────────────────────────────────────
@@ -107,7 +114,7 @@ export const enrollmentsApi = {
   enroll: (courseId: string): Promise<Enrollment> =>
     api.post('/enrollments', { courseId }).then(r => r.data),
   checkStatus: (courseId: string): Promise<{ enrolled: boolean }> =>
-    api.get(`/enrollments/${courseId}/status`).then(r => r.data),
+    api.get(`/enrollments/${courseId}/status`).then(r => ({ enrolled: r.data.isEnrolled ?? r.data.enrolled ?? false })),
   unenroll: (courseId: string) =>
     api.delete(`/enrollments/${courseId}`).then(r => r.data),
 };
@@ -140,8 +147,11 @@ export const assignmentsApi = {
     api.post(`/assignments/${id}/submit`, data).then(r => r.data),
   getSubmissions: (id: string): Promise<Submission[]> =>
     api.get(`/assignments/${id}/submissions`).then(r => r.data),
-  gradeSubmission: (assignmentId: string, submissionId: string, data: { score: number; feedback?: string }): Promise<Submission> =>
-    api.put(`/assignments/${assignmentId}/submissions/${submissionId}/grade`, data).then(r => r.data),
+  /** Student: own essay submission or null */
+  getMySubmission: (assignmentId: string): Promise<Submission | null> =>
+    api.get(`/assignments/${assignmentId}/my-submission`).then(r => r.data),
+  gradeSubmission: (_assignmentId: string, submissionId: string, data: { score: number; feedback?: string }): Promise<Submission> =>
+    api.put(`/submissions/${submissionId}/grade`, data).then(r => r.data),
 };
 
 // ─── Quizzes ─────────────────────────────────────────────────────────────────
@@ -149,34 +159,39 @@ export const assignmentsApi = {
 export const quizzesApi = {
   create: (data: { assignmentId: string; timeLimit?: number }): Promise<Quiz> =>
     api.post('/quizzes', data).then(r => r.data),
-  addQuestion: (quizId: string, data: { content: string; options: string[]; answer: string; score?: number }): Promise<Question> =>
-    api.post(`/quizzes/${quizId}/questions`, data).then(r => r.data),
+  addQuestion: (quizId: string, data: { content: string; options: { id: string; text: string }[]; answer: string; score?: number }): Promise<Question> =>
+    api.post('/questions', { quizId, ...data }).then(r => r.data),
   getById: (id: string): Promise<Quiz> =>
     api.get(`/quizzes/${id}`).then(r => r.data),
-  submit: (id: string, data: { answers: Record<string, string> }): Promise<QuizAttempt> =>
+  submit: (id: string, data: { answers: { questionId: string; answerId: string }[] }): Promise<QuizAttempt> =>
     api.post(`/quizzes/${id}/submit`, data).then(r => r.data),
   getResult: (id: string): Promise<QuizAttempt & { breakdown: { question: string; correct: boolean; score: number }[] }> =>
     api.get(`/quizzes/${id}/result`).then(r => r.data),
+  /** Teacher/admin: all attempts with scores */
+  getAttempts: (quizId: string): Promise<
+    (QuizAttempt & { student?: User; createdAt?: string })[]
+  > =>
+    api.get(`/quizzes/${quizId}/attempts`).then(r => r.data),
 };
 
 // ─── Cart ─────────────────────────────────────────────────────────────────────
 
 export const cartApi = {
   get: (): Promise<CartItem[]> =>
-    api.get('/cart').then(r => r.data),
+    api.get('/cart').then(r => r.data.items || []),
   addItem: (courseId: string): Promise<CartItem> =>
-    api.post('/cart', { courseId }).then(r => r.data),
-  removeItem: (courseId: string) =>
-    api.delete(`/cart/${courseId}`).then(r => r.data),
+    api.post('/cart/add', { courseId }).then(r => r.data),
+  removeItem: (itemId: string) =>
+    api.delete(`/cart/item/${itemId}`).then(r => r.data),
   applyCoupon: (data: { couponCode: string; courseIds: string[] }): Promise<CouponPreview> =>
-    api.post('/cart/apply-coupon', data).then(r => r.data),
+    api.post('/cart/apply-coupon', { code: data.couponCode }).then(r => r.data),
 };
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
 export const ordersApi = {
-  getAll: (): Promise<Order[]> =>
-    api.get('/orders').then(r => r.data),
+  getMine: (): Promise<Order[]> =>
+    api.get('/orders/me').then(r => r.data),
   getById: (id: string): Promise<Order> =>
     api.get(`/orders/${id}`).then(r => r.data),
   create: (data: { courseIds: string[]; couponCode?: string }): Promise<Order> =>
@@ -186,10 +201,11 @@ export const ordersApi = {
 // ─── Payments ─────────────────────────────────────────────────────────────────
 
 export const paymentsApi = {
-  createQr: (orderId: string): Promise<Payment> =>
-    api.post('/payments/qr', { orderId }).then(r => r.data),
-  getStatus: (orderId: string): Promise<Payment> =>
-    api.get(`/payments/${orderId}`).then(r => r.data),
+  /** Reuses existing pending QR unless forceRegenerate is true */
+  createQr: (orderId: string, opts?: { forceRegenerate?: boolean }): Promise<Payment> =>
+    api
+      .post('/payments/qr', { orderId, forceRegenerate: opts?.forceRegenerate === true })
+      .then(r => r.data),
 };
 
 // ─── Coupons ──────────────────────────────────────────────────────────────────
@@ -209,7 +225,7 @@ export const couponsApi = {
 
 export const reviewsApi = {
   getByCourse: (courseId: string): Promise<Review[]> =>
-    api.get(`/reviews?courseId=${courseId}`).then(r => r.data),
+    api.get(`/courses/${courseId}/reviews`).then(r => r.data),
   create: (data: { courseId: string; rating: number; comment?: string }): Promise<Review> =>
     api.post('/reviews', data).then(r => r.data),
   update: (id: string, data: { rating?: number; comment?: string }): Promise<Review> =>
@@ -222,13 +238,17 @@ export const reviewsApi = {
 
 export const commentsApi = {
   getByLesson: (lessonId: string): Promise<Comment[]> =>
-    api.get(`/comments?lessonId=${lessonId}`).then(r => r.data),
-  create: (data: { lessonId: string; content: string; parentId?: string }): Promise<Comment> =>
-    api.post('/comments', data).then(r => r.data),
-  update: (id: string, data: { content: string }): Promise<Comment> =>
-    api.put(`/comments/${id}`, data).then(r => r.data),
-  delete: (id: string) =>
-    api.delete(`/comments/${id}`).then(r => r.data),
+    api.get(`/lessons/${lessonId}/comments`).then(r => r.data),
+  create: (lessonId: string, data: { content: string }): Promise<Comment> =>
+    api.post(`/lessons/${lessonId}/comments`, data).then(r => r.data),
+  reply: (
+    lessonId: string,
+    commentId: string,
+    data: { content: string },
+  ): Promise<Comment> =>
+    api
+      .post(`/lessons/${lessonId}/comments/${commentId}/reply`, data)
+      .then((r) => r.data),
 };
 
 // ─── Notifications ────────────────────────────────────────────────────────────
@@ -258,18 +278,65 @@ export const certificatesApi = {
 // ─── Parents ──────────────────────────────────────────────────────────────────
 
 export const parentsApi = {
-  linkChild: (childId: string): Promise<ParentChild> =>
-    api.post('/parents/link', { childId }).then(r => r.data),
-  acceptLink: (parentId: string): Promise<ParentChild> =>
-    api.put(`/parents/accept/${parentId}`).then(r => r.data),
+  /** Student UUID, email, or username (email/username easier than copying UUID). */
+  linkChild: (identifier: string): Promise<ParentChild> =>
+    api.post('/parents/link-child', { identifier }).then(r => r.data),
+  /** Student accepts a pending parent link (link row id). */
+  acceptIncomingLink: (linkId: string): Promise<ParentChild> =>
+    api.post(`/parents/link-request/${linkId}/accept`).then(r => r.data),
+  /** Student declines a pending parent link. */
+  rejectIncomingLink: (linkId: string): Promise<{ success: boolean }> =>
+    api.post(`/parents/link-request/${linkId}/reject`).then(r => r.data),
   getChildren: (): Promise<ParentChild[]> =>
-    api.get('/parents/children').then(r => r.data),
-  getPendingRequests: (): Promise<ParentChild[]> =>
-    api.get('/parents/pending').then(r => r.data),
-  getChildProgress: (childId: string): Promise<ProgressData[]> =>
+    api.get('/parents/me/children').then(r => r.data),
+  /** Parent: requests waiting for the student to accept. */
+  getOutgoingPending: (): Promise<ParentChild[]> =>
+    api.get('/parents/link-requests/outgoing').then(r => r.data),
+  /** Student: pending parent link requests. */
+  getIncomingForStudent: (): Promise<ParentChild[]> =>
+    api.get('/parents/link-requests/incoming').then(r => r.data),
+  /** Parent cancels own pending link request. */
+  cancelOutgoingRequest: (linkId: string): Promise<{ success: boolean }> =>
+    api.delete(`/parents/link-requests/${linkId}`).then(r => r.data),
+  /** Parent removes link after acceptance. */
+  unlinkChild: (childId: string): Promise<{ success: boolean }> =>
+    api.delete(`/parents/children/${childId}/link`).then(r => r.data),
+  /** Enrollments / progress snapshot for linked child (same shape as enrollments). */
+  getChildProgress: (childId: string): Promise<Enrollment[]> =>
     api.get(`/parents/children/${childId}/progress`).then(r => r.data),
   getChildCourses: (childId: string): Promise<Enrollment[]> =>
     api.get(`/parents/children/${childId}/courses`).then(r => r.data),
+  getChildDashboard: (childId: string): Promise<ParentChildDashboard> =>
+    api.get(`/parents/children/${childId}/dashboard`).then(r => r.data),
+};
+
+/** Lesson file attachments (teacher). */
+export const materialsApi = {
+  listByLesson: (lessonId: string) =>
+    api.get(`/materials?lessonId=${encodeURIComponent(lessonId)}`).then(r => r.data),
+  getById: (id: string) => api.get(`/materials/${id}`).then(r => r.data),
+  create: (data: {
+    title: string;
+    fileUrl: string;
+    fileType: string;
+    fileSize: number;
+    lessonId: string;
+    description?: string;
+  }) => api.post('/materials', data).then(r => r.data),
+  update: (id: string, data: Partial<{ title: string; description: string; fileUrl: string }>) =>
+    api.patch(`/materials/${id}`, data).then(r => r.data),
+  delete: (id: string) => api.delete(`/materials/${id}`).then(r => r.data),
+};
+
+/** Grouped re-exports for teacher course authoring (all map to existing modules). */
+export const teacherToolkit = {
+  courses: coursesApi,
+  sections: sectionsApi,
+  lessons: lessonsApi,
+  assignments: assignmentsApi,
+  quizzes: quizzesApi,
+  materials: materialsApi,
+  reviews: reviewsApi,
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -277,12 +344,14 @@ export const parentsApi = {
 export const adminApi = {
   getDashboard: () =>
     api.get('/admin/dashboard').then(r => r.data),
+  getOrders: (): Promise<Order[]> =>
+    api.get('/admin/orders').then(r => r.data),
   getUsers: (): Promise<User[]> =>
     api.get('/admin/users').then(r => r.data),
   createUser: (data: { username: string; email: string; password: string; role?: string }) =>
     api.post('/admin/users', data).then(r => r.data),
   updateUser: (id: string, data: Partial<User>) =>
-    api.put(`/admin/users/${id}`, data).then(r => r.data),
+    api.patch(`/admin/users/${id}`, data).then(r => r.data),
   deleteUser: (id: string) =>
     api.delete(`/admin/users/${id}`).then(r => r.data),
   getCourses: (): Promise<Course[]> =>
@@ -295,10 +364,8 @@ export const adminApi = {
     api.delete(`/admin/courses/${id}`).then(r => r.data),
   publishCourse: (id: string) =>
     api.put(`/admin/courses/${id}/publish`).then(r => r.data),
-  createSection: (courseId: string, data: CreateSectionData): Promise<Section> =>
-    api.post(`/admin/courses/${courseId}/sections`, data).then(r => r.data),
-  createLesson: (sectionId: string, data: Omit<CreateLessonData, 'sectionId'>): Promise<Lesson> =>
-    api.post(`/admin/sections/${sectionId}/lessons`, data).then(r => r.data),
+  rejectCourse: (id: string) =>
+    api.put(`/admin/courses/${id}/reject`).then(r => r.data),
 };
 
 export default api;

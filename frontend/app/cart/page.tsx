@@ -2,11 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { MainNav } from '@/components/layout/main-nav';
-import { Footer } from '@/components/layout/footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,21 +25,40 @@ export default function CartPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'unauthenticated') redirect('/auth/signin');
-  }, [status]);
+    if (status === 'unauthenticated') {
+      setLoading(false);
+      router.push('/auth/signin');
+    }
+  }, [status, router]);
 
   useEffect(() => {
+    if (status !== 'authenticated') return;
+    const r = session?.user?.role;
+    if (r === 'teacher') {
+      setLoading(false);
+      router.replace('/teacher');
+    } else if (r === 'parent') {
+      setLoading(false);
+      router.replace('/parent');
+    }
+  }, [status, session?.user?.role, router]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    const r = session?.user?.role;
+    if (r === 'teacher' || r === 'parent') return;
     if (!session?.accessToken) return;
-    cartApi.get()
+    cartApi
+      .get()
       .then(setItems)
       .catch(() => toast.error('Failed to load cart'))
       .finally(() => setLoading(false));
-  }, [session?.accessToken]);
+  }, [session?.accessToken, status, session?.user?.role]);
 
-  const removeItem = async (courseId: string) => {
+  const removeItem = async (itemId: string) => {
     try {
-      await cartApi.removeItem(courseId);
-      setItems((prev) => prev.filter((i) => i.courseId !== courseId));
+      await cartApi.removeItem(itemId);
+      setItems((prev) => prev.filter((i) => i.id !== itemId));
       setCouponPreview(null);
       toast.success('Removed from cart');
     } catch {
@@ -85,26 +101,24 @@ export default function CartPage() {
   };
 
   const totalPrice = items.reduce((acc, i) => acc + (i.course?.price ?? 0), 0);
-  const finalPrice = couponPreview ? couponPreview.finalTotal : totalPrice;
-  const savings = totalPrice - finalPrice;
+  const safeFinal =
+    couponPreview != null &&
+    typeof couponPreview.finalTotal === 'number' &&
+    !Number.isNaN(couponPreview.finalTotal)
+      ? couponPreview.finalTotal
+      : totalPrice;
+  const savings = Math.max(0, totalPrice - safeFinal);
 
   if (status === 'loading' || loading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <MainNav />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </main>
-        <Footer />
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50">
-      <MainNav />
-      <main className="flex-1 w-full">
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="mx-auto max-w-6xl w-full">
           <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <ShoppingCart className="h-6 w-6" /> Shopping Cart
             {items.length > 0 && (
@@ -158,7 +172,7 @@ export default function CartPage() {
                         variant="ghost"
                         size="icon"
                         className="text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
-                        onClick={() => removeItem(item.courseId)}
+                        onClick={() => removeItem(item.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -188,7 +202,7 @@ export default function CartPage() {
                     <Separator />
                     <div className="flex justify-between font-bold text-lg">
                       <span>Total</span>
-                      <span className="text-primary">{finalPrice.toLocaleString('vi-VN')}đ</span>
+                      <span className="text-primary">{safeFinal.toLocaleString('vi-VN')}đ</span>
                     </div>
 
                     <div className="space-y-2">
@@ -236,9 +250,6 @@ export default function CartPage() {
               </div>
             </div>
           )}
-        </div>
-      </main>
-      <Footer />
     </div>
   );
 }

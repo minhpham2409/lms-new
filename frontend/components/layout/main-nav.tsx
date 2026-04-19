@@ -29,20 +29,37 @@ export function MainNav() {
 
   useEffect(() => {
     if (status !== "authenticated") return;
-    notificationsApi.getAll()
-      .then((ns) => setUnreadCount(ns.filter((n) => !n.isRead).length))
-      .catch(() => {});
-    cartApi.get()
-      .then((items) => setCartCount(items.length))
-      .catch(() => {});
-  }, [status]);
+    const loadNotifications = () => {
+      notificationsApi
+        .getAll()
+        .then((ns) => setUnreadCount(ns.filter((n) => !n.isRead).length))
+        .catch(() => {});
+    };
+    const loadCart = () => {
+      cartApi
+        .get()
+        .then((items) => setCartCount(items.length))
+        .catch(() => {});
+    };
+    loadNotifications();
+    loadCart();
+    const onRefresh = () => loadNotifications();
+    window.addEventListener("focus", onRefresh);
+    window.addEventListener("lms-notifications-changed", onRefresh);
+    return () => {
+      window.removeEventListener("focus", onRefresh);
+      window.removeEventListener("lms-notifications-changed", onRefresh);
+    };
+  }, [status, session?.accessToken]);
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
 
   const role = session?.user?.role;
 
   const navItems = [
-    { name: "Courses", path: "/courses", icon: BookOpen },
+    ...(status !== "authenticated" || role === "student"
+      ? [{ name: "Courses", path: "/courses", icon: BookOpen }]
+      : []),
     ...(session ? [{ name: "Dashboard", path: "/dashboard", icon: LayoutDashboard }] : []),
     ...(role === "teacher" ? [{ name: "My Courses", path: "/teacher", icon: GraduationCap }] : []),
     ...(role === "parent" ? [{ name: "My Children", path: "/parent", icon: Users }] : []),

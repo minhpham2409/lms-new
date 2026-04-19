@@ -41,18 +41,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, CheckCircle, AlertCircle } from "lucide-react";
 import { adminApi } from "@/lib/api-service";
 import type { Course, User } from "@/types";
 import Link from "next/link";
+
+type FilterTab = 'all' | 'pending' | 'published' | 'draft';
 
 export default function CoursesManagement() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [showCreate, setShowCreate] = useState(false);
   const [editCourse, setEditCourse] = useState<Course | null>(null);
   const [saving, setSaving] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -79,6 +83,9 @@ export default function CoursesManagement() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const filtered = activeTab === 'all' ? courses : courses.filter((c) => c.status === activeTab);
+  const pendingCount = courses.filter((c) => c.status === 'pending').length;
 
   const openCreate = () => {
     setEditCourse(null);
@@ -137,23 +144,67 @@ export default function CoursesManagement() {
     }
   };
 
-  const handlePublish = async (id: string) => {
+  const handleApprove = async (id: string) => {
     try {
+      setApprovingId(id);
       await adminApi.publishCourse(id);
-      setCourses((prev) => prev.map((c) => c.id === id ? { ...c, status: 'published', isPublished: true } : c));
-      toast.success('Published');
+      setCourses((prev) =>
+        prev.map((c) => c.id === id ? { ...c, status: 'published', isPublished: true } : c)
+      );
+      toast.success('Course approved & published!');
     } catch {
       toast.error('Failed to publish');
+    } finally {
+      setApprovingId(null);
     }
   };
+
+  const tabs: { key: FilterTab; label: string; count: number }[] = [
+    { key: 'all', label: 'All', count: courses.length },
+    { key: 'pending', label: 'Pending Review', count: pendingCount },
+    { key: 'published', label: 'Published', count: courses.filter((c) => c.status === 'published').length },
+    { key: 'draft', label: 'Draft', count: courses.filter((c) => c.status === 'draft').length },
+  ];
 
   return (
     <div>
       <div className="flex justify-between items-center mt-16 mb-6">
-        <h1 className="text-3xl font-bold">Courses Management</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Courses Management</h1>
+          {pendingCount > 0 && (
+            <p className="text-amber-600 text-sm mt-1 flex items-center gap-1">
+              <AlertCircle className="h-4 w-4" />
+              {pendingCount} course{pendingCount > 1 ? 's' : ''} waiting for approval
+            </p>
+          )}
+        </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4 mr-2" /> Create Course
         </Button>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-0 mb-4 border-b">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === tab.key
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              tab.key === 'pending' && tab.count > 0
+                ? 'bg-amber-100 text-amber-700 font-semibold'
+                : 'bg-gray-100 text-gray-500'
+            }`}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
@@ -176,8 +227,11 @@ export default function CoursesManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {courses.map((course) => (
-                  <TableRow key={course.id}>
+                {filtered.map((course) => (
+                  <TableRow
+                    key={course.id}
+                    className={course.status === 'pending' ? 'bg-amber-50/50' : ''}
+                  >
                     <TableCell className="font-medium max-w-xs">
                       <div className="truncate">{course.title}</div>
                     </TableCell>
@@ -189,26 +243,40 @@ export default function CoursesManagement() {
                     </TableCell>
                     <TableCell className="capitalize">{course.level ?? '—'}</TableCell>
                     <TableCell>
-                      <Badge variant={course.status === 'published' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={course.status === 'published' ? 'default' : 'secondary'}
+                        className={course.status === 'pending' ? 'bg-amber-100 text-amber-700 border-amber-300' : ''}
+                      >
                         {course.status ?? 'draft'}
                       </Badge>
                     </TableCell>
                     <TableCell>{course._count?.enrollments ?? 0}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
+                        {course.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-green-600 hover:bg-green-700 gap-1"
+                            onClick={() => handleApprove(course.id)}
+                            disabled={approvingId === course.id}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            {approvingId === course.id ? '...' : 'Approve'}
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                           <Link href={`/courses/${course.id}`}>
                             <Eye className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(course)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(course)}
+                        >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        {course.status !== 'published' && (
-                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handlePublish(course.id)}>
-                            Publish
-                          </Button>
-                        )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
@@ -224,7 +292,9 @@ export default function CoursesManagement() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(course.id)}>Delete</AlertDialogAction>
+                              <AlertDialogAction onClick={() => handleDelete(course.id)}>
+                                Delete
+                              </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -234,8 +304,10 @@ export default function CoursesManagement() {
                 ))}
               </TableBody>
             </Table>
-            {courses.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">No courses yet</div>
+            {filtered.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                {activeTab === 'pending' ? 'No courses pending review.' : 'No courses found.'}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -249,16 +321,29 @@ export default function CoursesManagement() {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Title *</Label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <Input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>
-              <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                rows={3}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Price (VND)</Label>
-                <Input type="number" min={0} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0 = free" />
+                <Input
+                  type="number"
+                  min={0}
+                  value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  placeholder="0 = free"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Level</Label>
@@ -285,7 +370,11 @@ export default function CoursesManagement() {
             </div>
             <div className="space-y-1.5">
               <Label>Image URL</Label>
-              <Input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="https://..." />
+              <Input
+                value={form.imageUrl}
+                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                placeholder="https://..."
+              />
             </div>
           </div>
           <DialogFooter>

@@ -1,21 +1,18 @@
 import { Metadata } from 'next';
-import { Footer } from '@/components/layout/footer';
-import { MainNav } from '@/components/layout/main-nav';
+import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
 import CoursesPageContent from '@/components/courses/courses-page-content';
 
 export const metadata: Metadata = {
-  title: "Courses | Let's Learn",
-  description: "Browse all available courses on Let's Learn platform",
+  title: "Khóa học | HọcLộ Trình",
+  description: "Duyệt tất cả khóa học trên nền tảng HọcLộ Trình",
 };
 
 export default function CoursesPage() {
   return (
-    <div className='flex flex-col min-h-screen items-center'>
-      <MainNav />
-      <main className='flex-1 flex items-center justify-center py-12'>
+    <UnifiedPageShell contentClassName="py-8">
+      <div className="w-full max-w-7xl mx-auto">
         <CoursesPageContent />
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </UnifiedPageShell>
   );
 }

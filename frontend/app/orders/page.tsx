@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { MainNav } from '@/components/layout/main-nav';
-import { Footer } from '@/components/layout/footer';
+import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,16 +22,17 @@ const STATUS_MAP: Record<string, { label: string; badge: 'default' | 'secondary'
 
 export default function OrdersPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === 'unauthenticated') redirect('/auth/signin');
-  }, [status]);
+    if (status === 'unauthenticated') router.push('/auth/signin');
+  }, [status, router]);
 
   useEffect(() => {
     if (!session?.accessToken) return;
-    ordersApi.getAll()
+    ordersApi.getMine()
       .then(setOrders)
       .catch(() => toast.error('Failed to load orders'))
       .finally(() => setLoading(false));
@@ -40,21 +40,17 @@ export default function OrdersPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <MainNav />
-        <main className="flex-1 flex items-center justify-center">
+      <UnifiedPageShell>
+        <div className="flex items-center justify-center py-24">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </UnifiedPageShell>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50">
-      <MainNav />
-      <main className="flex-1 w-full">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <UnifiedPageShell contentClassName="py-12">
+      <div className="max-w-4xl mx-auto px-4">
           <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <ShoppingBag className="h-6 w-6" />
             My Orders
@@ -125,12 +121,19 @@ export default function OrdersPage() {
                         <span className="text-primary">{order.finalPrice.toLocaleString('vi-VN')}đ</span>
                       </div>
                       {order.status === 'pending' && (
-                        <Button className="w-full mt-2" asChild>
-                          <Link href={`/orders/${order.id}`}>
-                            <QrCode className="h-4 w-4 mr-2" />
-                            Pay Now
-                          </Link>
-                        </Button>
+                        <div className="space-y-2 mt-2">
+                          {order.payment?.txnRef && (
+                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                              Payment code issued — open this order to continue paying. Reference is saved.
+                            </p>
+                          )}
+                          <Button className="w-full" asChild>
+                            <Link href={`/orders/${order.id}`}>
+                              <QrCode className="h-4 w-4 mr-2" />
+                              {order.payment?.txnRef ? 'Continue payment' : 'Pay now'}
+                            </Link>
+                          </Button>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
@@ -138,9 +141,7 @@ export default function OrdersPage() {
               })}
             </div>
           )}
-        </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </UnifiedPageShell>
   );
 }

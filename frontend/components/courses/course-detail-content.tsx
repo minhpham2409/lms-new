@@ -42,6 +42,7 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [inCart, setInCart] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const { data: session } = useSession();
   const router = useRouter();
@@ -50,6 +51,9 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
     if (!session) return;
     enrollmentsApi.checkStatus(course.id)
       .then((s) => setIsEnrolled(s.enrolled))
+      .catch(() => {});
+    cartApi.get()
+      .then((items) => setInCart(items.some((i) => i.courseId === course.id)))
       .catch(() => {});
   }, [session, course.id]);
 
@@ -89,9 +93,14 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
       router.push(`/auth/signin?callbackUrl=/courses/${course.id}`);
       return;
     }
+    if (inCart) {
+      router.push('/cart');
+      return;
+    }
     try {
       setAddingToCart(true);
       await cartApi.addItem(course.id);
+      setInCart(true);
       toast.success('Added to cart!');
     } catch {
       toast.error('Could not add to cart.');
@@ -285,72 +294,88 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
 
         <div>
           <Card className="sticky top-6 shadow-lg">
-            <CardHeader>
-              {course.price != null && course.price > 0 ? (
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                  <span className="text-3xl font-bold">{course.price.toLocaleString('vi-VN')}đ</span>
-                </div>
-              ) : (
-                <div className="text-2xl font-bold text-green-600 mb-1">Free</div>
-              )}
-              <CardTitle className="text-base">Join This Course</CardTitle>
-              <CardDescription>Start learning today</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{totalLessons} lessons</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Certificate</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>{course._count?.enrollments ?? 0} enrolled</span>
-                </div>
-              </div>
-              <Separator />
-              <div className="space-y-1 text-sm">
-                {[
-                  'Full lifetime access',
-                  'Access on any device',
-                  'Project files & resources',
-                  'Certificate of completion',
-                ].map((f) => (
-                  <div key={f} className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
-                    <span>{f}</span>
+            {isEnrolled ? (
+              <>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg leading-snug">Keep going</CardTitle>
+                  <CardDescription className="text-sm">
+                    Pick up where you left off — one tap to open the classroom.
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter className="flex flex-col gap-2 pt-0">
+                  <Button className="w-full" size="lg" onClick={handleViewCourse}>
+                    <PlayCircle className="h-4 w-4 mr-2" /> Continue learning
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Your enrolled courses also appear on{' '}
+                    <button
+                      type="button"
+                      className="text-primary underline-offset-4 hover:underline font-medium"
+                      onClick={() => router.push('/dashboard')}
+                    >
+                      Dashboard → My courses
+                    </button>
+                  </p>
+                </CardFooter>
+              </>
+            ) : (
+              <>
+                <CardHeader>
+                  {course.price != null && course.price > 0 ? (
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                      <span className="text-3xl font-bold">{course.price.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                  ) : (
+                    <div className="text-2xl font-bold text-green-600 mb-1">Free</div>
+                  )}
+                  <CardTitle className="text-base">Join This Course</CardTitle>
+                  <CardDescription>Start learning today</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <BookOpen className="h-4 w-4" />
+                      <span>{totalLessons} lessons</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span>Certificate</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>{course._count?.enrollments ?? 0} enrolled</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2">
-              {isEnrolled ? (
-                <>
-                  <Button className="w-full" onClick={handleViewCourse}>
-                    <PlayCircle className="h-4 w-4 mr-2" /> Continue Learning
-                  </Button>
-                  <p className="text-xs text-center text-muted-foreground">You&apos;re enrolled!</p>
-                </>
-              ) : course.price != null && course.price > 0 ? (
-                <>
-                  <Button className="w-full" onClick={handleAddToCart} disabled={addingToCart}>
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    {addingToCart ? 'Adding...' : 'Add to Cart'}
-                  </Button>
-                  <Button variant="outline" className="w-full" onClick={handleEnroll} disabled={isEnrolling}>
-                    {isEnrolling ? 'Enrolling...' : 'Enroll for Free'}
-                  </Button>
-                </>
-              ) : (
-                <Button className="w-full" onClick={handleEnroll} disabled={isEnrolling}>
-                  {isEnrolling ? 'Enrolling...' : 'Enroll Now — Free'}
-                </Button>
-              )}
-            </CardFooter>
+                  <Separator />
+                  <div className="space-y-1 text-sm">
+                    {[
+                      'Full lifetime access',
+                      'Access on any device',
+                      'Project files & resources',
+                      'Certificate of completion',
+                    ].map((f) => (
+                      <div key={f} className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                        <span>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-2">
+                  {course.price != null && course.price > 0 ? (
+                    <Button className="w-full" onClick={handleAddToCart} disabled={addingToCart}>
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      {addingToCart ? 'Adding...' : inCart ? 'Go to Cart' : 'Add to Cart'}
+                    </Button>
+                  ) : (
+                    <Button className="w-full" onClick={handleEnroll} disabled={isEnrolling}>
+                      {isEnrolling ? 'Enrolling...' : 'Enroll Now — Free'}
+                    </Button>
+                  )}
+                </CardFooter>
+              </>
+            )}
           </Card>
         </div>
       </div>

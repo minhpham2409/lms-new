@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { coursesApi } from '@/lib/api-service';
+import { coursesApi, enrollmentsApi } from '@/lib/api-service';
 import type { Course } from '@/types';
 import {
   Card,
@@ -30,6 +30,7 @@ import { useSession } from 'next-auth/react';
 export default function CoursesPageContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [filtered, setFiltered] = useState<Course[]>([]);
+  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('popular');
@@ -48,7 +49,21 @@ export default function CoursesPageContent() {
   }, []);
 
   useEffect(() => {
+    if (session?.user?.role === 'student' && session?.accessToken) {
+      enrollmentsApi
+        .getMyCourses()
+        .then((list) => setEnrolledIds(new Set(list.map((e) => e.courseId))))
+        .catch(() => setEnrolledIds(new Set()));
+    } else {
+      setEnrolledIds(new Set());
+    }
+  }, [session?.user?.role, session?.accessToken]);
+
+  useEffect(() => {
     let result = [...courses];
+    if (session?.user?.role === 'student' && enrolledIds.size > 0) {
+      result = result.filter((c) => !enrolledIds.has(c.id));
+    }
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -71,7 +86,7 @@ export default function CoursesPageContent() {
       result.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     }
     setFiltered(result);
-  }, [courses, search, sortBy, levelFilter]);
+  }, [courses, search, sortBy, levelFilter, session?.user?.role, enrolledIds]);
 
   const getLessonCount = (course: Course) =>
     course.sections?.reduce((acc, s) => acc + (s.lessons?.length ?? 0), 0) ?? 0;
@@ -84,6 +99,19 @@ export default function CoursesPageContent() {
           <p className="text-muted-foreground text-lg">
             Browse our comprehensive catalog and start your learning journey
           </p>
+          {session?.user?.role === 'student' && enrolledIds.size > 0 && (
+            <p className="text-sm text-muted-foreground mt-3">
+              Courses you&apos;re already enrolled in are listed under{' '}
+              <button
+                type="button"
+                className="text-primary font-medium underline-offset-4 hover:underline"
+                onClick={() => router.push('/dashboard')}
+              >
+                My courses (Dashboard)
+              </button>
+              .
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row gap-3 mb-2">

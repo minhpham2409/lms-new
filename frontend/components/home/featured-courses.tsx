@@ -8,9 +8,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, User, Users, Star } from "lucide-react";
-import { truncateText } from "@/lib/utils";
+import { cn, truncateText } from "@/lib/utils";
 
-export function FeaturedCourses() {
+type FeaturedCoursesProps = {
+  className?: string;
+  heading?: string;
+  subheading?: string;
+};
+
+export function FeaturedCourses({
+  className,
+  heading = "Featured Courses",
+  subheading = "Explore our most popular courses and start your learning journey today",
+}: FeaturedCoursesProps) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -25,12 +35,17 @@ export function FeaturedCourses() {
     course.sections?.reduce((acc, s) => acc + (s.lessons?.length ?? 0), 0) ?? 0;
 
   return (
-    <section className="py-16 bg-gray-50 dark:bg-gray-900">
+    <section
+      className={cn(
+        "py-16 bg-gray-50 dark:bg-gray-900",
+        className,
+      )}
+    >
       <div className="container px-4 md:px-6 mx-auto max-w-6xl">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold tracking-tight mb-3">Featured Courses</h2>
+          <h2 className="text-3xl font-bold tracking-tight mb-3">{heading}</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Explore our most popular courses and start your learning journey today
+            {subheading}
           </p>
         </div>
 

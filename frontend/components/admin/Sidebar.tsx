@@ -1,12 +1,22 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  FileText,
+  ShoppingBag,
+  Tag,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { href: '/admin', label: 'Dashboard', icon: '📊' },
-  { href: '/admin/users', label: 'Users', icon: '👥' },
-  { href: '/admin/courses', label: 'Courses', icon: '📚' },
-  { href: '/admin/lessons', label: 'Lessons', icon: '📝' },
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/courses', label: 'Courses', icon: BookOpen },
+  { href: '/admin/lessons', label: 'Lessons', icon: FileText },
+  { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/admin/coupons', label: 'Coupons', icon: Tag },
 ];
 
 export function Sidebar({ isOpen }: { isOpen: boolean }) {
@@ -22,8 +32,11 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
       <nav className="p-4">
         <ul className="space-y-2">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            
+            const isActive =
+              link.href === '/admin'
+                ? pathname === '/admin'
+                : pathname === link.href || pathname.startsWith(link.href + '/');
+            const Icon = link.icon;
             return (
               <li key={link.href}>
                 <Link
@@ -35,7 +48,7 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                       : 'hover:bg-muted'
                   )}
                 >
-                  <span>{link.icon}</span>
+                  <Icon className="h-4 w-4 shrink-0" />
                   <span>{link.label}</span>
                 </Link>
               </li>

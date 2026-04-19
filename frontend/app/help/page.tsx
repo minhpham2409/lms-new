@@ -1,231 +1,80 @@
-import { MainNav } from '@/components/layout/main-nav';
-import { Footer } from '@/components/layout/footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Search, 
-  BookOpen, 
-  Users, 
-  Settings, 
-  CreditCard,
-  HelpCircle,
-  ChevronRight,
-  Mail,
-  MessageSquare
-} from 'lucide-react';
-import Link from 'next/link';
+import { UnifiedPageShell } from "@/components/layout/unified-page-shell";
 
-export default function HelpPage() {
+export const metadata = {
+  title: "Trợ giúp | HọcLộ Trình",
+  description: "Câu hỏi thường gặp và trợ giúp sử dụng HọcLộ Trình.",
+};
+
+export default function Help() {
   const faqs = [
     {
-      question: "How do I enroll in a course?",
-      answer: "Browse our courses page, select a course that interests you, and click the 'Enroll Now' button. You'll need to create an account if you haven't already."
+      q: "Làm thế nào để đăng ký tài khoản?",
+      a: "Nhấn nút 'Đăng ký' trên trang chủ, chọn vai trò (học sinh/giáo viên/phụ huynh), điền thông tin và xác nhận email.",
     },
     {
-      question: "Can I access courses offline?",
-      answer: "Currently, our courses require an internet connection to access. We're working on offline capabilities for future updates."
+      q: "Có thể đổi vai trò sau khi đăng ký không?",
+      a: "Liên hệ hỗ trợ để được giúp đỡ thay đổi vai trò tài khoản.",
     },
     {
-      question: "How do I track my progress?",
-      answer: "Your progress is automatically tracked as you complete lessons. You can view your progress on your dashboard or course page."
+      q: "Học sinh làm sao để đăng ký khóa học?",
+      a: "Vào mục 'Khóa học' → Chọn khóa → Nhấn 'Đăng ký' → Hoàn tất thanh toán.",
     },
     {
-      question: "Do I get a certificate upon completion?",
-      answer: "Yes! Upon completing a course, you'll receive a digital certificate that you can share on your professional profiles."
+      q: "Phụ huynh làm sao để theo dõi tiến độ con?",
+      a: "Vào mục 'Phụ huynh' → 'Liên kết con em' → Chấp nhận lời mời từ con → Xem tiến độ chi tiết.",
     },
     {
-      question: "How can I contact an instructor?",
-      answer: "You can reach out to instructors through the course discussion forums or send them a direct message through the course page."
+      q: "Giáo viên có thể tạo khóa học mới như thế nào?",
+      a: "Vào mục 'Giáo viên' → 'Khóa học của tôi' → 'Tạo khóa học mới' → Điền thông tin và xuất bản.",
     },
     {
-      question: "What payment methods do you accept?",
-      answer: "We accept major credit cards, PayPal, and other secure payment methods. All transactions are encrypted and secure."
-    }
-  ];
-
-  const helpCategories = [
-    {
-      title: "Getting Started",
-      icon: BookOpen,
-      description: "Learn the basics of using our platform",
-      articles: [
-        "Creating your account",
-        "Navigating the dashboard",
-        "Finding the right courses",
-        "Setting up your profile"
-      ]
+      q: "Có thể hoàn tiền nếu không hài lòng không?",
+      a: "Chúng tôi chấp nhận hoàn tiền trong vòng 7 ngày sau khi đăng ký. Liên hệ hỗ trợ.",
     },
     {
-      title: "Courses & Learning",
-      icon: Users,
-      description: "Everything about taking courses",
-      articles: [
-        "How to enroll in courses",
-        "Understanding course structure",
-        "Submitting assignments",
-        "Participating in discussions"
-      ]
+      q: "Làm sao để liên hệ hỗ trợ?",
+      a: "Vào trang 'Liên hệ' hoặc gửi email: lienhe@hoclotrinh.edu.vn",
     },
-    {
-      title: "Account & Settings",
-      icon: Settings,
-      description: "Manage your account preferences",
-      articles: [
-        "Updating your profile",
-        "Notification settings",
-        "Privacy controls",
-        "Password management"
-      ]
-    },
-    {
-      title: "Billing & Payments",
-      icon: CreditCard,
-      description: "Payment and subscription help",
-      articles: [
-        "Payment methods",
-        "Billing cycles",
-        "Refund policy",
-        "Subscription management"
-      ]
-    }
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <MainNav />
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            Help Center
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Find answers to common questions and get the support you need
+    <UnifiedPageShell contentClassName="py-16">
+      <div className="landing-page max-w-4xl mx-auto px-4 md:px-6">
+        <div className="mb-12 text-center">
+          <h1 className="section-title mb-4">Trợ giúp & Câu hỏi thường gặp</h1>
+          <p className="section-subtitle">
+            Tìm câu trả lời cho các câu hỏi phổ biến của bạn
           </p>
-          
-          {/* Search */}
-          <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search for help..."
-              className="pl-10 pr-4 py-2"
-            />
-          </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6 text-center">
-              <Mail className="h-8 w-8 text-primary mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Email Support</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Get help via email within 24 hours
-              </p>
-              <Button asChild size="sm">
-                <Link href="/contact">Contact Us</Link>
-              </Button>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6 text-center">
-              <MessageSquare className="h-8 w-8 text-primary mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Live Chat</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Chat with our support team in real-time
-              </p>
-              <Button size="sm" variant="outline">
-                Start Chat
-              </Button>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6 text-center">
-              <HelpCircle className="h-8 w-8 text-primary mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Browse FAQ</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Find quick answers to common questions
-              </p>
-              <Button size="sm" variant="outline">
-                View FAQ
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="space-y-4">
+          {faqs.map((faq, idx) => (
+            <details
+              key={idx}
+              className="border border-slate-200 rounded-lg p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition"
+            >
+              <summary className="font-semibold text-lg text-blue-700 flex justify-between items-center">
+                {faq.q}
+                <span className="text-sm">+</span>
+              </summary>
+              <p className="mt-3 section-content leading-relaxed">{faq.a}</p>
+            </details>
+          ))}
         </div>
 
-        {/* Help Categories */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-semibold text-foreground mb-6">
-            Browse Help Topics
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {helpCategories.map((category, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <category.icon className="h-5 w-5 text-primary" />
-                    {category.title}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {category.description}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {category.articles.map((article, articleIndex) => (
-                      <div 
-                        key={articleIndex}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer"
-                      >
-                        <span className="text-sm">{article}</span>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* FAQ Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Frequently Asked Questions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <div key={index} className="border-b pb-4 last:border-b-0">
-                  <h3 className="font-semibold text-foreground mb-2">
-                    {faq.question}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {faq.answer}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Still Need Help */}
-        <div className="text-center mt-12">
-          <h2 className="text-2xl font-semibold text-foreground mb-4">
-            Still Need Help?
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Our support team is here to help you succeed
+        <div className="mt-12 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+          <h2 className="font-semibold text-lg mb-2">Không tìm thấy câu trả lời?</h2>
+          <p className="section-content mb-4">
+            Liên hệ với đội hỗ trợ của chúng tôi để được giúp đỡ thêm.
           </p>
-          <Button asChild size="lg">
-            <Link href="/contact">Get in Touch</Link>
-          </Button>
+          <a
+            href="/contact"
+            className="btn btn-primary"
+          >
+            Gửi tin nhắn hỗ trợ
+          </a>
         </div>
       </div>
-      <Footer />
-    </div>
+    </UnifiedPageShell>
   );
 }

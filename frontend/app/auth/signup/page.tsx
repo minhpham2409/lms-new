@@ -1,15 +1,20 @@
+import { Suspense } from "react";
+import { UnifiedPageShell } from "@/components/layout/unified-page-shell";
 import { SignUpForm } from "@/components/auth/sign-up-form";
-import { Footer } from "@/components/layout/footer";
-import { MainNav } from "@/components/layout/main-nav";
+
+export const metadata = {
+  title: "Đăng ký | HọcLộ Trình",
+  description: "Tạo tài khoản mới trên HọcLộ Trình.",
+};
 
 export default function SignUpPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <MainNav />
-      <main className="flex-1 flex items-center justify-center py-12">
-        <SignUpForm />
-      </main>
-      <Footer />
-    </div>
+    <UnifiedPageShell contentClassName="py-12 flex items-center justify-center">
+      <div className="w-full max-w-md">
+        <Suspense fallback={<div className="text-center">Đang tải...</div>}>
+          <SignUpForm />
+        </Suspense>
+      </div>
+    </UnifiedPageShell>
   );
 }

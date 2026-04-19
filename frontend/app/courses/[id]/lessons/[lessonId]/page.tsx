@@ -1,3 +1,4 @@
+import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
 import VideoPlayer from '@/components/courses/video-player';
 
 interface LessonPageProps {
@@ -9,5 +10,9 @@ interface LessonPageProps {
 
 export default async function LessonPage({ params }: LessonPageProps) {
   const { id, lessonId } = await params;
-  return <VideoPlayer courseId={id} lessonId={lessonId} />;
+  return (
+    <UnifiedPageShell contentClassName="py-0">
+      <VideoPlayer courseId={id} lessonId={lessonId} />
+    </UnifiedPageShell>
+  );
 }

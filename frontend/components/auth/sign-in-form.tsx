@@ -57,24 +57,24 @@ export function SignInForm() {
   }
 
   return (
-    <div className='w-full max-w-md space-y-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md'>
+    <div className='w-full max-w-md space-y-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-slate-200 dark:border-slate-700'>
       <div className='space-y-2 text-center'>
-        <h1 className='text-3xl font-bold'>Sign In</h1>
-        <p className='text-gray-500 dark:text-gray-400'>
-          Enter your credentials to access your account
+        <h1 className='section-title'>Đăng nhập</h1>
+        <p className='section-content text-sm'>
+          Nhập thông tin tài khoản để truy cập
         </p>
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
         <div className='space-y-2'>
           <label
             htmlFor='username'
-            className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+            className='text-sm font-medium'
           >
-            Username
+            Tên đăng nhập
           </label>
           <Input
             id='username'
-            placeholder='johndoe'
+            placeholder='tên_đăng_nhập'
             {...register('username')}
             disabled={isLoading}
           />
@@ -85,9 +85,9 @@ export function SignInForm() {
         <div className='space-y-2'>
           <label
             htmlFor='password'
-            className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+            className='text-sm font-medium'
           >
-            Password
+            Mật khẩu
           </label>
           <Input
             id='password'
@@ -100,18 +100,19 @@ export function SignInForm() {
             <p className='text-sm text-red-500'>{errors.password.message}</p>
           )}
         </div>
-        <Button type='submit' className='w-full' disabled={isLoading}>
-          {isLoading ? 'Signing in...' : 'Sign In'}
+        <Button type='submit' className='w-full btn btn-primary' disabled={isLoading}>
+          {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </Button>
       </form>
-      <div className='text-center text-sm'>
-        <a
-          href='#'
-          className='text-primary hover:underline'
-          onClick={() => router.push('/auth/signup')}
-        >
-          Don&apos;t have an account? Sign up
-        </a>
+      <div className='text-center text-sm section-content'>
+        <p>Chưa có tài khoản?{' '}
+          <a
+            href='/auth/signup'
+            className='text-blue-700 hover:underline font-semibold'
+          >
+            Đăng ký ngay
+          </a>
+        </p>
       </div>
     </div>
   );

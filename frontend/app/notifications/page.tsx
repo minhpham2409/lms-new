@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { MainNav } from '@/components/layout/main-nav';
-import { Footer } from '@/components/layout/footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,18 +25,26 @@ const TYPE_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'outl
   error: 'destructive',
 };
 
+function bumpNotificationBell() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lms-notifications-changed'));
+  }
+}
+
 export default function NotificationsPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === 'unauthenticated') redirect('/auth/signin');
-  }, [status]);
+    if (status === 'unauthenticated') router.push('/auth/signin');
+  }, [status, router]);
 
   useEffect(() => {
     if (!session?.accessToken) return;
-    notificationsApi.getAll()
+    notificationsApi
+      .getAll()
       .then(setNotifications)
       .catch(() => toast.error('Failed to load notifications'))
       .finally(() => setLoading(false));
@@ -50,6 +56,7 @@ export default function NotificationsPage() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
+      bumpNotificationBell();
     } catch {
       toast.error('Failed to mark as read');
     }
@@ -59,6 +66,7 @@ export default function NotificationsPage() {
     try {
       await notificationsApi.markAllRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      bumpNotificationBell();
       toast.success('All marked as read');
     } catch {
       toast.error('Failed');
@@ -69,6 +77,7 @@ export default function NotificationsPage() {
     try {
       await notificationsApi.delete(id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
+      bumpNotificationBell();
     } catch {
       toast.error('Failed to delete');
     }
@@ -78,21 +87,14 @@ export default function NotificationsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <MainNav />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </main>
-        <Footer />
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50">
-      <MainNav />
-      <main className="flex-1 w-full">
-        <div className="container mx-auto px-4 py-8 max-w-3xl">
+    <div className="container mx-auto px-4 max-w-3xl">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Bell className="h-6 w-6" />
@@ -143,7 +145,9 @@ export default function NotificationsPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">{n.message}</p>
                       <p className="text-xs text-gray-400 mt-1">
-                        {new Date(n.createdAt).toLocaleString()}
+                        {n.createdAt && !Number.isNaN(new Date(n.createdAt).getTime())
+                          ? new Date(n.createdAt).toLocaleString()
+                          : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -173,9 +177,6 @@ export default function NotificationsPage() {
               ))}
             </div>
           )}
-        </div>
-      </main>
-      <Footer />
     </div>
   );
 }

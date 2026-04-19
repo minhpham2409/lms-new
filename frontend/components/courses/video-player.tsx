@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { MainNav } from '@/components/layout/main-nav';
+import { LessonComments } from '@/components/courses/lesson-comments';
 import {
   CheckCircle,
   PlayCircle,
@@ -18,9 +18,11 @@ import {
   ChevronDown,
   ChevronRight,
   Lock,
+  ClipboardList,
+  HelpCircle,
 } from 'lucide-react';
-import { coursesApi, enrollmentsApi, progressApi } from '@/lib/api-service';
-import type { Course, LessonWithProgress } from '@/types';
+import { coursesApi, enrollmentsApi, progressApi, assignmentsApi } from '@/lib/api-service';
+import type { Course, LessonWithProgress, Assignment } from '@/types';
 
 interface VideoPlayerProps {
   courseId: string;
@@ -38,6 +40,7 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
   const [overallProgress, setOverallProgress] = useState(0);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [lessonAssignments, setLessonAssignments] = useState<Assignment[]>([]);
 
   const loadData = useCallback(async () => {
     if (!session) return;
@@ -75,6 +78,12 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
 
       const cur = flatLessons.find((l) => l.id === lessonId);
       setCurrentLesson(cur ?? flatLessons[0] ?? null);
+
+      // load assignments for current lesson
+      const targetId = cur?.id ?? flatLessons[0]?.id;
+      if (targetId) {
+        assignmentsApi.getByLesson(targetId).then(setLessonAssignments).catch(() => setLessonAssignments([]));
+      }
     } catch {
       toast.error('Failed to load course');
     } finally {
@@ -125,28 +134,18 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <MainNav />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-3" />
-            <p className="text-muted-foreground">Loading lesson...</p>
-          </div>
-        </main>
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-3" />
+        <p className="text-muted-foreground">Loading lesson...</p>
       </div>
     );
   }
 
   if (!course || !currentLesson) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <MainNav />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-xl font-bold mb-4">Lesson not found</h2>
-            <Button onClick={() => router.push(`/courses/${courseId}`)}>Back to Course</Button>
-          </div>
-        </main>
+      <div className="text-center py-16">
+        <h2 className="text-xl font-bold mb-4">Lesson not found</h2>
+        <Button onClick={() => router.push(`/courses/${courseId}`)}>Back to Course</Button>
       </div>
     );
   }
@@ -156,10 +155,7 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
   const allDone = completedCount === allLessons.length && allLessons.length > 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/30">
-      <MainNav />
-      <main className="flex-1 w-full">
-        <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="w-full max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
             <div className="space-y-4">
               <Button
@@ -239,8 +235,37 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
                       </Button>
                     )}
                   </div>
+
+                  {/* Assignments & Quizzes for this lesson */}
+                  {lessonAssignments.length > 0 && (
+                    <div className="border-t pt-4 space-y-2">
+                      <p className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                        <ClipboardList className="h-4 w-4" /> Assignments & Quizzes
+                      </p>
+                      {lessonAssignments.map((a) => (
+                        <a
+                          key={a.id}
+                          href={`/courses/${courseId}/lessons/${currentLesson.id}/assignment/${a.id}`}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors group"
+                        >
+                          <div className="flex items-center gap-2">
+                            {a.type === 'quiz'
+                              ? <HelpCircle className="h-4 w-4 text-purple-500" />
+                              : <ClipboardList className="h-4 w-4 text-blue-500" />}
+                            <div>
+                              <p className="text-sm font-medium group-hover:text-primary transition-colors">{a.title}</p>
+                              <p className="text-xs text-gray-400 capitalize">{a.type} · {a.maxScore} pts</p>
+                            </div>
+                          </div>
+                          <span className="text-xs text-primary font-medium">Start →</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+
+              <LessonComments lessonId={currentLesson.id} />
             </div>
 
             <div>
@@ -313,8 +338,6 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
               </Card>
             </div>
           </div>
-        </div>
-      </main>
     </div>
   );
 }

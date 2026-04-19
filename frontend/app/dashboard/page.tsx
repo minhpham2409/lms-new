@@ -2,38 +2,62 @@
 
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback } from 'react';
-import { redirect } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
+import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Clock, Trophy, TrendingUp, Play, CheckCircle, Award } from 'lucide-react';
+import {
+  BookOpen,
+  Play,
+  CheckCircle,
+  Award,
+  Trophy,
+} from 'lucide-react';
 import Link from 'next/link';
-import { MainNav } from '@/components/layout/main-nav';
-import { Footer } from '@/components/layout/footer';
-import { enrollmentsApi, progressApi, certificatesApi } from '@/lib/api-service';
-import type { Enrollment, Certificate } from '@/types';
+import { toast } from 'sonner';
+import {
+  enrollmentsApi,
+  progressApi,
+  certificatesApi,
+  parentsApi,
+} from '@/lib/api-service';
+import type { Enrollment, Certificate, ParentChild } from '@/types';
+import {
+  DashboardStatCard,
+  SimpleBarChart,
+} from '@/components/dashboard/dashboard-chart-components';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [parentInvites, setParentInvites] = useState<ParentChild[]>([]);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      redirect('/auth/signin');
+      router.push('/auth/signin');
     }
-  }, [status]);
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.user?.role) return;
+    const r = session.user.role;
+    if (r === 'admin') router.replace('/admin');
+    else if (r === 'teacher') router.replace('/teacher');
+    else if (r === 'parent') router.replace('/parent');
+  }, [status, session, router]);
 
   const loadData = useCallback(async () => {
     if (!session?.accessToken) return;
     try {
       setLoading(true);
-      setError(null);
       const [enrollmentsData, certsData] = await Promise.all([
         enrollmentsApi.getMyCourses(),
         certificatesApi.getMine().catch(() => []),
@@ -47,247 +71,300 @@ export default function DashboardPage() {
           try {
             const p = await progressApi.getCourse(e.course.id);
             pMap[e.course.id] = p.overallProgress ?? 0;
-          } catch {
-            pMap[e.course.id] = e.progress ?? 0;
-          }
+          } catch {}
         })
       );
       setProgressMap(pMap);
+
+      try {
+        const invites = await parentsApi.getIncomingLink?.() || [];
+        setParentInvites(invites);
+      } catch (err) {
+        console.error('Failed to load parent invites:', err);
+      }
     } catch {
-      setError('Failed to load dashboard data. Please try again.');
+      // Error handled silently
     } finally {
       setLoading(false);
     }
   }, [session?.accessToken]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (session?.accessToken) {
+      loadData();
+    }
+  }, [session?.accessToken, loadData]);
 
-  const getTotalLessons = () =>
-    enrollments.reduce((acc, e) => {
-      const count = e.course.sections?.reduce((s, sec) => s + (sec.lessons?.length ?? 0), 0) ?? 0;
-      return acc + count;
-    }, 0);
-
-  const getAvgProgress = () => {
-    if (!enrollments.length) return 0;
-    const sum = enrollments.reduce((acc, e) => acc + (progressMap[e.course.id] ?? 0), 0);
-    return Math.round(sum / enrollments.length);
+  const handleAcceptInvite = async (id: string) => {
+    setAcceptingId(id);
+    try {
+      await parentsApi.acceptParentLink(id);
+      toast.success('Chấp nhận lời mời từ phụ huynh');
+      setParentInvites((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Không thể chấp nhận lời mời'
+      );
+    } finally {
+      setAcceptingId(null);
+    }
   };
 
-  if (status === 'loading' || loading) {
+  const handleRejectInvite = async (id: string) => {
+    setRejectingId(id);
+    try {
+      await parentsApi.rejectParentLink(id);
+      toast.success('Từ chối lời mời từ phụ huynh');
+      setParentInvites((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Không thể từ chối lời mời'
+      );
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <MainNav />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </main>
-        <Footer />
-      </div>
+      <UnifiedPageShell>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+        </div>
+      </UnifiedPageShell>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <MainNav />
-        <main className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md w-full mx-4">
-            <CardContent className="pt-6 text-center">
-              <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={loadData}>Try Again</Button>
-            </CardContent>
-          </Card>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  const avgProgress =
+    enrollments.length > 0
+      ? enrollments.reduce((sum, e) => sum + (progressMap[e.course.id] ?? 0), 0) /
+        enrollments.length
+      : 0;
+
+  const courseProgressData = enrollments.slice(0, 5).map((e) => ({
+    label: e.course.title.substring(0, 15),
+    value: progressMap[e.course.id] ?? 0,
+    color: 'bg-blue-500',
+  }));
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <MainNav />
-      <main className="flex-1 w-full bg-gray-50/50">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              Welcome back, {session?.user?.name || 'Learner'}!
-            </h1>
-            <p className="text-gray-500">Track your learning progress</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Enrolled Courses</CardTitle>
-                <BookOpen className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{enrollments.length}</div>
-                <p className="text-xs text-gray-400 mt-1">Active learning paths</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Lessons</CardTitle>
-                <Clock className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{getTotalLessons()}</div>
-                <p className="text-xs text-gray-400 mt-1">Across all courses</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Avg. Progress</CardTitle>
-                <TrendingUp className="h-4 w-4 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{getAvgProgress()}%</div>
-                <p className="text-xs text-gray-400 mt-1">Overall completion</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Certificates</CardTitle>
-                <Trophy className="h-4 w-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{certificates.length}</div>
-                <p className="text-xs text-gray-400 mt-1">Earned so far</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Tabs defaultValue="courses" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="courses">My Courses</TabsTrigger>
-              <TabsTrigger value="certificates">Certificates</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="courses">
-              {enrollments.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-12">
-                      <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No courses yet</h3>
-                      <p className="text-gray-500 mb-4">Start your learning journey today</p>
-                      <Button asChild>
-                        <Link href="/courses">Browse Courses</Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {enrollments.map((enrollment) => {
-                    const progress = progressMap[enrollment.course.id] ?? enrollment.progress ?? 0;
-                    const totalLessons = enrollment.course.sections?.reduce(
-                      (acc, s) => acc + (s.lessons?.length ?? 0), 0
-                    ) ?? 0;
-                    const completed = progress === 100;
-
-                    return (
-                      <Card key={enrollment.id} className="hover:shadow-md transition-shadow overflow-hidden">
-                        {enrollment.course.imageUrl && (
-                          <div className="h-36 bg-gradient-to-br from-blue-500 to-purple-600 relative">
-                            <img
-                              src={enrollment.course.imageUrl}
-                              alt={enrollment.course.title}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                        {!enrollment.course.imageUrl && (
-                          <div className="h-36 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                            <BookOpen className="h-12 w-12 text-white/70" />
-                          </div>
-                        )}
-                        <CardHeader className="pb-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-base leading-tight line-clamp-2">
-                              {enrollment.course.title}
-                            </CardTitle>
-                            <Badge variant={completed ? 'default' : 'secondary'} className="shrink-0">
-                              {completed ? 'Done' : `${Math.round(progress)}%`}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            by {enrollment.course.author?.username}
-                          </p>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div>
-                            <Progress value={progress} className="h-1.5" />
-                            <p className="text-xs text-gray-400 mt-1">{totalLessons} lessons</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" asChild className="flex-1">
-                              <Link href={`/courses/${enrollment.course.id}`}>
-                                {progress === 0 ? (
-                                  <><Play className="h-3 w-3 mr-1" /> Start</>
-                                ) : (
-                                  <><TrendingUp className="h-3 w-3 mr-1" /> Continue</>
-                                )}
-                              </Link>
-                            </Button>
-                            {completed && (
-                              <Button variant="outline" size="sm" asChild>
-                                <Link href="/certificates">
-                                  <Award className="h-3 w-3 mr-1" /> Certificate
-                                </Link>
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="certificates">
-              {certificates.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-12">
-                      <Trophy className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No certificates yet</h3>
-                      <p className="text-gray-500">Complete courses to earn certificates</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {certificates.map((cert) => (
-                    <Card key={cert.id} className="border-yellow-200 bg-yellow-50/30">
-                      <CardContent className="pt-6 flex items-center gap-4">
-                        <div className="p-3 bg-yellow-100 rounded-full">
-                          <Trophy className="h-6 w-6 text-yellow-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold truncate">{cert.course?.title ?? 'Course'}</h4>
-                          <p className="text-sm text-gray-500">
-                            Issued {new Date(cert.issuedAt).toLocaleDateString()}
-                          </p>
-                          <p className="text-xs text-gray-400 font-mono mt-1">{cert.code}</p>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+    <UnifiedPageShell>
+      <div className="space-y-6 py-12 px-4 md:px-6 max-w-6xl mx-auto">
+        <div>
+          <h1 className="section-title mb-2">Bảng điều khiển học sinh</h1>
+          <p className="section-content">
+            Theo dõi tiến độ học tập và các khóa học của bạn
+          </p>
         </div>
-      </main>
-      <Footer />
+
+        {/* Stats */}
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <DashboardStatCard
+              icon={<BookOpen className="h-6 w-6" />}
+              label="Khóa học"
+              value={enrollments.length}
+              type="primary"
+            />
+            <DashboardStatCard
+              icon={<Award className="h-6 w-6" />}
+              label="Chứng chỉ"
+              value={certificates.length}
+              type="success"
+            />
+            <DashboardStatCard
+              icon={<Trophy className="h-6 w-6" />}
+              label="Tiến độ trung bình"
+              value={`${Math.round(avgProgress)}%`}
+              type="info"
+            />
+          </div>
+        )}
+
+        {/* Chart */}
+        {courseProgressData.length > 0 && (
+          <SimpleBarChart
+            title="Tiến độ các khóa học"
+            data={courseProgressData}
+          />
+        )}
+
+        {/* Parent Invites */}
+        {parentInvites.length > 0 && (
+          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4 text-amber-900 dark:text-amber-50">
+              Lời mời từ phụ huynh
+            </h2>
+            <div className="space-y-3">
+              {parentInvites.map((invite) => (
+                <div
+                  key={invite.id}
+                  className="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-100 dark:border-amber-900"
+                >
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-50">
+                      {invite.parent?.username}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {invite.parent?.email}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleAcceptInvite(invite.id)}
+                      disabled={acceptingId === invite.id}
+                    >
+                      {acceptingId === invite.id ? 'Đang xử lý...' : 'Chấp nhận'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRejectInvite(invite.id)}
+                      disabled={rejectingId === invite.id}
+                    >
+                      {rejectingId === invite.id ? 'Đang xử lý...' : 'Từ chối'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <Tabs defaultValue="in-progress" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="in-progress">Đang học</TabsTrigger>
+            <TabsTrigger value="completed">Hoàn thành</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="in-progress" className="space-y-4">
+            {enrollments.filter((e) => (progressMap[e.course.id] ?? 0) < 100).length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  Bạn chưa đăng ký khóa học nào
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {enrollments
+                  .filter((e) => (progressMap[e.course.id] ?? 0) < 100)
+                  .map((enrollment) => (
+                    <CourseCard
+                      key={enrollment.id}
+                      enrollment={enrollment}
+                      progress={progressMap[enrollment.course.id] ?? 0}
+                    />
+                  ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="completed" className="space-y-4">
+            {enrollments.filter((e) => (progressMap[e.course.id] ?? 0) === 100).length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <CheckCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  Bạn chưa hoàn thành khóa học nào
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {enrollments
+                  .filter((e) => (progressMap[e.course.id] ?? 0) === 100)
+                  .map((enrollment) => (
+                    <CourseCard
+                      key={enrollment.id}
+                      enrollment={enrollment}
+                      progress={progressMap[enrollment.course.id] ?? 0}
+                    />
+                  ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Certificates */}
+        {certificates.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-50">
+              Chứng chỉ của bạn
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {certificates.map((cert) => (
+                <div
+                  key={cert.id}
+                  className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border border-green-200 dark:border-green-800 rounded-lg p-6"
+                >
+                  <Award className="h-8 w-8 text-green-600 mb-2" />
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-50">
+                    {cert.course?.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    Hoàn thành:{' '}
+                    {new Date(cert.issuedAt).toLocaleDateString('vi-VN')}
+                  </p>
+                  <Link href={`/certificates/${cert.id}`}>
+                    <Button variant="outline" size="sm" className="mt-3">
+                      Xem chứng chỉ
+                    </Button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </UnifiedPageShell>
+  );
+}
+
+interface CourseCardProps {
+  enrollment: Enrollment;
+  progress: number;
+}
+
+function CourseCard({ enrollment, progress }: CourseCardProps) {
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition">
+      {enrollment.course.imageUrl && (
+        <div className="h-40 bg-gradient-to-r from-blue-500 to-purple-600 overflow-hidden">
+          <img
+            src={enrollment.course.imageUrl}
+            alt={enrollment.course.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-50 line-clamp-2">
+            {enrollment.course.title}
+          </h3>
+          {progress === 100 && (
+            <Badge className="ml-2 bg-green-100 text-green-700">Hoàn thành</Badge>
+          )}
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Giáo viên: {enrollment.course.author?.username}
+        </p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Tiến độ</span>
+            <span className="font-medium">{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+        <Link href={`/courses/${enrollment.course.id}`}>
+          <Button className="w-full mt-4 bg-blue-700 hover:bg-blue-800 text-white">
+            <Play className="w-4 h-4 mr-2" />
+            Tiếp tục học
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
