@@ -1,4 +1,4 @@
-import { UnifiedPageShell } from "@/components/layout/unified-page-shell";
+import { DashboardLayout } from "@/components/layout/unified-page-shell";
 
 export const metadata = {
   title: "Trợ giúp | HọcLộ Trình",
@@ -38,7 +38,7 @@ export default function Help() {
   ];
 
   return (
-    <UnifiedPageShell contentClassName="py-16">
+    <DashboardLayout contentClassName="py-16">
       <div className="landing-page max-w-4xl mx-auto px-4 md:px-6">
         <div className="mb-12 text-center">
           <h1 className="section-title mb-4">Trợ giúp & Câu hỏi thường gặp</h1>
@@ -75,6 +75,6 @@ export default function Help() {
           </a>
         </div>
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }

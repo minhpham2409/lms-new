@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
+import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Download, ExternalLink, Star } from 'lucide-react';
@@ -32,16 +32,16 @@ export default function CertificatesPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <UnifiedPageShell>
+      <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
         </div>
-      </UnifiedPageShell>
+      </DashboardLayout>
     );
   }
 
   return (
-    <UnifiedPageShell contentClassName="py-12">
+    <DashboardLayout contentClassName="py-12">
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -134,6 +134,6 @@ export default function CertificatesPage() {
           </div>
         )}
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import CoursesPageContent from '@/components/courses/courses-page-content';
 
 export const metadata: Metadata = {
@@ -9,10 +9,10 @@ export const metadata: Metadata = {
 
 export default function CoursesPage() {
   return (
-    <UnifiedPageShell contentClassName="py-8">
+    <DashboardLayout>
       <div className="w-full max-w-7xl mx-auto">
         <CoursesPageContent />
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }

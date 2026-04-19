@@ -1,4 +1,4 @@
-import { UnifiedPageShell } from "@/components/layout/unified-page-shell";
+import { DashboardLayout } from "@/components/layout/unified-page-shell";
 
 export const metadata = {
   title: "Điều khoản dịch vụ | HọcLộ Trình",
@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function Terms() {
   return (
-    <UnifiedPageShell contentClassName="py-16">
+    <DashboardLayout contentClassName="py-16">
       <div className="landing-page max-w-4xl mx-auto px-4 md:px-6">
         <h1 className="section-title mb-8">Điều khoản dịch vụ</h1>
 
@@ -69,6 +69,6 @@ export default function Terms() {
           </section>
         </div>
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
+import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import Certificate from '@/components/courses/certificate';
 
 export const metadata: Metadata = {
@@ -17,10 +17,10 @@ export default async function CertificatePage({ params }: CertificatePageProps) 
   const { id } = await params;
   
   return (
-    <UnifiedPageShell contentClassName="py-12">
+    <DashboardLayout contentClassName="py-12">
       <div className="max-w-4xl mx-auto px-4">
         <Certificate courseId={id} />
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }

@@ -1,4 +1,4 @@
-import { UnifiedPageShell } from "@/components/layout/unified-page-shell";
+import { DashboardLayout } from "@/components/layout/unified-page-shell";
 
 export const metadata = {
   title: "Chính sách bảo mật | HọcLộ Trình",
@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function Privacy() {
   return (
-    <UnifiedPageShell contentClassName="py-16">
+    <DashboardLayout contentClassName="py-16">
       <div className="landing-page max-w-4xl mx-auto px-4 md:px-6">
         <h1 className="section-title mb-8">Chính sách bảo mật</h1>
 
@@ -60,6 +60,6 @@ export default function Privacy() {
           </section>
         </div>
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }

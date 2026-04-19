@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
+import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -218,7 +218,7 @@ export default function AssignmentPage({ params }: { params: Promise<PageParams>
   const pct = quizAttempt ? Math.round((quizAttempt.score / quizAttempt.maxScore) * 100) : null;
 
   return (
-    <UnifiedPageShell contentClassName="py-12">
+    <DashboardLayout contentClassName="py-12">
       <div className="max-w-3xl mx-auto px-4">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
@@ -446,6 +446,6 @@ export default function AssignmentPage({ params }: { params: Promise<PageParams>
             </div>
           )}
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }

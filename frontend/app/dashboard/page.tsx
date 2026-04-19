@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
+import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -127,11 +127,11 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <UnifiedPageShell>
+      <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
         </div>
-      </UnifiedPageShell>
+      </DashboardLayout>
     );
   }
 
@@ -148,7 +148,7 @@ export default function DashboardPage() {
   }));
 
   return (
-    <UnifiedPageShell>
+    <DashboardLayout>
       <div className="space-y-6 py-12 px-4 md:px-6 max-w-6xl mx-auto">
         <div>
           <h1 className="section-title mb-2">Bảng điều khiển học sinh</h1>
@@ -318,7 +318,7 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }
 

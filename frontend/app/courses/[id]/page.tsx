@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
+import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import CourseDetailContent from '@/components/courses/course-detail-content';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -44,10 +44,10 @@ export default async function CourseDetailPage({
   const [course, reviews] = await Promise.all([getCourse(id), getReviews(id)]);
   if (!course) notFound();
   return (
-    <UnifiedPageShell contentClassName="py-12">
+    <DashboardLayout contentClassName="py-12">
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <CourseDetailContent course={course} reviews={reviews} />
       </div>
-    </UnifiedPageShell>
+    </DashboardLayout>
   );
 }
