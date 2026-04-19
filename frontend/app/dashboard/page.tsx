@@ -77,8 +77,8 @@ export default function DashboardPage() {
       setProgressMap(pMap);
 
       try {
-        const invites = await parentsApi.getIncomingLink?.() || [];
-        setParentInvites(invites);
+        const invites = await parentsApi.getIncomingForStudent();
+        setParentInvites(invites || []);
       } catch (err) {
         console.error('Failed to load parent invites:', err);
       }
