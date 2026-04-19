@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -111,14 +112,17 @@ export default function CartPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
+      <UnifiedPageShell>
+        <div className="flex items-center justify-center py-24">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      </UnifiedPageShell>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl w-full">
+    <UnifiedPageShell contentClassName="py-12">
+      <div className="max-w-6xl mx-auto px-4">
           <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <ShoppingCart className="h-6 w-6" /> Shopping Cart
             {items.length > 0 && (
@@ -250,6 +254,7 @@ export default function CartPage() {
               </div>
             </div>
           )}
-    </div>
+      </div>
+    </UnifiedPageShell>
   );
 }

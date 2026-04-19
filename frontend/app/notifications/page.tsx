@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { UnifiedPageShell } from '@/components/layout/unified-page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -87,14 +88,17 @@ export default function NotificationsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
+      <UnifiedPageShell>
+        <div className="flex items-center justify-center py-24">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      </UnifiedPageShell>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 max-w-3xl">
+    <UnifiedPageShell contentClassName="py-12">
+      <div className="max-w-3xl mx-auto px-4">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Bell className="h-6 w-6" />
@@ -177,6 +181,7 @@ export default function NotificationsPage() {
               ))}
             </div>
           )}
-    </div>
+      </div>
+    </UnifiedPageShell>
   );
 }
