@@ -194,20 +194,19 @@ export default function ParentPage() {
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
               <Users className="h-6 w-6 text-primary" />
             </span>
-            Parent dashboard
+            Bảng điều khiển Phụ huynh
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed">
-            Hello, <span className="font-medium text-foreground">{parentName}</span>. Below is everything we can share
-            about your linked learners: enrollments, lesson completion, certificates, and learning activity counts.
+            Xin chào, <span className="font-medium text-foreground">{parentName}</span>. Dưới đây là tất cả thông tin về các con em được liên kết: khóa học, tiến độ bài học, chứng chỉ, và hoạt động học tập.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="text-xs font-normal">
-            {children.filter((c) => c.status === 'accepted').length} linked
+            {children.filter((c) => c.status === 'accepted').length} đã liên kết
           </Badge>
           {pendingRequests.length > 0 && (
             <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-900 text-xs">
-              {pendingRequests.length} pending request{pendingRequests.length === 1 ? '' : 's'}
+              {pendingRequests.length} yêu cầu chờ xử lý
             </Badge>
           )}
         </div>
@@ -219,15 +218,15 @@ export default function ParentPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <UserPlus className="h-4 w-4" />
-                Link a learner
+                Liên kết con em
               </CardTitle>
               <CardDescription>
-                Enter their email, username, or account ID. They must accept on their dashboard.
+                Nhập email, tên tài khoản, hoặc ID tài khoản của con em. Con em sẽ phải chấp nhận trên bảng điều khiển của mình.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Input
-                placeholder="Email, username, or account ID"
+                placeholder="Email, tên tài khoản, hoặc ID tài khoản"
                 value={childIdentifier}
                 onChange={(e) => setChildIdentifier(e.target.value)}
                 autoComplete="off"
@@ -237,7 +236,7 @@ export default function ParentPage() {
                 onClick={linkChild}
                 disabled={linking || !childIdentifier.trim()}
               >
-                {linking ? 'Sending…' : 'Send link request'}
+                {linking ? 'Đang gửi…' : 'Gửi yêu cầu liên kết'}
               </Button>
             </CardContent>
           </Card>
@@ -245,9 +244,9 @@ export default function ParentPage() {
           {pendingRequests.length > 0 && (
             <Card className="border-amber-200 bg-amber-50/50 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-sm text-amber-950">Waiting for learner</CardTitle>
+                <CardTitle className="text-sm text-amber-950">Chờ con em phản hồi</CardTitle>
                 <CardDescription className="text-amber-900/80">
-                  These requests are waiting for the student to accept or decline.
+                  Những yêu cầu này đang chờ học sinh chấp nhận hoặc từ chối.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -280,7 +279,7 @@ export default function ParentPage() {
                         className="h-8 shrink-0 text-xs"
                         onClick={() => cancelPending(req.id)}
                       >
-                        Cancel
+                        Hủy
                       </Button>
                     </div>
                   </div>
@@ -291,12 +290,12 @@ export default function ParentPage() {
 
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base">Linked learners</CardTitle>
-              <CardDescription>Select one to see full details on the right.</CardDescription>
+              <CardTitle className="text-base">Con em được liên kết</CardTitle>
+              <CardDescription>Chọn một để xem chi tiết đầy đủ bên phải.</CardDescription>
             </CardHeader>
             <CardContent>
               {children.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">No learners linked yet.</p>
+                <p className="text-sm text-muted-foreground py-6 text-center">Chưa có con em được liên kết.</p>
               ) : (
                 <div className="space-y-2">
                   {children.map((link) => {
@@ -332,17 +331,17 @@ export default function ParentPage() {
                             <div className="text-xs text-muted-foreground truncate">{link.child?.email}</div>
                             <div className="mt-1 flex flex-wrap items-center gap-1">
                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                {link.status}
+                                {link.status === 'accepted' ? 'Đã chấp nhận' : 'Chờ xử lý'}
                               </Badge>
                               {link.status === 'accepted' && (
                                 <span className="text-[10px] text-muted-foreground">
-                                  {nCourses} course{nCourses === 1 ? '' : 's'}
+                                  {nCourses} khóa học
                                 </span>
                               )}
                             </div>
                             {link.createdAt && link.status === 'accepted' && (
                               <p className="text-[10px] text-muted-foreground mt-0.5">
-                                Linked {formatDt(link.createdAt)}
+                                Liên kết từ {formatDt(link.createdAt)}
                               </p>
                             )}
                           </div>
@@ -354,7 +353,7 @@ export default function ParentPage() {
                             className="shrink-0 self-center text-destructive hover:text-destructive text-xs"
                             onClick={() => unlinkChild(link.childId)}
                           >
-                            Unlink
+                            Hủy liên kết
                           </Button>
                         )}
                       </div>
@@ -372,11 +371,11 @@ export default function ParentPage() {
               <CardContent className="py-16">
                 <div className="text-center max-w-md mx-auto space-y-3">
                   <GraduationCap className="h-14 w-14 text-muted-foreground/30 mx-auto" />
-                  <h3 className="text-lg font-semibold text-foreground">Select a learner</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Chọn con em</h3>
                   <p className="text-sm text-muted-foreground">
                     {children.some((c) => c.status === 'accepted')
-                      ? 'Choose a linked account in the sidebar to load enrollments, certificates, and activity.'
-                      : 'Link a learner first. After they accept, their full study overview will appear here.'}
+                      ? 'Chọn một tài khoản được liên kết ở bên trái để xem khóa học, chứng chỉ, và hoạt động học tập.'
+                      : 'Liên kết con em trước. Sau khi con em chấp nhận, toàn bộ thông tin học tập sẽ hiển thị ở đây.'}
                   </p>
                 </div>
               </CardContent>
@@ -408,38 +407,38 @@ export default function ParentPage() {
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
                           <div className="rounded-lg border bg-background/80 px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Account ID</p>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ID tài khoản</p>
                             <p className="font-mono text-xs break-all mt-0.5">{dash.child.id}</p>
                           </div>
                           <div className="rounded-lg border bg-background/80 px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Member since</p>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Thành viên từ</p>
                             <p className="text-xs mt-0.5 flex items-center gap-1">
                               <Calendar className="h-3.5 w-3.5 shrink-0" />
                               {formatDt(dash.child.createdAt)}
                             </p>
                           </div>
                           <div className="rounded-lg border bg-background/80 px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Account status</p>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Trạng thái tài khoản</p>
                             <p className="mt-0.5 flex items-center gap-1.5">
                               {dash.child.isActive ? (
                                 <>
                                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                  <span className="text-xs">Active</span>
+                                  <span className="text-xs">Hoạt động</span>
                                 </>
                               ) : (
                                 <>
                                   <XCircle className="h-4 w-4 text-destructive" />
-                                  <span className="text-xs">Inactive</span>
+                                  <span className="text-xs">Không hoạt động</span>
                                 </>
                               )}
                             </p>
                           </div>
                           <div className="rounded-lg border bg-background/80 px-3 py-2 sm:col-span-2 lg:col-span-3">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                              Parent link (your connection)
+                              Liên kết phụ huynh (kết nối của bạn)
                             </p>
                             <p className="text-xs mt-0.5">
-                              Linked since <strong>{formatDt(dash.link.linkedAt)}</strong>
+                              Liên kết từ <strong>{formatDt(dash.link.linkedAt)}</strong>
                               <span className="text-muted-foreground"> · Link ID </span>
                               <span className="font-mono text-[11px]">{dash.link.id}</span>
                             </p>
@@ -458,7 +457,7 @@ export default function ParentPage() {
                       <BookOpen className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-2xl font-bold tabular-nums">{enrollments.length}</p>
-                        <p className="text-[11px] text-muted-foreground leading-tight">Enrolled courses</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">Khóa học đang ghi danh</p>
                       </div>
                     </div>
                   </CardContent>
@@ -469,7 +468,7 @@ export default function ParentPage() {
                       <TrendingUp className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-2xl font-bold tabular-nums">{avgProgress}%</p>
-                        <p className="text-[11px] text-muted-foreground leading-tight">Avg. course progress</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">Tiến độ trung bình</p>
                       </div>
                     </div>
                   </CardContent>
@@ -480,7 +479,7 @@ export default function ParentPage() {
                       <Trophy className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-2xl font-bold tabular-nums">{dash.certificates.length}</p>
-                        <p className="text-[11px] text-muted-foreground leading-tight">Certificates</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">Chứng chỉ</p>
                       </div>
                     </div>
                   </CardContent>
@@ -491,7 +490,7 @@ export default function ParentPage() {
                       <Activity className="h-5 w-5 text-violet-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-2xl font-bold tabular-nums">{dash.activity.videoLessonsCompleted}</p>
-                        <p className="text-[11px] text-muted-foreground leading-tight">Lessons marked done</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">Bài học đã hoàn thành</p>
                       </div>
                     </div>
                   </CardContent>
@@ -504,7 +503,7 @@ export default function ParentPage() {
                     <FileText className="h-8 w-8 text-orange-500/90" />
                     <div>
                       <p className="text-xl font-bold">{dash.activity.assignmentSubmissions}</p>
-                      <p className="text-xs text-muted-foreground">Assignment submissions (essays)</p>
+                      <p className="text-xs text-muted-foreground">Nộp bài tập (bài luận)</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -513,17 +512,17 @@ export default function ParentPage() {
                     <HelpCircle className="h-8 w-8 text-sky-500/90" />
                     <div>
                       <p className="text-xl font-bold">{dash.activity.quizAttempts}</p>
-                      <p className="text-xs text-muted-foreground">Quiz attempts (completed)</p>
+                      <p className="text-xs text-muted-foreground">Làm bài quiz (hoàn thành)</p>
                     </div>
                   </CardContent>
                 </Card>
                 <Card className="border-muted">
                   <CardContent className="pt-4 pb-3">
-                    <p className="text-[11px] font-medium text-muted-foreground mb-2">Course outcome mix</p>
+                    <p className="text-[11px] font-medium text-muted-foreground mb-2">Kết quả khóa học</p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <Badge variant="secondary">{completedCount} completed</Badge>
-                      <Badge variant="outline">{inProgressCount} in progress</Badge>
-                      <Badge variant="outline">{notStartedCount} not started</Badge>
+                      <Badge variant="secondary">{completedCount} hoàn thành</Badge>
+                      <Badge variant="outline">{inProgressCount} đang học</Badge>
+                      <Badge variant="outline">{notStartedCount} chưa bắt đầu</Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -532,8 +531,8 @@ export default function ParentPage() {
               {enrollments.length > 0 && (
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-lg">Overall progress (enrolled courses)</CardTitle>
-                    <CardDescription>Mean of per-course progress percentages.</CardDescription>
+                    <CardTitle className="text-lg">Tiến độ tổng thể (các khóa học đã ghi danh)</CardTitle>
+                    <CardDescription>Trung bình tiến độ của từng khóa học tính theo phần trăm.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-between text-sm mb-2">
@@ -548,29 +547,28 @@ export default function ParentPage() {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <BookOpen className="h-5 w-5" />
-                    All enrollments
+                    Tất cả khóa học đã ghi danh
                   </CardTitle>
                   <CardDescription>
-                    Every course this learner is enrolled in, with instructor, catalog status, price, and lesson
-                    completion vs total lessons in the course.
+                    Mọi khóa học mà học sinh đã ghi danh, bao gồm giáo viên, trạng thái, giá, và tiến độ hoàn thành bài học.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-0 sm:px-6">
                   {enrollments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground px-6 pb-6">No enrollments yet.</p>
+                    <p className="text-sm text-muted-foreground px-6 pb-6">Chưa ghi danh khóa học nào.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-[72px]"> </TableHead>
-                            <TableHead>Course</TableHead>
-                            <TableHead className="hidden md:table-cell">Instructor</TableHead>
-                            <TableHead className="hidden lg:table-cell">Catalog</TableHead>
-                            <TableHead className="text-right">Price</TableHead>
-                            <TableHead className="hidden sm:table-cell">Enrolled</TableHead>
-                            <TableHead className="text-right">Progress</TableHead>
-                            <TableHead className="hidden xl:table-cell text-right">Lessons</TableHead>
+                            <TableHead>Khóa học</TableHead>
+                            <TableHead className="hidden md:table-cell">Giáo viên</TableHead>
+                            <TableHead className="hidden lg:table-cell">Trạng thái</TableHead>
+                            <TableHead className="text-right">Giá</TableHead>
+                            <TableHead className="hidden sm:table-cell">Ghi danh</TableHead>
+                            <TableHead className="text-right">Tiến độ</TableHead>
+                            <TableHead className="hidden xl:table-cell text-right">Bài học</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -598,7 +596,7 @@ export default function ParentPage() {
                                     {c.description ? c.description : '—'}
                                   </p>
                                   <p className="text-[11px] text-muted-foreground mt-1 xl:hidden">
-                                    Lessons: {row.stats.completedLessons}/{row.stats.totalLessons} · Sections:{' '}
+                                    Bài học: {row.stats.completedLessons}/{row.stats.totalLessons} · Sections:{' '}
                                     {c._count?.sections ?? 0}
                                   </p>
                                 </TableCell>
@@ -641,25 +639,24 @@ export default function ParentPage() {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Award className="h-5 w-5 text-amber-600" />
-                    Certificates
+                    Chứng chỉ
                   </CardTitle>
                   <CardDescription>
-                    Issued when the learner completes a course (same rules as on their account). You can open the
-                    public verify link for each code.
+                    Được cấp khi học sinh hoàn thành khóa học (cùng quy tắc trên tài khoản của họ). Bạn có thể mở liên kết xác minh công khai cho mỗi mã.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-0 sm:px-6 pb-6">
                   {dash.certificates.length === 0 ? (
-                    <p className="text-sm text-muted-foreground px-6">No certificates yet.</p>
+                    <p className="text-sm text-muted-foreground px-6">Chưa có chứng chỉ nào.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Course</TableHead>
-                            <TableHead className="hidden sm:table-cell">Catalog status</TableHead>
-                            <TableHead>Issued</TableHead>
-                            <TableHead className="min-w-[200px]">Code & verify</TableHead>
+                            <TableHead>Khóa học</TableHead>
+                            <TableHead className="hidden sm:table-cell">Trạng thái</TableHead>
+                            <TableHead>Ngày cấp</TableHead>
+                            <TableHead className="min-w-[200px]">Mã & xác minh</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -685,7 +682,7 @@ export default function ParentPage() {
                                   target="_blank"
                                   rel="noreferrer"
                                 >
-                                  Open verify page
+                                  Mở trang xác minh
                                 </Link>
                               </TableCell>
                             </TableRow>
@@ -699,9 +696,7 @@ export default function ParentPage() {
 
               <Separator className="my-2" />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Numbers come from the platform in near real time. Video &quot;lessons marked done&quot; counts lessons
-                the learner completed in the player; assignment and quiz counts include all submissions/attempts on
-                their account. If something looks wrong, ask them to refresh or contact support.
+                Các con số cập nhật gần như thời gian thực từ nền tảng. "Bài học đã hoàn thành" là số bài học học sinh đã đánh dấu là xong trong phần phát; số lượng bài tập và quiz bao gồm tất cả nộp bài/thử trên tài khoản của họ. Nếu có gì có vẻ sai, hãy yêu cầu họ làm mới hoặc liên hệ hỗ trợ.
               </p>
             </>
           )}
