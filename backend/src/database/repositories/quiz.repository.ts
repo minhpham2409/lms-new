@@ -44,6 +44,16 @@ export class QuizRepository extends BaseRepository<Quiz> {
     return this.prisma.quizAttempt.create({ data });
   }
 
+  findAttemptsByQuizId(quizId: string) {
+    return this.prisma.quizAttempt.findMany({
+      where: { quizId },
+      include: {
+        student: { select: { id: true, username: true, firstName: true, lastName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   getNextQuestionOrder(quizId: string) {
     return this.prisma.question
       .findFirst({ where: { quizId }, orderBy: { order: 'desc' }, select: { order: true } })

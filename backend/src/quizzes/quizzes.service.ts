@@ -5,15 +5,46 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { QuizRepository, AssignmentRepository } from '../database/repositories';
 import { CreateQuizDto, CreateQuestionDto, SubmitQuizDto } from './dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class QuizzesService {
   constructor(
     private readonly quizRepository: QuizRepository,
     private readonly assignmentRepository: AssignmentRepository,
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
   ) {}
+
+  /** Same rules as assignments: admin; teacher = course author; student = published + enrolled. */
+  private async assertLearnerOrStaffOnCourse(
+    user: { id: string; role: string },
+    course: { id: string; authorId: string; status: string },
+  ) {
+    if (user.role === 'admin') return;
+    if (user.role === 'teacher') {
+      if (course.authorId !== user.id) {
+        throw new ForbiddenException('You can only access quizzes in your own courses');
+      }
+      return;
+    }
+    if (user.role === 'student') {
+      if (course.status !== 'published') {
+        throw new ForbiddenException('This course is not available');
+      }
+      const enr = await this.prisma.enrollment.findUnique({
+        where: { userId_courseId: { userId: user.id, courseId: course.id } },
+      });
+      if (!enr) {
+        throw new ForbiddenException('You must be enrolled in this course to access quizzes');
+      }
+      return;
+    }
+    throw new ForbiddenException();
+  }
 
   private async getAssignmentOwner(assignmentId: string) {
     const assignment = await this.assignmentRepository.findByIdWithLesson(assignmentId);
@@ -39,9 +70,12 @@ export class QuizzesService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: { id: string; role: string }) {
     const quiz = await this.quizRepository.findByIdWithQuestions(id);
     if (!quiz) throw new NotFoundException('Quiz not found');
+    const assignment = await this.assignmentRepository.findByIdWithLesson(quiz.assignmentId);
+    if (!assignment) throw new NotFoundException('Assignment not found');
+    await this.assertLearnerOrStaffOnCourse(user, assignment.lesson.section.course);
     return quiz;
   }
 
@@ -69,6 +103,12 @@ export class QuizzesService {
   async submit(id: string, dto: SubmitQuizDto, studentId: string) {
     const quiz = await this.quizRepository.findByIdWithQuestions(id);
     if (!quiz) throw new NotFoundException('Quiz not found');
+    const assignment = await this.assignmentRepository.findByIdWithLesson(quiz.assignmentId);
+    if (!assignment) throw new NotFoundException('Assignment not found');
+    await this.assertLearnerOrStaffOnCourse(
+      { id: studentId, role: 'student' },
+      assignment.lesson.section.course,
+    );
 
     const existing = await this.quizRepository.getAttempt(id, studentId);
     if (existing) throw new ConflictException('You have already submitted this quiz');
@@ -83,16 +123,51 @@ export class QuizzesService {
       }
     }
 
-    return this.quizRepository.createAttempt({
+    const attempt = await this.quizRepository.createAttempt({
       quizId: id,
       studentId,
       answers: JSON.stringify(dto.answers),
       score,
       maxScore,
     });
+
+    this.notificationsService.notifyUser(studentId, {
+      title: 'Quiz submitted',
+      message: `You scored ${score} / ${maxScore} on "${assignment.title}".`,
+      type: 'success',
+    });
+
+    return attempt;
+  }
+
+  /** Teacher/admin: all student attempts for a quiz (auto-graded scores). */
+  async listAttempts(quizId: string, user: { id: string; role: string }) {
+    const quiz = await this.quizRepository.findById(quizId);
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    const assignment = await this.assignmentRepository.findByIdWithLesson(quiz.assignmentId);
+    if (!assignment) throw new NotFoundException('Assignment not found');
+    if (user.role === 'admin') {
+      return this.quizRepository.findAttemptsByQuizId(quizId);
+    }
+    if (user.role === 'teacher') {
+      if (assignment.lesson.section.course.authorId !== user.id) {
+        throw new ForbiddenException('You can only view attempts for your own courses');
+      }
+      return this.quizRepository.findAttemptsByQuizId(quizId);
+    }
+    throw new ForbiddenException();
   }
 
   async getResult(id: string, studentId: string) {
+    const quiz = await this.quizRepository.findById(id);
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    const assignment = await this.assignmentRepository.findByIdWithLesson(quiz.assignmentId);
+    if (!assignment) throw new NotFoundException('Assignment not found');
+    await this.assertLearnerOrStaffOnCourse(
+      { id: studentId, role: 'student' },
+      assignment.lesson.section.course,
+    );
+
     const attempt = await this.quizRepository.getAttempt(id, studentId);
     if (!attempt) throw new NotFoundException('No submission found for this quiz');
 

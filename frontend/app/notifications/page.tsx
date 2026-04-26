@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -88,16 +87,14 @@ export default function NotificationsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
     );
   }
 
   return (
-    <DashboardLayout contentClassName="py-12">
+    <div className="py-12">
       <div className="max-w-3xl mx-auto px-4">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -182,6 +179,6 @@ export default function NotificationsPage() {
             </div>
           )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

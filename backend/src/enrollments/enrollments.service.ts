@@ -1,9 +1,18 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class EnrollmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async enroll(userId: string, courseId: string) {
     const existingEnrollment = await this.prisma.enrollment.findFirst({
@@ -16,11 +25,24 @@ export class EnrollmentsService {
 
     const course = await this.prisma.course.findUnique({ where: { id: courseId } });
     if (!course) throw new NotFoundException('Course not found');
+    if (course.status !== 'published') {
+      throw new BadRequestException(
+        'This course is not available for enrollment yet',
+      );
+    }
 
-    return this.prisma.enrollment.create({
+    const enrollment = await this.prisma.enrollment.create({
       data: { userId, courseId },
       include: { course: true },
     });
+
+    this.notificationsService.notifyUser(userId, {
+      title: 'Enrollment confirmed',
+      message: `You are enrolled in "${course.title}". Open Dashboard → My courses to start learning.`,
+      type: 'success',
+    });
+
+    return enrollment;
   }
 
   async getEnrollmentStatus(userId: string, courseId: string) {

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,16 +39,14 @@ export default function OrdersPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
     );
   }
 
   return (
-    <DashboardLayout contentClassName="py-12">
+    <div className="py-12">
       <div className="max-w-4xl mx-auto px-4">
           <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <ShoppingBag className="h-6 w-6" />
@@ -142,6 +139,6 @@ export default function OrdersPage() {
             </div>
           )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

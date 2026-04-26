@@ -5,7 +5,6 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -174,11 +173,9 @@ export default function ProfilePage() {
 
   if (status === 'loading' || loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
     );
   }
 
@@ -186,7 +183,7 @@ export default function ProfilePage() {
 
   if (role === 'parent') {
     return (
-      <DashboardLayout contentClassName="py-12">
+      <div className="py-12">
         <div className="container mx-auto px-4 max-w-3xl space-y-6">
         <div className="flex items-start gap-5">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center ring-2 ring-primary/20">
@@ -250,13 +247,13 @@ export default function ProfilePage() {
           onSave={handleSave}
         />
       </div>
-    </DashboardLayout>
+    </div>
     );
   }
 
   if (role === 'teacher') {
     return (
-      <DashboardLayout contentClassName="py-12">
+      <div className="py-12">
         <div className="container mx-auto px-4 max-w-3xl space-y-6">
         <div className="flex items-start gap-5">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center ring-2 ring-primary/20">
@@ -315,7 +312,7 @@ export default function ProfilePage() {
           onSave={handleSave}
         />
       </div>
-    </DashboardLayout>
+    </div>
     );
   }
 
@@ -326,7 +323,7 @@ export default function ProfilePage() {
   );
 
   return (
-    <DashboardLayout contentClassName="py-12">
+    <div className="py-12">
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="flex items-start justify-between mb-8">
         <div className="flex items-center gap-5">
@@ -524,6 +521,6 @@ export default function ProfilePage() {
         </TabsContent>
       </Tabs>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

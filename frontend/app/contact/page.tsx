@@ -1,4 +1,3 @@
-import { DashboardLayout } from "@/components/layout/unified-page-shell";
 
 export const metadata = {
   title: "Liên hệ | HọcLộ Trình",
@@ -7,7 +6,7 @@ export const metadata = {
 
 export default function Contact() {
   return (
-    <DashboardLayout contentClassName="py-16">
+    <div className="py-16">
       <div className="landing-page max-w-4xl mx-auto px-4 md:px-6">
         <div className="mb-12 text-center">
           <h1 className="section-title mb-4">Liên hệ với chúng tôi</h1>
@@ -144,6 +143,6 @@ export default function Contact() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

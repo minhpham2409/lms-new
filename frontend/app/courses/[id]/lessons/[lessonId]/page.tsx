@@ -1,4 +1,3 @@
-import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import VideoPlayer from '@/components/courses/video-player';
 
 interface LessonPageProps {
@@ -11,8 +10,8 @@ interface LessonPageProps {
 export default async function LessonPage({ params }: LessonPageProps) {
   const { id, lessonId } = await params;
   return (
-    <DashboardLayout contentClassName="py-0">
+    <div className="py-0">
       <VideoPlayer courseId={id} lessonId={lessonId} />
-    </DashboardLayout>
+    </div>
   );
 }

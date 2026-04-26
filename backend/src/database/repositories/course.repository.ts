@@ -13,8 +13,9 @@ export class CourseRepository extends BaseRepository<Course> {
     return this.prisma.course;
   }
 
-  findAllWithCounts() {
+  findAllWithCounts(where?: { status?: string }) {
     return this.prisma.course.findMany({
+      where: where ?? {},
       include: {
         author: { select: { id: true, username: true } },
         _count: { select: { sections: true, enrollments: true } },
@@ -40,7 +41,7 @@ export class CourseRepository extends BaseRepository<Course> {
 
   createWithAuthor(data: any, authorId: string) {
     return this.prisma.course.create({
-      data: { ...data, authorId },
+      data: { ...data, authorId, status: data.status ?? 'draft' },
       include: {
         author: { select: { id: true, username: true } },
       },
@@ -51,14 +52,20 @@ export class CourseRepository extends BaseRepository<Course> {
     return this.prisma.course.findMany({
       where: { authorId },
       include: {
-        _count: { select: { sections: true, enrollments: true } },
+        sections: {
+          orderBy: { order: 'asc' },
+          include: { lessons: { orderBy: { order: 'asc' } } },
+        },
+        _count: { select: { enrollments: true } },
       },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  search(q: string) {
+  search(q: string, publishedOnly = true) {
     return this.prisma.course.findMany({
       where: {
+        ...(publishedOnly ? { status: 'published' } : {}),
         OR: [
           { title: { contains: q } },
           { description: { contains: q } },

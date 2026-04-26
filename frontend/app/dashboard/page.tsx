@@ -3,7 +3,6 @@
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { DashboardLayout } from '@/components/layout/unified-page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -127,11 +126,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      </div>
     );
   }
 
@@ -148,8 +145,7 @@ export default function DashboardPage() {
   }));
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 py-12 px-4 md:px-6 max-w-6xl mx-auto">
+    <div className="space-y-6 py-12 px-4 md:px-6 max-w-6xl mx-auto">
         <div>
           <h1 className="section-title mb-2">Bảng điều khiển học sinh</h1>
           <p className="section-content">
@@ -318,9 +314,8 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
-  );
-}
+    );
+  }
 
 interface CourseCardProps {
   enrollment: Enrollment;

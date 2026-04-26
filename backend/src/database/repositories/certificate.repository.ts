@@ -15,7 +15,10 @@ export class CertificateRepository extends BaseRepository<Certificate> {
 
   findByUser(userId: string) {
     return this.prisma.certificate.findMany({
-      where: { userId },
+      where: {
+        userId,
+        course: { status: 'published' },
+      },
       include: { course: { select: { id: true, title: true, thumbnail: true } } },
       orderBy: { issuedAt: 'desc' },
     });
@@ -26,7 +29,7 @@ export class CertificateRepository extends BaseRepository<Certificate> {
       where: { code },
       include: {
         user: { select: { id: true, username: true, firstName: true, lastName: true } },
-        course: { select: { id: true, title: true } },
+        course: { select: { id: true, title: true, status: true } },
       },
     });
   }

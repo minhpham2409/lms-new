@@ -13,7 +13,6 @@ import { QrCode, CheckCircle, Clock, RefreshCw, ArrowLeft } from 'lucide-react';
 import { ordersApi, paymentsApi } from '@/lib/api-service';
 import type { Order, Payment } from '@/types';
 import Link from 'next/link';
-import { DashboardLayout } from '@/components/layout/unified-page-shell';
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -81,11 +80,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   if (status === 'loading' || loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
     );
   }
 
@@ -104,7 +101,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       payment.qrData.startsWith('https://'));
 
   return (
-    <DashboardLayout contentClassName="py-12">
+    <div className="py-12">
       <div className="max-w-2xl mx-auto px-4">
           <Button variant="ghost" className="mb-4" asChild>
             <Link href="/orders">
@@ -240,6 +237,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

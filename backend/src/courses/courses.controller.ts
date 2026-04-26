@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   UseGuards,
@@ -14,6 +15,7 @@ import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { GetUser } from '../common/decorators/get-user.decorator';
@@ -52,6 +54,16 @@ export class CoursesController {
     return this.coursesService.findAll();
   }
 
+  @Get('my/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get teacher stats' })
+  @ApiResponse({ status: 200, description: 'Teacher stats retrieved' })
+  getTeacherStats(@GetUser() user: any) {
+    return this.coursesService.getTeacherStats(user.id);
+  }
+
   @Get('my')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher', 'admin')
@@ -63,20 +75,29 @@ export class CoursesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get course by id' })
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Get course by id (draft/pending visible to author or admin)' })
   @ApiResponse({ status: 200, description: 'Course retrieved' })
-  findOne(@Param('id') id: string) {
-    return this.coursesService.findOne(id);
+  @ApiBearerAuth()
+  findOne(@Param('id') id: string, @GetUser() user: { id: string; role: string } | undefined) {
+    return this.coursesService.findOne(
+      id,
+      user ? { id: user.id, role: user.role } : null,
+    );
   }
 
   @Patch(':id')
+  @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update course' })
   @ApiResponse({ status: 200, description: 'Course updated' })
   update(@Param('id') id: string, @Body() dto: UpdateCourseDto, @GetUser() user: any) {
-    return this.coursesService.update(id, dto, user.id);
+    return this.coursesService.update(id, dto, {
+      id: user.id,
+      role: user.role,
+    });
   }
 
   @Post(':id/submit-review')

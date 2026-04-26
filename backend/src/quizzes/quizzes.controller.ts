@@ -22,11 +22,23 @@ export class QuizzesController {
     return this.quizzesService.create(dto, user.id);
   }
 
+  @Get(':id/attempts')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List student attempts for quiz (teacher)' })
+  @ApiResponse({ status: 200, description: 'Attempts retrieved' })
+  listAttempts(@Param('id') id: string, @GetUser() user: any) {
+    return this.quizzesService.listAttempts(id, user);
+  }
+
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get quiz by id' })
   @ApiResponse({ status: 200, description: 'Quiz retrieved' })
-  findOne(@Param('id') id: string) {
-    return this.quizzesService.findOne(id);
+  findOne(@Param('id') id: string, @GetUser() user: any) {
+    return this.quizzesService.findOne(id, user);
   }
 
   @Post(':id/submit')

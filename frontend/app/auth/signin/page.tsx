@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { DashboardLayout } from "@/components/layout/unified-page-shell";
 import SignInFormClient from "@/components/auth/signin-form-client";
 
 export const metadata = {
@@ -8,12 +7,12 @@ export const metadata = {
 
 export default function SignInPage() {
   return (
-    <DashboardLayout contentClassName="py-12 flex items-center justify-center">
+    <div className="py-12 flex items-center justify-center min-h-screen">
       <div className="w-full max-w-md">
         <Suspense fallback={<div className="text-center">Đang tải...</div>}>
           <SignInFormClient />
         </Suspense>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

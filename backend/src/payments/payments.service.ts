@@ -6,6 +6,7 @@ import {
 import { PaymentRepository, OrderRepository } from '../database/repositories';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQrDto, WebhookDto } from './dto';
+import { NotificationsService } from '../notifications/notifications.service';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class PaymentsService {
     private readonly paymentRepository: PaymentRepository,
     private readonly orderRepository: OrderRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createQr(dto: CreateQrDto, userId: string) {
@@ -23,15 +25,30 @@ export class PaymentsService {
     if (order.status !== 'pending') throw new BadRequestException('Order is not pending');
 
     const existing = await this.paymentRepository.findByOrderId(dto.orderId);
-    if (existing && existing.status === 'completed') {
+    if (existing?.status === 'completed') {
       throw new BadRequestException('Order has already been paid');
+    }
+
+    const reusePending =
+      !dto.forceRegenerate &&
+      existing &&
+      existing.status === 'pending' &&
+      existing.qrData &&
+      existing.txnRef;
+
+    if (reusePending) {
+      return existing;
     }
 
     const txnRef = randomUUID();
     const qrData = `VIETQR|${txnRef}|${order.finalPrice}|LMS Payment ${order.id}`;
 
     if (existing) {
-      return this.paymentRepository.update(existing.id, { txnRef, qrData });
+      return this.paymentRepository.update(existing.id, {
+        txnRef,
+        qrData,
+        status: 'pending',
+      });
     }
 
     return this.paymentRepository.create({
@@ -73,6 +90,20 @@ export class PaymentsService {
         });
       }
     }
+
+    const titles = order.items
+      .map((item) => item.course?.title)
+      .filter((t): t is string => !!t);
+    const summary =
+      titles.length > 0
+        ? `Enrollment confirmed for: ${titles.join(', ')}. Open Dashboard → My courses.`
+        : 'Your payment was received and your courses are unlocked.';
+
+    this.notificationsService.notifyUser(order.userId, {
+      title: 'Payment successful',
+      message: summary,
+      type: 'success',
+    });
 
     return { message: 'Payment confirmed, enrollments created' };
   }

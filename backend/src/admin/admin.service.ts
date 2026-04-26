@@ -17,14 +17,14 @@ export class AdminService {
 
   private async createSuperAdminIfNotExists() {
     const adminExists = await this.prisma.user.findFirst({
-      where: { email: 'admin@admin.com' },
+      where: { role: 'admin' },
     });
 
     if (!adminExists) {
-      const hashedPassword = await bcrypt.hash('password', 10);
+      const hashedPassword = await bcrypt.hash('Admin123!', 10);
       await this.prisma.user.create({
         data: {
-          email: 'admin@admin.com',
+          email: 'admin@lms.com',
           password: hashedPassword,
           role: 'admin',
           firstName: 'Admin',
@@ -148,6 +148,73 @@ export class AdminService {
     await this.prisma.course.delete({ where: { id } });
   }
 
+  async publishCourse(id: string) {
+    const course = await this.prisma.course.findUnique({ where: { id } });
+    if (!course) throw new NotFoundException('Course not found');
+    if (course.status !== 'pending') {
+      throw new BadRequestException(
+        'Only courses pending review can be published',
+      );
+    }
+    return this.prisma.course.update({
+      where: { id },
+      data: { status: 'published' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+  }
+
+  async rejectCourse(id: string) {
+    const course = await this.prisma.course.findUnique({ where: { id } });
+    if (!course) throw new NotFoundException('Course not found');
+    if (course.status !== 'pending') {
+      throw new BadRequestException(
+        'Only courses pending review can be rejected',
+      );
+    }
+    return this.prisma.course.update({
+      where: { id },
+      data: { status: 'draft' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getAllOrders() {
+    return this.prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: { id: true, username: true, email: true },
+        },
+        items: {
+          include: {
+            course: { select: { id: true, title: true, price: true } },
+          },
+        },
+        payment: true,
+      },
+    });
+  }
+
   async getAllLessons() {
     return this.prisma.lesson.findMany({
       include: {
@@ -209,12 +276,68 @@ export class AdminService {
   }
 
   async getDashboardStats() {
-    const [users, courses, lessons, enrollments] = await Promise.all([
+    const [
+      totalUsers,
+      totalCourses,
+      totalLessons,
+      totalEnrollments,
+      usersByRole,
+      coursesByStatus,
+      recentUsers,
+      recentCourses,
+      revenue,
+    ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.course.count(),
       this.prisma.lesson.count(),
       this.prisma.enrollment.count(),
+      this.prisma.user.groupBy({ by: ['role'], _count: { id: true } }),
+      this.prisma.course.groupBy({ by: ['status'], _count: { id: true } }),
+      this.prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, username: true, email: true, role: true, createdAt: true },
+      }),
+      this.prisma.course.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: {
+          author: { select: { id: true, username: true } },
+          _count: { select: { enrollments: true } },
+        },
+      }),
+      this.prisma.order.aggregate({
+        where: { status: { in: ['paid', 'completed'] } },
+        _sum: { finalPrice: true },
+      }),
     ]);
-    return { users, courses, lessons, enrollments };
+
+    const userRoleMap = Object.fromEntries(
+      usersByRole.map((r) => [r.role, r._count.id]),
+    );
+    const courseStatusMap = Object.fromEntries(
+      coursesByStatus.map((r) => [r.status, r._count.id]),
+    );
+
+    return {
+      users: totalUsers,
+      courses: totalCourses,
+      lessons: totalLessons,
+      enrollments: totalEnrollments,
+      revenue: revenue._sum.finalPrice ?? 0,
+      usersByRole: {
+        student: userRoleMap['student'] ?? 0,
+        teacher: userRoleMap['teacher'] ?? 0,
+        parent: userRoleMap['parent'] ?? 0,
+        admin: userRoleMap['admin'] ?? 0,
+      },
+      coursesByStatus: {
+        draft: courseStatusMap['draft'] ?? 0,
+        pending: courseStatusMap['pending'] ?? 0,
+        published: courseStatusMap['published'] ?? 0,
+      },
+      recentUsers,
+      recentCourses,
+    };
   }
 }

@@ -79,6 +79,7 @@ export class AuthService {
     password: string;
     firstName?: string;
     lastName?: string;
+    role?: string;
   }) {
     // Check if user already exists
     const existingUser = await this.userRepository.findByUsernameOrEmail(

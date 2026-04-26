@@ -9,6 +9,7 @@ import {
   UseGuards,
   Query,
   Put,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AssignmentsService } from './assignments.service';
@@ -39,17 +40,32 @@ export class AssignmentsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get assignments by lesson' })
   @ApiResponse({ status: 200, description: 'Assignments retrieved' })
-  findByLesson(@Query('lessonId') lessonId: string) {
-    return this.assignmentsService.findByLesson(lessonId);
+  findByLesson(@Query('lessonId') lessonId: string, @GetUser() user: any) {
+    if (!lessonId) throw new BadRequestException('lessonId query is required');
+    return this.assignmentsService.findByLesson(lessonId, user);
+  }
+
+  @Get(':id/my-submission')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('student')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current student submission for this assignment' })
+  @ApiResponse({ status: 200, description: 'Submission or null' })
+  getMySubmission(@Param('id') id: string, @GetUser() user: any) {
+    return this.assignmentsService.getMySubmission(id, user.id);
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get assignment by id' })
   @ApiResponse({ status: 200, description: 'Assignment retrieved' })
-  findOne(@Param('id') id: string) {
-    return this.assignmentsService.findOne(id);
+  findOne(@Param('id') id: string, @GetUser() user: any) {
+    return this.assignmentsService.findOne(id, user);
   }
 
   @Put(':id')

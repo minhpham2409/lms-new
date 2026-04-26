@@ -25,6 +25,9 @@ export class CartService {
   async addItem(dto: AddToCartDto, userId: string) {
     const course = await this.prisma.course.findUnique({ where: { id: dto.courseId } });
     if (!course) throw new NotFoundException('Course not found');
+    if (course.status !== 'published') {
+      throw new BadRequestException('This course is not available for purchase');
+    }
 
     const enrolled = await this.prisma.enrollment.findFirst({
       where: { userId, courseId: dto.courseId },
@@ -56,9 +59,15 @@ export class CartService {
 
     const items = await this.cartRepository.findByUser(userId);
     const total = items.reduce((sum, item) => sum + item.course.price, 0);
-    const discounted = total * (1 - coupon.discount / 100);
+    const finalTotal = total * (1 - coupon.discount / 100);
 
-    return { coupon, total, discounted, savings: total - discounted };
+    return {
+      code: coupon.code,
+      discount: coupon.discount,
+      originalTotal: total,
+      finalTotal,
+      savings: total - finalTotal,
+    };
   }
 
   async clearCart(userId: string) {

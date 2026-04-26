@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Put,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
@@ -41,6 +51,11 @@ export class AdminController {
     return this.adminService.deleteUser(id);
   }
 
+  @Get('orders')
+  getAllOrders() {
+    return this.adminService.getAllOrders();
+  }
+
   @Get('courses')
   getAllCourses() {
     return this.adminService.getAllCourses();
@@ -51,7 +66,18 @@ export class AdminController {
     return this.adminService.createCourse(createCourseDto);
   }
 
+  @Put('courses/:id/publish')
+  publishCourse(@Param('id') id: string) {
+    return this.adminService.publishCourse(id);
+  }
+
+  @Put('courses/:id/reject')
+  rejectCourse(@Param('id') id: string) {
+    return this.adminService.rejectCourse(id);
+  }
+
   @Patch('courses/:id')
+  @Put('courses/:id')
   updateCourse(@Param('id') id: string, @Body() updateData: UpdateCourseDto) {
     return this.adminService.updateCourse(id, updateData);
   }
