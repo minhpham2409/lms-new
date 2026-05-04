@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdateVideoProgressDto } from './dto/update-video-progress.dto';
 
 @Injectable()
-export default class ProgressService {
+export class ProgressService {
   constructor(private prisma: PrismaService) {}
 
   async getUserProgress(userId: string, courseId: string) {

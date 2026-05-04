@@ -2,12 +2,13 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PaymentRepository, OrderRepository } from '../database/repositories';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQrDto, WebhookDto } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHmac } from 'crypto';
 
 @Injectable()
 export class PaymentsService {
@@ -17,6 +18,27 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
   ) {}
+
+  /** Verify HMAC-SHA256 signature from bank webhook. */
+  private verifyWebhookSignature(dto: WebhookDto): void {
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+    // If no secret configured, skip verification (dev mode)
+    if (!webhookSecret) return;
+
+    if (!dto.signature) {
+      throw new UnauthorizedException('Missing webhook signature');
+    }
+
+    // Canonical string: txnRef|amount|status
+    const payload = `${dto.txnRef}|${dto.amount}|${dto.status}`;
+    const expected = createHmac('sha256', webhookSecret)
+      .update(payload)
+      .digest('hex');
+
+    if (dto.signature !== expected) {
+      throw new UnauthorizedException('Invalid webhook signature');
+    }
+  }
 
   async createQr(dto: CreateQrDto, userId: string) {
     const order = await this.orderRepository.findByIdWithDetails(dto.orderId);
@@ -60,6 +82,9 @@ export class PaymentsService {
   }
 
   async handleWebhook(dto: WebhookDto) {
+    // Validate HMAC signature from bank
+    this.verifyWebhookSignature(dto);
+
     const payment = await this.paymentRepository.findByTxnRef(dto.txnRef);
     if (!payment) throw new NotFoundException('Transaction not found');
     if (payment.status === 'completed') return { message: 'Already processed' };

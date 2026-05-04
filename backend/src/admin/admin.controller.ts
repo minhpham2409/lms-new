@@ -19,6 +19,7 @@ import { UpdateLessonDto } from '../lessons/dto/update-lesson.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { GetUser } from '../common/decorators/get-user.decorator';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -42,13 +43,17 @@ export class AdminController {
   }
 
   @Patch('users/:id')
-  updateUser(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
-    return this.adminService.updateUser(id, updateData);
+  updateUser(
+    @Param('id') id: string,
+    @Body() updateData: UpdateUserDto,
+    @GetUser() requester: any,
+  ) {
+    return this.adminService.updateUser(id, updateData, requester.id);
   }
 
   @Delete('users/:id')
-  deleteUser(@Param('id') id: string) {
-    return this.adminService.deleteUser(id);
+  deleteUser(@Param('id') id: string, @GetUser() requester: any) {
+    return this.adminService.deleteUser(id, requester.id);
   }
 
   @Get('orders')
@@ -77,7 +82,6 @@ export class AdminController {
   }
 
   @Patch('courses/:id')
-  @Put('courses/:id')
   updateCourse(@Param('id') id: string, @Body() updateData: UpdateCourseDto) {
     return this.adminService.updateCourse(id, updateData);
   }

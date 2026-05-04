@@ -31,6 +31,13 @@ export class EnrollmentsService {
       );
     }
 
+    // Paid courses must go through the payment flow
+    if (course.price > 0) {
+      throw new BadRequestException(
+        'This is a paid course. Please purchase it through the cart and payment flow.',
+      );
+    }
+
     const enrollment = await this.prisma.enrollment.create({
       data: { userId, courseId },
       include: { course: true },

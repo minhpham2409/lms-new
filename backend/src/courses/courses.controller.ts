@@ -86,7 +86,6 @@ export class CoursesController {
     );
   }
 
-  @Patch(':id')
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher', 'admin')

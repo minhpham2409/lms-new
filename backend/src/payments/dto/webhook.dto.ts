@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class WebhookDto {
   @ApiProperty()
@@ -15,4 +15,9 @@ export class WebhookDto {
   @IsNotEmpty()
   @IsString()
   status: string;
+
+  @ApiPropertyOptional({ description: 'HMAC-SHA256 signature from bank for verification' })
+  @IsOptional()
+  @IsString()
+  signature?: string;
 }

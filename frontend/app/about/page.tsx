@@ -1,84 +1,78 @@
+"use client";
 
-export const metadata = {
-  title: "Giới thiệu | HọcLộ Trình",
-  description: "Tìm hiểu về nền tảng LMS HọcLộ Trình dành cho học sinh cấp 2.",
-};
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
+import { GraduationCap, Users, BookOpen, Award, Heart, Globe, Target, Sparkles } from "lucide-react";
 
-export default function About() {
+export default function AboutPage() {
   return (
-    <div className="py-16">
-      <div className="landing-page max-w-4xl mx-auto px-4 md:px-6">
-        <div className="mb-12 text-center">
-          <h1 className="section-title mb-4">Về HọcLộ Trình</h1>
-          <p className="section-subtitle">
-            Nền tảng LMS hiện đại kết nối giáo viên, học sinh và phụ huynh
+    <div className="min-h-screen" style={{ background: "var(--background)" }}>
+      <Navbar />
+
+      <section className="pt-28 pb-16 relative overflow-hidden">
+        <div className="orb orb-violet w-[400px] h-[400px] -top-40 left-[-100px] opacity-30" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+          <div className="section-tag mx-auto mb-4">
+            <Sparkles className="w-3.5 h-3.5" /> Về chúng tôi
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-extrabold mb-6">
+            Sứ mệnh <span className="gradient-text">đổi mới giáo dục</span>
+          </h1>
+          <p className="text-lg leading-relaxed max-w-2xl mx-auto" style={{ color: "#8892a4" }}>
+            HọcLộ Trình ra đời với khát vọng mang công nghệ hiện đại vào giáo dục,
+            giúp học sinh Việt Nam tiếp cận kiến thức chất lượng cao mọi lúc, mọi nơi.
           </p>
         </div>
+      </section>
 
-        <div className="space-y-8">
-          <section>
-            <h2 className="section-title text-2xl mb-3">Sứ mệnh</h2>
-            <p className="section-content text-lg leading-relaxed">
-              HọcLộ Trình được tạo ra với mục tiêu cách mạng hóa nền giáo dục
-              cho học sinh cấp 2. Chúng tôi tin rằng học tập hiệu quả cần sự
-              kết hợp giữa công nghệ, nội dung chất lượng và sự hỗ trợ từ giáo
-              viên cũng như phụ huynh.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="section-title text-2xl mb-3">Tầm nhìn</h2>
-            <p className="section-content text-lg leading-relaxed">
-              Chúng tôi hướng đến một tương lai nơi mọi học sinh cấp 2 có thể
-              học tập theo cách riêng của mình, với sự hướng dẫn cá nhân từ các
-              giáo viên giỏi và sự giám sát minh bạch từ phụ huynh.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="section-title text-2xl mb-3">Giá trị cốt lõi</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                {
-                  title: "Chất lượng",
-                  desc: "Nội dung được thiết kế bởi các giáo viên giàu kinh nghiệm.",
-                },
-                {
-                  title: "Minh bạch",
-                  desc: "Phụ huynh luôn biết con mình đang học gì và tiến bộ thế nào.",
-                },
-                {
-                  title: "Linh hoạt",
-                  desc: "Học sinh học theo lộ trình riêng, mở khóa bài học dựa trên tiến độ.",
-                },
-              ].map((v) => (
+      {/* Values */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: Heart, title: "Tận tâm", desc: "Đặt lợi ích học sinh lên hàng đầu", color: "#ec4899" },
+              { icon: Target, title: "Chất lượng", desc: "Nội dung được biên soạn kỹ lưỡng", color: "#7c3aed" },
+              { icon: Globe, title: "Tiếp cận", desc: "Ai cũng có thể học, ở bất cứ đâu", color: "#0891b2" },
+              { icon: Award, title: "Minh bạch", desc: "Tiến độ học tập rõ ràng, công khai", color: "#10b981" },
+            ].map(({ icon: Icon, title, desc, color }) => (
+              <div key={title} className="card-base card-hover text-center">
                 <div
-                  key={v.title}
-                  className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700"
+                  className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                  style={{ background: `${color}22`, border: `1px solid ${color}44` }}
                 >
-                  <h3 className="font-semibold text-lg mb-2 text-blue-700">
-                    {v.title}
-                  </h3>
-                  <p className="section-content">{v.desc}</p>
+                  <Icon className="w-7 h-7" style={{ color }} />
                 </div>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <h2 className="section-title text-2xl mb-3">Công nghệ</h2>
-            <p className="section-content text-lg leading-relaxed mb-4">
-              HọcLộ Trình được xây dựng trên nền tảng công nghệ hiện đại:
-            </p>
-            <ul className="space-y-2 section-content">
-              <li>• <strong>Next.js</strong> — Giao diện nhanh và thân thiện</li>
-              <li>• <strong>NestJS</strong> — API backend ổn định và mạnh mẽ</li>
-              <li>• <strong>PostgreSQL</strong> — Cơ sở dữ liệu đáng tin cậy</li>
-              <li>• <strong>Prisma ORM</strong> — Quản lý dữ liệu hiệu quả</li>
-            </ul>
-          </section>
+                <h3 className="text-lg font-bold mb-2">{title}</h3>
+                <p className="text-sm" style={{ color: "#8892a4" }}>{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Stats */}
+      <section className="py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div
+            className="glass-card rounded-3xl p-10 grid sm:grid-cols-3 gap-8 text-center"
+            style={{ boxShadow: "0 30px 80px rgba(124,58,237,0.1)" }}
+          >
+            {[
+              { value: "10,000+", label: "Học sinh tin dùng", icon: Users },
+              { value: "500+", label: "Khóa học chất lượng", icon: BookOpen },
+              { value: "200+", label: "Giáo viên uy tín", icon: GraduationCap },
+            ].map(({ value, label, icon: Icon }) => (
+              <div key={label}>
+                <Icon className="w-8 h-8 mx-auto mb-3" style={{ color: "#7c3aed" }} />
+                <p className="text-3xl font-extrabold mb-1">{value}</p>
+                <p className="text-sm" style={{ color: "#8892a4" }}>{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }

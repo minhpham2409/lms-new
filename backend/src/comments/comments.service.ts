@@ -10,13 +10,24 @@ export class CommentsService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private async checkEnrolled(lessonId: string, userId: string) {
+  private async getLessonWithCourse(lessonId: string) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
       include: { section: true },
     });
     if (!lesson) throw new NotFoundException('Lesson not found');
+    return lesson;
+  }
 
+  private async checkAccess(lessonId: string, userId: string, userRole: string) {
+    const lesson = await this.getLessonWithCourse(lessonId);
+
+    // Teachers and admins can comment without being enrolled
+    if (userRole === 'teacher' || userRole === 'admin') {
+      return lesson;
+    }
+
+    // Students must be enrolled
     const enrollment = await this.prisma.enrollment.findFirst({
       where: { userId, courseId: lesson.section.courseId },
     });
@@ -24,18 +35,18 @@ export class CommentsService {
     return lesson;
   }
 
-  async create(lessonId: string, dto: CreateCommentDto, userId: string) {
-    await this.checkEnrolled(lessonId, userId);
+  async create(lessonId: string, dto: CreateCommentDto, userId: string, userRole: string) {
+    await this.checkAccess(lessonId, userId, userRole);
     return this.commentRepository.create({ lessonId, userId, content: dto.content });
   }
 
-  async findByLesson(lessonId: string, userId: string) {
-    await this.checkEnrolled(lessonId, userId);
+  async findByLesson(lessonId: string, userId: string, userRole: string) {
+    await this.checkAccess(lessonId, userId, userRole);
     return this.commentRepository.findByLesson(lessonId);
   }
 
-  async reply(lessonId: string, commentId: string, dto: CreateCommentDto, userId: string) {
-    await this.checkEnrolled(lessonId, userId);
+  async reply(lessonId: string, commentId: string, dto: CreateCommentDto, userId: string, userRole: string) {
+    await this.checkAccess(lessonId, userId, userRole);
 
     const parent = await this.commentRepository.findById(commentId);
     if (!parent) throw new NotFoundException('Comment not found');

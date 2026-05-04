@@ -4,12 +4,9 @@ import {
   Body,
   UseGuards,
   Request,
-  HttpException,
-  HttpStatus,
   Get,
   Put,
   Patch,
-  ValidationPipe
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from '../common/guards/local-auth.guard';
@@ -33,25 +30,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Username or email already exists' })
-  async register(@Body(ValidationPipe) userData: RegisterDto) {
-    try {
-      const user = await this.authService.register(userData);
-      return {
-        message: 'User registered successfully',
-        user,
-      };
-    } catch (error) {
-      if (error.message === 'Username or email already exists') {
-        throw new HttpException(
-          'Username or email already exists',
-          HttpStatus.CONFLICT,
-        );
-      }
-      throw new HttpException(
-        'Registration failed',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+  async register(@Body() userData: RegisterDto) {
+    const user = await this.authService.register(userData);
+    return {
+      message: 'User registered successfully',
+      user,
+    };
   }
 
   @UseGuards(LocalAuthGuard)
@@ -68,7 +52,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refreshToken(@Body(ValidationPipe) body: RefreshTokenDto) {
+  async refreshToken(@Body() body: RefreshTokenDto) {
     return this.authService.refreshToken(body.refresh_token);
   }
 
@@ -79,7 +63,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(
     @GetUser() user: any,
-    @Body() body?: RefreshTokenDto
+    @Body() body?: RefreshTokenDto,
   ) {
     return this.authService.logout(user.id, body?.refresh_token);
   }
@@ -100,7 +84,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
   async updateProfile(
     @GetUser() user: any,
-    @Body(ValidationPipe) updateData: UpdateProfileDto
+    @Body() updateData: UpdateProfileDto,
   ) {
     return this.authService.updateProfile(user.id, updateData);
   }
@@ -113,7 +97,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Current password is incorrect' })
   async changePassword(
     @GetUser() user: any,
-    @Body(ValidationPipe) body: ChangePasswordDto
+    @Body() body: ChangePasswordDto,
   ) {
     return this.authService.changePassword(
       user.id,
@@ -125,7 +109,7 @@ export class AuthController {
   @Post('forgot-password')
   @ApiOperation({ summary: 'Request password reset' })
   @ApiResponse({ status: 200, description: 'Reset link sent if email exists' })
-  async forgotPassword(@Body(ValidationPipe) body: ForgotPasswordDto) {
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
     return this.authService.forgotPassword(body.email);
   }
 
@@ -133,7 +117,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset password with token' })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
-  async resetPassword(@Body(ValidationPipe) body: ResetPasswordDto) {
+  async resetPassword(@Body() body: ResetPasswordDto) {
     return this.authService.resetPassword(body.token, body.newPassword);
   }
 }

@@ -1,38 +1,67 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
+const jetBrainsMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Let's Learn - Online Learning Platform",
-  description: "A comprehensive platform for learning and teaching online",
+  title: {
+    default: "HọcLộ Trình — Nền tảng học tập thông minh",
+    template: "%s | HọcLộ Trình",
+  },
+  description:
+    "Nền tảng LMS kết nối giáo viên, học sinh và phụ huynh. Khóa học chất lượng cao, bài tập tương tác, theo dõi tiến độ thời gian thực.",
+  keywords: ["học online", "LMS", "e-learning", "học sinh cấp 2", "khóa học"],
+  authors: [{ name: "HọcLộ Trình" }],
+  openGraph: {
+    title: "HọcLộ Trình — Nền tảng học tập thông minh",
+    description: "Nền tảng LMS kết nối giáo viên, học sinh và phụ huynh",
+    type: "website",
+    locale: "vi_VN",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="vi" className="dark" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex justify-center`}
+        className={`${plusJakarta.variable} ${jetBrainsMono.variable} antialiased`}
+        style={{ fontFamily: "var(--font-plus-jakarta), system-ui, sans-serif" }}
       >
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: "var(--card)",
+                  border: "1px solid var(--card-border)",
+                  color: "var(--foreground)",
+                  backdropFilter: "blur(20px)",
+                },
+              }}
+            />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

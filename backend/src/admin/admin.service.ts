@@ -2,17 +2,26 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
+import { OnApplicationBootstrap } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PasswordService } from '../auth/services/password.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { UpdateUserDto } from '../users/dto/update-user.dto';
 import { CreateCourseDto } from '../courses/dto/create-course.dto';
 import { CreateLessonDto } from '../lessons/dto/create-lesson.dto';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
-export class AdminService {
-  constructor(private prisma: PrismaService) {
-    this.createSuperAdminIfNotExists();
+export class AdminService implements OnApplicationBootstrap {
+  constructor(
+    private prisma: PrismaService,
+    private passwordService: PasswordService,
+  ) {}
+
+  /** Run after DI is fully set up — safe for async logic */
+  async onApplicationBootstrap() {
+    await this.createSuperAdminIfNotExists();
   }
 
   private async createSuperAdminIfNotExists() {
@@ -21,7 +30,7 @@ export class AdminService {
     });
 
     if (!adminExists) {
-      const hashedPassword = await bcrypt.hash('Admin123!', 10);
+      const hashedPassword = await this.passwordService.hashPassword('Admin123!');
       await this.prisma.user.create({
         data: {
           email: 'admin@lms.com',
@@ -60,7 +69,7 @@ export class AdminService {
       throw new BadRequestException('User with this email or username already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await this.passwordService.hashPassword(password);
     const user = await this.prisma.user.create({
       data: { email, password: hashedPassword, role: role || 'student', username },
     });
@@ -69,21 +78,41 @@ export class AdminService {
     return result;
   }
 
-  async updateUser(id: string, updateData: any) {
+  async updateUser(id: string, updateData: UpdateUserDto, requesterId: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
 
-    if (updateData.password) {
-      updateData.password = await bcrypt.hash(updateData.password, 10);
-    }
+    // Only allow safe fields from UpdateUserDto
+    const safeData: Record<string, unknown> = {};
+    if (updateData.firstName !== undefined) safeData.firstName = updateData.firstName;
+    if (updateData.lastName !== undefined) safeData.lastName = updateData.lastName;
+    if (updateData.email !== undefined) safeData.email = updateData.email;
+    if (updateData.username !== undefined) safeData.username = updateData.username;
+    if (updateData.role !== undefined) safeData.role = updateData.role;
 
-    return this.prisma.user.update({ where: { id }, data: updateData });
+    return this.prisma.user.update({ where: { id }, data: safeData });
   }
 
-  async deleteUser(id: string): Promise<void> {
+  async deleteUser(id: string, requesterId: string): Promise<void> {
+    if (id === requesterId) {
+      throw new ForbiddenException('Cannot delete your own admin account');
+    }
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
-    await this.prisma.user.delete({ where: { id } });
+
+    // Check if this is the last admin
+    if (user.role === 'admin') {
+      const adminCount = await this.prisma.user.count({ where: { role: 'admin' } });
+      if (adminCount <= 1) {
+        throw new ForbiddenException('Cannot delete the last admin account');
+      }
+    }
+
+    // Soft delete — deactivate instead of hard delete to preserve data integrity
+    await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   async getAllCourses() {

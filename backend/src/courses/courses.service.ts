@@ -66,6 +66,8 @@ export class CoursesService {
     if (!course) throw new NotFoundException('Course not found');
     if (course.authorId !== authorId)
       throw new ForbiddenException('You can only delete your own courses');
+    if (course.status !== 'draft')
+      throw new ForbiddenException('Only draft courses can be deleted');
     return this.courseRepository.delete(id);
   }
 

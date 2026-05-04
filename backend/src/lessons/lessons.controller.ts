@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LessonsService } from './lessons.service';
+import { CreateLessonDto } from './dto/create-lesson.dto';
+import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -26,7 +28,7 @@ export class LessonsController {
   @Roles('teacher', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a lesson' })
-  create(@Body() dto: any, @GetUser() user: any) {
+  create(@Body() dto: CreateLessonDto, @GetUser() user: any) {
     return this.lessonsService.create(dto, user.id);
   }
 
@@ -47,7 +49,7 @@ export class LessonsController {
   @Roles('teacher', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update lesson' })
-  update(@Param('id') id: string, @Body() dto: any, @GetUser() user: any) {
+  update(@Param('id') id: string, @Body() dto: UpdateLessonDto, @GetUser() user: any) {
     return this.lessonsService.update(id, dto, user.id);
   }
 

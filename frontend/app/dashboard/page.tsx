@@ -1,365 +1,163 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Link from "next/link";
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 import {
-  BookOpen,
-  Play,
-  CheckCircle,
-  Award,
-  Trophy,
-} from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
-import {
-  enrollmentsApi,
-  progressApi,
-  certificatesApi,
-  parentsApi,
-} from '@/lib/api-service';
-import type { Enrollment, Certificate, ParentChild } from '@/types';
-import {
-  DashboardStatCard,
-  SimpleBarChart,
-} from '@/components/dashboard/dashboard-chart-components';
+  BookOpen, Clock, Award, TrendingUp, Play, BarChart3,
+  ChevronRight, Star, Target, Flame, Calendar,
+} from "lucide-react";
+
+const enrolledCourses = [
+  { id: "1", title: "Toán học cơ bản — Lớp 6", progress: 68, lessons: 24, completed: 16, author: "Thầy Minh", color: "#7c3aed" },
+  { id: "3", title: "Tiếng Anh giao tiếp", progress: 35, lessons: 30, completed: 10, author: "Thầy John", color: "#0891b2" },
+  { id: "5", title: "Ngữ văn — Cảm thụ tác phẩm", progress: 12, lessons: 20, completed: 2, author: "Cô Mai", color: "#ec4899" },
+];
+
+const recentActivity = [
+  { text: "Hoàn thành Bài 16: Phân số", time: "2 giờ trước", icon: "✅" },
+  { text: "Đạt 9/10 bài kiểm tra Toán", time: "5 giờ trước", icon: "🎯" },
+  { text: "Bắt đầu khóa Ngữ văn", time: "1 ngày trước", icon: "📖" },
+  { text: "Nhận chứng chỉ Toán cơ bản", time: "3 ngày trước", icon: "🏆" },
+];
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  const [parentInvites, setParentInvites] = useState<ParentChild[]>([]);
-  const [acceptingId, setAcceptingId] = useState<string | null>(null);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    }
-  }, [status, router]);
-
-  useEffect(() => {
-    if (status !== 'authenticated' || !session?.user?.role) return;
-    const r = session.user.role;
-    if (r === 'admin') router.replace('/admin');
-    else if (r === 'teacher') router.replace('/teacher');
-    else if (r === 'parent') router.replace('/parent');
-  }, [status, session, router]);
-
-  const loadData = useCallback(async () => {
-    if (!session?.accessToken) return;
-    try {
-      setLoading(true);
-      const [enrollmentsData, certsData] = await Promise.all([
-        enrollmentsApi.getMyCourses(),
-        certificatesApi.getMine().catch(() => []),
-      ]);
-      setEnrollments(enrollmentsData);
-      setCertificates(certsData);
-
-      const pMap: Record<string, number> = {};
-      await Promise.all(
-        enrollmentsData.map(async (e) => {
-          try {
-            const p = await progressApi.getCourse(e.course.id);
-            pMap[e.course.id] = p.overallProgress ?? 0;
-          } catch {}
-        })
-      );
-      setProgressMap(pMap);
-
-      try {
-        const invites = await parentsApi.getIncomingForStudent();
-        setParentInvites(invites || []);
-      } catch (err) {
-        console.error('Failed to load parent invites:', err);
-      }
-    } catch {
-      // Error handled silently
-    } finally {
-      setLoading(false);
-    }
-  }, [session?.accessToken]);
-
-  useEffect(() => {
-    if (session?.accessToken) {
-      loadData();
-    }
-  }, [session?.accessToken, loadData]);
-
-  const handleAcceptInvite = async (id: string) => {
-    setAcceptingId(id);
-    try {
-      await parentsApi.acceptIncomingLink(id);
-      toast.success('Chấp nhận lời mời từ phụ huynh');
-      setParentInvites((prev) => prev.filter((p) => p.id !== id));
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Không thể chấp nhận lời mời'
-      );
-    } finally {
-      setAcceptingId(null);
-    }
-  };
-
-  const handleRejectInvite = async (id: string) => {
-    setRejectingId(id);
-    try {
-      await parentsApi.rejectIncomingLink(id);
-      toast.success('Từ chối lời mời từ phụ huynh');
-      setParentInvites((prev) => prev.filter((p) => p.id !== id));
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Không thể từ chối lời mời'
-      );
-    } finally {
-      setRejectingId(null);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
-
-  const avgProgress =
-    enrollments.length > 0
-      ? enrollments.reduce((sum, e) => sum + (progressMap[e.course.id] ?? 0), 0) /
-        enrollments.length
-      : 0;
-
-  const courseProgressData = enrollments.slice(0, 5).map((e) => ({
-    label: e.course.title.substring(0, 15),
-    value: progressMap[e.course.id] ?? 0,
-    color: 'bg-blue-500',
-  }));
-
   return (
-    <div className="space-y-6 py-12 px-4 md:px-6 max-w-6xl mx-auto">
-        <div>
-          <h1 className="section-title mb-2">Bảng điều khiển học sinh</h1>
-          <p className="section-content">
-            Theo dõi tiến độ học tập và các khóa học của bạn
-          </p>
-        </div>
-
-        {/* Stats */}
-        {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <DashboardStatCard
-              icon={<BookOpen className="h-6 w-6" />}
-              label="Khóa học"
-              value={enrollments.length}
-              type="primary"
-            />
-            <DashboardStatCard
-              icon={<Award className="h-6 w-6" />}
-              label="Chứng chỉ"
-              value={certificates.length}
-              type="success"
-            />
-            <DashboardStatCard
-              icon={<Trophy className="h-6 w-6" />}
-              label="Tiến độ trung bình"
-              value={`${Math.round(avgProgress)}%`}
-              type="info"
-            />
+    <div className="min-h-screen" style={{ background: "var(--background)" }}>
+      <Navbar />
+      <div className="pt-20 pb-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-extrabold mb-2">
+              Xin chào, <span className="gradient-text">Học sinh!</span> 👋
+            </h1>
+            <p className="text-sm" style={{ color: "#8892a4" }}>Tiếp tục hành trình học tập của bạn</p>
           </div>
-        )}
 
-        {/* Chart */}
-        {courseProgressData.length > 0 && (
-          <SimpleBarChart
-            title="Tiến độ các khóa học"
-            data={courseProgressData}
-          />
-        )}
-
-        {/* Parent Invites */}
-        {parentInvites.length > 0 && (
-          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 text-amber-900 dark:text-amber-50">
-              Lời mời từ phụ huynh
-            </h2>
-            <div className="space-y-3">
-              {parentInvites.map((invite) => (
-                <div
-                  key={invite.id}
-                  className="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-100 dark:border-amber-900"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-50">
-                      {invite.parent?.username}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {invite.parent?.email}
-                    </p>
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[
+              { label: "Khóa đang học", value: "3", icon: BookOpen, color: "#7c3aed" },
+              { label: "Giờ học tập", value: "24.5", icon: Clock, color: "#0891b2" },
+              { label: "Bài hoàn thành", value: "28", icon: Target, color: "#10b981" },
+              { label: "Chứng chỉ", value: "1", icon: Award, color: "#f59e0b" },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="card-base">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}22` }}>
+                    <Icon className="w-5 h-5" style={{ color }} />
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleAcceptInvite(invite.id)}
-                      disabled={acceptingId === invite.id}
-                    >
-                      {acceptingId === invite.id ? 'Đang xử lý...' : 'Chấp nhận'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRejectInvite(invite.id)}
-                      disabled={rejectingId === invite.id}
-                    >
-                      {rejectingId === invite.id ? 'Đang xử lý...' : 'Từ chối'}
-                    </Button>
-                  </div>
+                  <TrendingUp className="w-4 h-4" style={{ color: "#10b981" }} />
                 </div>
-              ))}
-            </div>
+                <p className="text-2xl font-extrabold">{value}</p>
+                <p className="text-xs mt-1" style={{ color: "#8892a4" }}>{label}</p>
+              </div>
+            ))}
           </div>
-        )}
 
-        {/* Tabs */}
-        <Tabs defaultValue="in-progress" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="in-progress">Đang học</TabsTrigger>
-            <TabsTrigger value="completed">Hoàn thành</TabsTrigger>
-          </TabsList>
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Enrolled courses */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold">Khóa học của bạn</h2>
+                <Link href="/courses" className="text-sm flex items-center gap-1" style={{ color: "#a78bfa" }}>
+                  Xem tất cả <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
 
-          <TabsContent value="in-progress" className="space-y-4">
-            {enrollments.filter((e) => (progressMap[e.course.id] ?? 0) < 100).length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">
-                  Bạn chưa đăng ký khóa học nào
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {enrollments
-                  .filter((e) => (progressMap[e.course.id] ?? 0) < 100)
-                  .map((enrollment) => (
-                    <CourseCard
-                      key={enrollment.id}
-                      enrollment={enrollment}
-                      progress={progressMap[enrollment.course.id] ?? 0}
-                    />
-                  ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="completed" className="space-y-4">
-            {enrollments.filter((e) => (progressMap[e.course.id] ?? 0) === 100).length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <CheckCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">
-                  Bạn chưa hoàn thành khóa học nào
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {enrollments
-                  .filter((e) => (progressMap[e.course.id] ?? 0) === 100)
-                  .map((enrollment) => (
-                    <CourseCard
-                      key={enrollment.id}
-                      enrollment={enrollment}
-                      progress={progressMap[enrollment.course.id] ?? 0}
-                    />
-                  ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        {/* Certificates */}
-        {certificates.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-50">
-              Chứng chỉ của bạn
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {certificates.map((cert) => (
-                <div
-                  key={cert.id}
-                  className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border border-green-200 dark:border-green-800 rounded-lg p-6"
-                >
-                  <Award className="h-8 w-8 text-green-600 mb-2" />
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-50">
-                    {cert.course?.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                    Hoàn thành:{' '}
-                    {new Date(cert.issuedAt).toLocaleDateString('vi-VN')}
-                  </p>
-                  <Link href={`/certificates/${cert.id}`}>
-                    <Button variant="outline" size="sm" className="mt-3">
-                      Xem chứng chỉ
-                    </Button>
+              <div className="space-y-4">
+                {enrolledCourses.map((course) => (
+                  <Link key={course.id} href={`/courses/${course.id}`}>
+                    <div className="card-base card-hover flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: `${course.color}22` }}>
+                        <BookOpen className="w-6 h-6" style={{ color: course.color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm truncate">{course.title}</h3>
+                        <p className="text-xs mt-1" style={{ color: "#8892a4" }}>{course.author} • {course.completed}/{course.lessons} bài</p>
+                        <div className="mt-2 progress-bar">
+                          <div className="progress-fill" style={{ width: `${course.progress}%` }} />
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-lg font-bold" style={{ color: course.color }}>{course.progress}%</p>
+                        <button className="mt-1 text-xs flex items-center gap-1 btn-ghost px-2 py-1" style={{ color: "#a78bfa" }}>
+                          <Play className="w-3 h-3" /> Tiếp tục
+                        </button>
+                      </div>
+                    </div>
                   </Link>
+                ))}
+              </div>
+
+              {/* Weekly chart placeholder */}
+              <div className="card-base mt-6">
+                <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" style={{ color: "#7c3aed" }} />
+                  Thời gian học tuần này
+                </h3>
+                <div className="flex items-end gap-2 h-32">
+                  {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day, i) => {
+                    const heights = [60, 80, 45, 90, 70, 30, 50];
+                    return (
+                      <div key={day} className="flex-1 flex flex-col items-center gap-1">
+                        <div
+                          className="w-full rounded-lg transition-all duration-300"
+                          style={{
+                            height: `${heights[i]}%`,
+                            background: i === 3 ? "linear-gradient(to top, #7c3aed, #0891b2)" : "rgba(124,58,237,0.2)",
+                            minHeight: 8,
+                          }}
+                        />
+                        <span className="text-[10px]" style={{ color: "#8892a4" }}>{day}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Streak */}
+              <div className="card-base text-center">
+                <Flame className="w-10 h-10 mx-auto mb-2" style={{ color: "#f59e0b" }} />
+                <p className="text-2xl font-extrabold">7 ngày</p>
+                <p className="text-xs" style={{ color: "#8892a4" }}>Chuỗi học liên tiếp 🔥</p>
+              </div>
+
+              {/* Recent activity */}
+              <div className="card-base">
+                <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" style={{ color: "#7c3aed" }} />
+                  Hoạt động gần đây
+                </h3>
+                <div className="space-y-3">
+                  {recentActivity.map((act, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <span className="text-lg">{act.icon}</span>
+                      <div>
+                        <p className="text-sm">{act.text}</p>
+                        <p className="text-xs" style={{ color: "#8892a4" }}>{act.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Suggested */}
+              <div className="card-base">
+                <h3 className="font-bold text-sm mb-3">Gợi ý cho bạn</h3>
+                <Link href="/courses" className="btn-secondary w-full justify-center text-sm">
+                  <Star className="w-4 h-4" /> Khám phá khóa mới
+                </Link>
+              </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
-    );
-  }
-
-interface CourseCardProps {
-  enrollment: Enrollment;
-  progress: number;
-}
-
-function CourseCard({ enrollment, progress }: CourseCardProps) {
-  return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition">
-      {enrollment.course.imageUrl && (
-        <div className="h-40 bg-gradient-to-r from-blue-500 to-purple-600 overflow-hidden">
-          <img
-            src={enrollment.course.imageUrl}
-            alt={enrollment.course.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
-      <div className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-50 line-clamp-2">
-            {enrollment.course.title}
-          </h3>
-          {progress === 100 && (
-            <Badge className="ml-2 bg-green-100 text-green-700">Hoàn thành</Badge>
-          )}
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Giáo viên: {enrollment.course.author?.username}
-        </p>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Tiến độ</span>
-            <span className="font-medium">{Math.round(progress)}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </div>
-        <Link href={`/courses/${enrollment.course.id}`}>
-          <Button className="w-full mt-4 bg-blue-700 hover:bg-blue-800 text-white">
-            <Play className="w-4 h-4 mr-2" />
-            Tiếp tục học
-          </Button>
-        </Link>
-      </div>
+      <Footer />
     </div>
   );
 }

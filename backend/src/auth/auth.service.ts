@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { UserRepository, RefreshTokenRepository } from '../database/repositories';
 import { JwtTokenService, PasswordService, TokenManagerService } from './services';
@@ -21,7 +22,8 @@ export class AuthService {
    * Validate user credentials for login
    */
   async validateUser(username: string, password: string): Promise<any> {
-    const user = await this.userRepository.findByUsername(username);
+    // Support login by username OR email
+    const user = await this.userRepository.findByUsernameOrEmail(username, username);
 
     if (!user) {
       return null;
@@ -88,7 +90,7 @@ export class AuthService {
     );
 
     if (existingUser) {
-      throw new UnauthorizedException('Username or email already exists');
+      throw new ConflictException('Username or email already exists');
     }
 
     // Hash password

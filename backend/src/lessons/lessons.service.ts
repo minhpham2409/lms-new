@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateLessonDto } from './dto/create-lesson.dto';
+import { UpdateLessonDto } from './dto/update-lesson.dto';
 
 @Injectable()
 export class LessonsService {
@@ -14,7 +16,7 @@ export class LessonsService {
     return section;
   }
 
-  async create(data: any, authorId: string) {
+  async create(data: CreateLessonDto, authorId: string) {
     const section = await this.getSectionWithCourse(data.sectionId);
     if (section.course.authorId !== authorId) {
       throw new ForbiddenException('You can only add lessons to your own sections');
@@ -44,7 +46,7 @@ export class LessonsService {
     return lesson;
   }
 
-  async update(id: string, data: any, authorId: string) {
+  async update(id: string, data: UpdateLessonDto, authorId: string) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
       include: { section: { include: { course: true } } },

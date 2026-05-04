@@ -20,14 +20,14 @@ export class CommentsController {
     @Body() dto: CreateCommentDto,
     @GetUser() user: any,
   ) {
-    return this.commentsService.create(lessonId, dto, user.id);
+    return this.commentsService.create(lessonId, dto, user.id, user.role);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get comments for lesson' })
   @ApiResponse({ status: 200, description: 'Comments retrieved' })
   findByLesson(@Param('lessonId') lessonId: string, @GetUser() user: any) {
-    return this.commentsService.findByLesson(lessonId, user.id);
+    return this.commentsService.findByLesson(lessonId, user.id, user.role);
   }
 
   @Post(':commentId/reply')
@@ -39,6 +39,6 @@ export class CommentsController {
     @Body() dto: CreateCommentDto,
     @GetUser() user: any,
   ) {
-    return this.commentsService.reply(lessonId, commentId, dto, user.id);
+    return this.commentsService.reply(lessonId, commentId, dto, user.id, user.role);
   }
 }

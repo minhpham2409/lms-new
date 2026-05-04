@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { OrderRepository, CartRepository, CouponRepository } from '../database/repositories';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto';
 
 @Injectable()
@@ -12,13 +13,27 @@ export class OrdersService {
     private readonly orderRepository: OrderRepository,
     private readonly cartRepository: CartRepository,
     private readonly couponRepository: CouponRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async create(dto: CreateOrderDto, userId: string) {
     const cartItems = await this.cartRepository.findByUser(userId);
     if (cartItems.length === 0) throw new BadRequestException('Cart is empty');
 
-    const totalPrice = cartItems.reduce((sum, item) => sum + item.course.price, 0);
+    // Filter out courses user is already enrolled in (race condition guard)
+    const availableItems: typeof cartItems = [];
+    for (const item of cartItems) {
+      const enrolled = await this.prisma.enrollment.findFirst({
+        where: { userId, courseId: item.courseId },
+      });
+      if (!enrolled) availableItems.push(item);
+    }
+
+    if (availableItems.length === 0) {
+      throw new BadRequestException('You are already enrolled in all courses in your cart');
+    }
+
+    const totalPrice = availableItems.reduce((sum, item) => sum + item.course.price, 0);
     let finalPrice = totalPrice;
     let couponId: string | undefined;
 
@@ -41,7 +56,7 @@ export class OrdersService {
       couponId,
       totalPrice,
       finalPrice,
-      items: cartItems.map(item => ({ courseId: item.courseId, price: item.course.price })),
+      items: availableItems.map(item => ({ courseId: item.courseId, price: item.course.price })),
     });
 
     await this.cartRepository.clearCart(userId);

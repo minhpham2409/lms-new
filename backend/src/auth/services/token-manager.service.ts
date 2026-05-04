@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { RefreshTokenRepository } from '../../database/repositories';
 import { DateUtil } from '../../shared/utils';
 
@@ -8,8 +9,13 @@ export class TokenManagerService {
     private readonly refreshTokenRepository: RefreshTokenRepository,
   ) {}
 
+  /** Hash a plain token with SHA-256 before DB storage. */
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
   /**
-   * Save refresh token to database
+   * Save refresh token (hashed) to database
    */
   async saveRefreshToken(
     userId: string,
@@ -17,21 +23,24 @@ export class TokenManagerService {
     expiresInDays: number = 7,
   ): Promise<void> {
     const expiresAt = DateUtil.addDays(new Date(), expiresInDays);
-    await this.refreshTokenRepository.createToken(userId, token, expiresAt);
+    const hashedToken = this.hashToken(token);
+    await this.refreshTokenRepository.createToken(userId, hashedToken, expiresAt);
   }
 
   /**
-   * Validate refresh token
+   * Validate refresh token (compare hash)
    */
   async validateRefreshToken(token: string): Promise<boolean> {
-    return this.refreshTokenRepository.isTokenValid(token);
+    const hashedToken = this.hashToken(token);
+    return this.refreshTokenRepository.isTokenValid(hashedToken);
   }
 
   /**
    * Revoke refresh token
    */
   async revokeRefreshToken(token: string): Promise<void> {
-    await this.refreshTokenRepository.deleteByToken(token);
+    const hashedToken = this.hashToken(token);
+    await this.refreshTokenRepository.deleteByToken(hashedToken);
   }
 
   /**
@@ -42,14 +51,17 @@ export class TokenManagerService {
   }
 
   /**
-   * Get refresh token from database
+   * Get refresh token from database (using hash)
    */
   async getRefreshToken(token: string) {
-    const tokenRecord = await this.refreshTokenRepository.findByToken(token);
+    const hashedToken = this.hashToken(token);
+    const tokenRecord = await this.refreshTokenRepository.findByToken(hashedToken);
     if (!tokenRecord) {
       throw new UnauthorizedException('Invalid refresh token');
     }
     if (DateUtil.isExpired(tokenRecord.expiresAt)) {
+      // Clean up expired token
+      await this.refreshTokenRepository.deleteByToken(hashedToken);
       throw new UnauthorizedException('Refresh token expired');
     }
     return tokenRecord;
