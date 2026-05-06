@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
 
 const recentActivity = [
   { text: "Hoàn thành Bài 16: Phân số", time: "2 giờ trước", icon: "✅" },

@@ -9,7 +9,7 @@ import {
   Sparkles, Filter, TrendingUp, ArrowRight,
 } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
 
 const categories = ["Tất cả", "Toán", "Lý", "Hóa", "Sinh", "Anh văn", "Văn", "Lập trình"];
 
@@ -47,7 +47,8 @@ function guessCategory(title: string): string {
 interface CourseItem {
   id: string; title: string; description: string; price: number; status: string;
   author: { username: string; firstName?: string; lastName?: string };
-  _count: { sections: number; enrollments: number };
+  sections?: { _count?: { lessons: number } }[];
+  _count: { enrollments: number };
 }
 
 export default function CoursesPage() {
@@ -259,7 +260,8 @@ export default function CoursesPage() {
                         {/* Stats */}
                         <div className="flex items-center gap-4 text-xs mb-4" style={{ color: "var(--foreground-muted)" }}>
                           <span className="flex items-center gap-1.5">
-                            <Play className="w-3 h-3" style={{ color }} /> {course._count?.sections || 0} chương
+                            <Play className="w-3 h-3" style={{ color }} />
+                            {course.sections?.reduce((acc, s) => acc + (s._count?.lessons || 0), 0) || 0} bài học
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Users className="w-3 h-3" style={{ color: "#0891b2" }} /> {course._count?.enrollments || 0} học sinh

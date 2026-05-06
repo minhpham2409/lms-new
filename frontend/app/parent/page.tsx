@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
 
 export default function ParentPage() {
   const router = useRouter();
@@ -28,7 +28,8 @@ export default function ParentPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [linkUsername, setLinkUsername] = useState("");
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
-  const [tab, setTab] = useState<"overview" | "courses" | "payments" | "requests">("overview");
+  const [childGrades, setChildGrades] = useState<any[]>([]);
+  const [tab, setTab] = useState<"overview" | "courses" | "grades" | "payments" | "requests">("overview");
 
   useEffect(() => {
     if (authLoading) return;
@@ -83,14 +84,16 @@ export default function ParentPage() {
     const childId = c.child?.id || c.childId;
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const [coursesR, dashR, progressR] = await Promise.all([
+      const [coursesR, dashR, progressR, gradesR] = await Promise.all([
         fetch(`${API}/parents/children/${childId}/courses`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/parents/children/${childId}/dashboard`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/parents/children/${childId}/progress`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${API}/parents/children/${childId}/grades`, { headers }).then(r => r.ok ? r.json() : []),
       ]);
       setChildCourses(Array.isArray(coursesR) ? coursesR : []);
       setChildDashboard(dashR);
       setChildProgress(progressR);
+      setChildGrades(Array.isArray(gradesR) ? gradesR : []);
     } catch {}
   }
 
@@ -143,9 +146,11 @@ export default function ParentPage() {
   }
 
   const child = selectedChild?.child || selectedChild;
+  const gradedCount = childGrades.filter((g: any) => g.status === 'graded').length;
   const tabs = [
     { id: "overview" as const, label: "Tổng quan", icon: BarChart3 },
     { id: "courses" as const, label: "Khóa học", icon: BookOpen },
+    { id: "grades" as const, label: "Bảng điểm", icon: Award, badge: gradedCount },
     { id: "payments" as const, label: "Thanh toán", icon: CreditCard, badge: pendingOrders.length },
     { id: "requests" as const, label: "Liên kết", icon: UserPlus },
   ];
@@ -398,6 +403,149 @@ export default function ParentPage() {
                     </div>
                   )}
                 </>
+              )}
+
+              {/* Grades (Bảng điểm) */}
+              {tab === "grades" && (
+                <div>
+                  <h3 className="text-lg font-extrabold mb-4 flex items-center gap-2">
+                    <Award className="w-5 h-5" style={{ color: "#f59e0b" }} /> Bảng điểm {child ? `— ${child.firstName || child.username}` : ""}
+                  </h3>
+                  {childGrades.length === 0 ? (
+                    <div className="card-base text-center py-12">
+                      <Award className="w-12 h-12 mx-auto mb-3" style={{ color: "var(--foreground-muted)" }} />
+                      <h3 className="font-bold mb-2">Chưa có bài tập nào</h3>
+                      <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Khi con nộp bài và giáo viên chấm điểm, kết quả sẽ hiển thị ở đây</p>
+                    </div>
+                  ) : (() => {
+                    // Group by course
+                    const courseMap = new Map<string, { title: string; subs: any[] }>();
+                    for (const sub of childGrades) {
+                      const cId = sub.assignment?.lesson?.section?.course?.id || "unknown";
+                      const cTitle = sub.assignment?.lesson?.section?.course?.title || "Khóa học";
+                      if (!courseMap.has(cId)) courseMap.set(cId, { title: cTitle, subs: [] });
+                      courseMap.get(cId)!.subs.push(sub);
+                    }
+                    const courses = Array.from(courseMap.entries());
+
+                    return (
+                      <div className="space-y-6">
+                        {courses.map(([courseId, { title: courseTitle, subs }]) => {
+                          const graded = subs.filter((s: any) => s.status === "graded");
+                          const avg = graded.length > 0
+                            ? graded.reduce((s: number, g: any) => s + (g.score || 0), 0) / graded.length
+                            : 0;
+                          const pending = subs.filter((s: any) => s.status !== "graded").length;
+
+                          return (
+                            <div key={courseId} className="card-base overflow-hidden">
+                              {/* Course header */}
+                              <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(124,58,237,0.12)" }}>
+                                  <BookOpen className="w-5 h-5" style={{ color: "#7c3aed" }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-bold text-sm truncate">{courseTitle}</h4>
+                                  <div className="flex items-center gap-3 mt-0.5 text-[10px]" style={{ color: "var(--foreground-muted)" }}>
+                                    <span>{graded.length} đã chấm</span>
+                                    {pending > 0 && <span style={{ color: "#f59e0b" }}>⏳ {pending} chờ chấm</span>}
+                                  </div>
+                                </div>
+                                {graded.length > 0 && (
+                                  <div className="text-right flex-shrink-0">
+                                    <p className="text-xl font-extrabold" style={{ color: avg >= 5 ? "#10b981" : "#ef4444" }}>{avg.toFixed(1)}</p>
+                                    <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Điểm TB</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Submissions list */}
+                              <div className="space-y-2.5">
+                                {subs.map((sub: any) => {
+                                  const a = sub.assignment;
+                                  const lesson = a?.lesson;
+                                  const isGraded = sub.status === "graded";
+                                  const maxS = a?.maxScore || 10;
+                                  const pct = isGraded ? Math.min(100, (sub.score / maxS) * 100) : 0;
+                                  const passed = pct >= 50;
+
+                                  return (
+                                    <div key={sub.id} className="p-3 rounded-xl" style={{
+                                      background: "var(--muted)",
+                                      borderLeft: isGraded ? `3px solid ${passed ? "#10b981" : "#f59e0b"}` : "3px solid var(--border)"
+                                    }}>
+                                      <div className="flex items-center justify-between gap-2 mb-1">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-semibold truncate">{a?.title || "Bài tập"}</p>
+                                          {lesson && <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>{lesson.title}</p>}
+                                        </div>
+                                        {isGraded ? (
+                                          <span className="text-lg font-extrabold flex-shrink-0" style={{ color: passed ? "#10b981" : "#ef4444" }}>
+                                            {sub.score}<span className="text-[10px] font-normal" style={{ color: "var(--foreground-muted)" }}>/{maxS}</span>
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>⏳ Chờ</span>
+                                        )}
+                                      </div>
+                                      {isGraded && (
+                                        <>
+                                          <div className="w-full h-1 rounded-full mb-1.5" style={{ background: "var(--border)" }}>
+                                            <div className="h-full rounded-full" style={{
+                                              width: `${pct}%`,
+                                              background: passed ? "linear-gradient(to right, #10b981, #0891b2)" : "linear-gradient(to right, #ef4444, #f59e0b)"
+                                            }} />
+                                          </div>
+                                          {sub.feedback && (
+                                            <p className="text-[11px] mt-1 p-2 rounded-lg" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
+                                              💬 {sub.feedback}
+                                            </p>
+                                          )}
+                                          <p className="text-[10px] mt-1" style={{ color: "var(--foreground-muted)" }}>
+                                            {sub.gradedAt ? new Date(sub.gradedAt).toLocaleString("vi-VN") : ""}
+                                          </p>
+                                        </>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Overall summary */}
+                        {childGrades.some((g: any) => g.status === "graded") && (
+                          <div className="card-base" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(8,145,178,0.05))" }}>
+                            <h4 className="text-sm font-bold mb-3">📊 Tổng kết chung</h4>
+                            <div className="grid grid-cols-4 gap-3 text-center">
+                              <div>
+                                <p className="text-xl font-extrabold" style={{ color: "#7c3aed" }}>{courses.length}</p>
+                                <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Khóa học</p>
+                              </div>
+                              <div>
+                                <p className="text-xl font-extrabold" style={{ color: "#10b981" }}>{childGrades.filter((g: any) => g.status === "graded").length}</p>
+                                <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Đã chấm</p>
+                              </div>
+                              <div>
+                                <p className="text-xl font-extrabold" style={{ color: "#0891b2" }}>
+                                  {(() => {
+                                    const g = childGrades.filter((x: any) => x.status === "graded");
+                                    return g.length ? (g.reduce((s: number, x: any) => s + (x.score || 0), 0) / g.length).toFixed(1) : "—";
+                                  })()}
+                                </p>
+                                <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Điểm TB</p>
+                              </div>
+                              <div>
+                                <p className="text-xl font-extrabold" style={{ color: "#f59e0b" }}>{childGrades.filter((g: any) => g.status !== "graded").length}</p>
+                                <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Chờ chấm</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
               )}
 
               {/* Payments */}

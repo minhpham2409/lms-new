@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
 
 const roleColors: Record<string, string> = { student: "#7c3aed", teacher: "#0891b2", parent: "#f59e0b", admin: "#ef4444" };
 const roleLabels: Record<string, string> = { student: "Học sinh", teacher: "Giáo viên", parent: "Phụ huynh", admin: "Admin" };

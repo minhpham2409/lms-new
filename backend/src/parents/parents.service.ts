@@ -268,4 +268,34 @@ export class ParentsService {
       orderBy: { createdAt: 'desc' },
     });
   }
+  /** Parent views child's graded submissions (bảng điểm) */
+  async getChildGrades(parentId: string, childId: string) {
+    const link = await this.parentChildRepository.findLink(parentId, childId);
+    if (!link || link.status !== 'accepted') {
+      throw new ForbiddenException('Not linked to this student');
+    }
+
+    return this.prisma.submission.findMany({
+      where: { studentId: childId },
+      include: {
+        assignment: {
+          include: {
+            lesson: {
+              select: {
+                id: true,
+                title: true,
+                section: {
+                  select: {
+                    title: true,
+                    course: { select: { id: true, title: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

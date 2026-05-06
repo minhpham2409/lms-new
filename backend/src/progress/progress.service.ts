@@ -44,16 +44,30 @@ export class ProgressService {
   async updateVideoProgress(userId: string, dto: UpdateVideoProgressDto) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: dto.lessonId },
-      include: { section: true },
+      include: {
+        section: true,
+        assignments: {
+          select: { id: true },
+        },
+      },
     });
     if (!lesson) throw new NotFoundException('Lesson not found');
 
     const courseId = lesson.section.courseId;
-
     const enrollment = await this.prisma.enrollment.findFirst({
       where: { userId, courseId },
     });
     if (!enrollment) throw new NotFoundException('User is not enrolled in this course');
+
+    // If the lesson has assignments, check that student submitted at least one
+    if (dto.completed && lesson.assignments.length > 0) {
+      const submission = await this.prisma.submission.findFirst({
+        where: { studentId: userId, assignment: { lessonId: dto.lessonId } },
+      });
+      if (!submission) {
+        throw new NotFoundException('Bạn cần nộp bài tập trước khi hoàn thành bài học này');
+      }
+    }
 
     const videoProgress = await this.prisma.videoProgress.upsert({
       where: { userId_lessonId: { userId, lessonId: dto.lessonId } },
@@ -74,11 +88,7 @@ export class ProgressService {
     });
 
     const completedLessons = await this.prisma.videoProgress.count({
-      where: {
-        userId,
-        completed: true,
-        lesson: { section: { courseId } },
-      },
+      where: { userId, completed: true, lesson: { section: { courseId } } },
     });
 
     const progress = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
@@ -90,6 +100,23 @@ export class ProgressService {
 
     return videoProgress;
   }
+
+  /** Check if student can proceed: lesson either has no assignments, or has at least one submission */
+  async canCompleteLesson(userId: string, lessonId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: { assignments: { select: { id: true } } },
+    });
+    if (!lesson) return { canComplete: true, hasAssignment: false };
+
+    if (lesson.assignments.length === 0) return { canComplete: true, hasAssignment: false };
+
+    const submission = await this.prisma.submission.findFirst({
+      where: { studentId: userId, assignment: { lessonId } },
+    });
+    return { canComplete: !!submission, hasAssignment: true, submitted: !!submission };
+  }
+
 
   async getVideoProgress(userId: string, lessonId: string) {
     return this.prisma.videoProgress.findUnique({

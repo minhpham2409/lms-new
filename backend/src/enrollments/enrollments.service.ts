@@ -139,6 +139,34 @@ export class EnrollmentsService {
       include: { course: true },
     });
 
+    // Mark associated order(s) as paid so revenue is tracked
+    try {
+      const orderItems = await this.prisma.orderItem.findMany({
+        where: {
+          courseId: enrollment.courseId,
+          order: {
+            userId: enrollment.userId,
+            status: { in: ['pending', 'processing'] },
+          },
+        },
+        include: { order: true },
+      });
+
+      for (const item of orderItems) {
+        await this.prisma.order.update({
+          where: { id: item.orderId },
+          data: { status: 'paid' },
+        });
+        // Also update payment if exists
+        await this.prisma.payment.updateMany({
+          where: { orderId: item.orderId, status: { not: 'paid' } },
+          data: { status: 'paid', paidAt: new Date() },
+        });
+      }
+    } catch {
+      // Non-critical: revenue tracking should not block enrollment approval
+    }
+
     // Notify student
     this.notificationsService.notifyUser(enrollment.userId, {
       title: 'Đã duyệt vào lớp!',

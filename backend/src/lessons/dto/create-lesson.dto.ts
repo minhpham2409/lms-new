@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsUrl } from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateLessonDto {
   @ApiProperty()
@@ -22,6 +22,6 @@ export class CreateLessonDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUrl()
+  @IsString()
   videoUrl?: string;
 }

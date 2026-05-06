@@ -58,4 +58,11 @@ export class ProgressController {
   updateVideoProgress(@Body() dto: UpdateVideoProgressDto, @Request() req) {
     return this.progressService.updateVideoProgress(req.user.id, dto);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get('lesson/:lessonId/can-complete')
+  canCompleteLesson(@Param('lessonId') lessonId: string, @Request() req) {
+    return this.progressService.canCompleteLesson(req.user.id, lessonId);
+  }
 }

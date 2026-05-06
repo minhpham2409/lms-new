@@ -175,12 +175,78 @@ export class AssignmentsService {
     });
 
     const fb = dto.feedback?.trim();
+    const lessonId = assignment.lesson.id;
+    const courseId = assignment.lesson.section.courseId;
+    const lessonLink = `/courses/${courseId}/lessons/${lessonId}`;
+
+    // Notify student with link to score card
     this.notificationsService.notifyUser(submission.studentId, {
-      title: 'Assignment graded',
-      message: `Your work on "${assignment.title}" was graded: ${dto.score}/${assignment.maxScore}.${fb ? ` Feedback: ${fb}` : ''}`,
-      type: 'info',
+      title: '📝 Bài tập đã được chấm điểm!',
+      message: `Bài "${assignment.title}" được ${dto.score}/${assignment.maxScore} điểm.${fb ? ` Nhận xét: ${fb}` : ''} [LINK:${lessonLink}]`,
+      type: 'success',
     });
 
+    // Notify parent(s) of the student
+    try {
+      const student = await this.prisma.user.findUnique({
+        where: { id: submission.studentId },
+        select: { firstName: true, lastName: true, username: true },
+      });
+      const studentName = student?.firstName
+        ? `${student.firstName} ${student.lastName || ''}`.trim()
+        : student?.username || 'Con bạn';
+
+      const parentLinks = await this.prisma.parentChild.findMany({
+        where: { childId: submission.studentId, status: 'accepted' },
+        select: { parentId: true },
+      });
+      for (const link of parentLinks) {
+        this.notificationsService.notifyUser(link.parentId, {
+          title: '📊 Kết quả bài tập của con',
+          message: `${studentName} — Bài "${assignment.title}": ${dto.score}/${assignment.maxScore} điểm.${fb ? ` Nhận xét: ${fb}` : ''} [LINK:/parent]`,
+          type: 'info',
+        });
+      }
+    } catch {
+      // Non-critical
+    }
+
     return updated;
+  }
+
+  async getAllSubmissionsForTeacher(teacherId: string) {
+    return this.prisma.submission.findMany({
+      where: {
+        assignment: {
+          lesson: {
+            section: {
+              course: { authorId: teacherId },
+            },
+          },
+        },
+      },
+      include: {
+        student: {
+          select: { id: true, username: true, firstName: true, lastName: true, email: true },
+        },
+        assignment: {
+          select: {
+            id: true, title: true, maxScore: true, description: true,
+            lesson: {
+              select: {
+                id: true, title: true,
+                section: {
+                  select: {
+                    id: true, title: true,
+                    course: { select: { id: true, title: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }

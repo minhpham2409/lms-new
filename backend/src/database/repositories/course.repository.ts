@@ -17,8 +17,13 @@ export class CourseRepository extends BaseRepository<Course> {
     return this.prisma.course.findMany({
       where: where ?? {},
       include: {
-        author: { select: { id: true, username: true } },
-        _count: { select: { sections: true, enrollments: true } },
+        author: { select: { id: true, username: true, firstName: true, lastName: true } },
+        sections: {
+          include: {
+            _count: { select: { lessons: true } },
+          },
+        },
+        _count: { select: { enrollments: true } },
       },
     });
   }
@@ -27,14 +32,25 @@ export class CourseRepository extends BaseRepository<Course> {
     return this.prisma.course.findUnique({
       where: { id },
       include: {
-        author: { select: { id: true, username: true } },
+        author: { select: { id: true, username: true, firstName: true, lastName: true } },
         sections: {
           orderBy: { order: 'asc' },
           include: {
-            lessons: { orderBy: { order: 'asc' } },
+            lessons: {
+              orderBy: { order: 'asc' },
+              include: {
+                materials: true,
+                assignments: {
+                  include: {
+                    submissions: { select: { id: true, studentId: true, status: true, score: true, feedback: true, gradedAt: true } },
+                  },
+                },
+              },
+            },
           },
         },
         _count: { select: { enrollments: true } },
+        reviews: { select: { rating: true } },
       },
     });
   }
@@ -54,7 +70,13 @@ export class CourseRepository extends BaseRepository<Course> {
       include: {
         sections: {
           orderBy: { order: 'asc' },
-          include: { lessons: { orderBy: { order: 'asc' } } },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              include: { materials: true, assignments: true },
+            },
+            _count: { select: { lessons: true } },
+          },
         },
         _count: { select: { enrollments: true } },
       },

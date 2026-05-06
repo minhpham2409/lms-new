@@ -107,4 +107,27 @@ export class AssignmentsController {
   getSubmissions(@Param('id') id: string, @GetUser() user: any) {
     return this.assignmentsService.getSubmissions(id, user.id);
   }
+
+  @Patch('submissions/:submissionId/grade')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Grade a submission' })
+  @ApiResponse({ status: 200, description: 'Submission graded' })
+  gradeSubmission(
+    @Param('submissionId') submissionId: string,
+    @Body() dto: GradeSubmissionDto,
+    @GetUser() user: any,
+  ) {
+    return this.assignmentsService.gradeSubmission(submissionId, dto, user.id);
+  }
+
+  @Get('teacher/all-submissions')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all submissions across teacher courses' })
+  getAllSubmissionsForTeacher(@GetUser() user: any) {
+    return this.assignmentsService.getAllSubmissionsForTeacher(user.id);
+  }
 }

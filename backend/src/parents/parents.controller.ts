@@ -119,4 +119,13 @@ export class ParentsController {
   getChildOrders(@Param('id') childId: string, @GetUser() user: any) {
     return this.parentsService.getChildOrders(user.id, childId);
   }
+
+  @Get('children/:id/grades')
+  @UseGuards(RolesGuard)
+  @Roles('parent')
+  @ApiOperation({ summary: 'Get child graded submissions (bảng điểm)' })
+  @ApiResponse({ status: 200, description: 'Grades retrieved' })
+  getChildGrades(@Param('id') childId: string, @GetUser() user: any) {
+    return this.parentsService.getChildGrades(user.id, childId);
+  }
 }

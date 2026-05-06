@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
 const courseColors = ["#7c3aed", "#3b82f6", "#f59e0b", "#10b981", "#ec4899", "#0891b2"];
 
 
@@ -105,6 +105,8 @@ export default function TeacherPage() {
       if (res.ok) {
         setPendingStudents(pendingStudents.filter(s => s.id !== enrollmentId));
         toast.success("Đã duyệt học sinh vào lớp!");
+        // Refresh stats to update revenue
+        fetchStats();
       } else {
         // Fallback: update progress to activate
         const d = await res.json();
@@ -160,6 +162,14 @@ export default function TeacherPage() {
     { id: "settings", label: "Cài đặt", icon: Settings },
   ];
 
+  // Quick link to grading page
+  const gradingLink = (
+    <Link href="/teacher/grades" className="btn-primary text-sm gap-2">
+      📝 Chấm bài tập
+    </Link>
+  );
+
+
 
 
 
@@ -173,7 +183,10 @@ export default function TeacherPage() {
               <h1 className="text-2xl font-extrabold mb-1">Giáo viên Dashboard</h1>
               <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Xin chào, <span className="gradient-text font-bold">{user?.firstName || user?.username || "Giáo viên"}</span></p>
             </div>
-            <Link href="/teacher/courses/new" className="btn-primary text-sm"><Plus className="w-4 h-4" /> Tạo khóa học</Link>
+            <div className="flex items-center gap-2">
+              <Link href="/teacher/grades" className="btn-secondary text-sm gap-1.5">📝 Chấm bài</Link>
+              <Link href="/teacher/courses/new" className="btn-primary text-sm"><Plus className="w-4 h-4" /> Tạo khóa học</Link>
+            </div>
           </div>
 
           <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1">
