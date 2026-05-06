@@ -99,10 +99,12 @@ export function Navbar() {
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: "#7c3aed" }} />
                 </Link>
 
-                {/* Cart */}
-                <Link href="/cart" className="relative p-2 rounded-lg transition-all duration-200 hover:bg-[var(--muted)]" style={{ color: "var(--foreground-muted)" }}>
-                  <ShoppingCart className="w-5 h-5" />
-                </Link>
+                {/* Cart — only for students */}
+                {user.role === "student" && (
+                  <Link href="/cart" className="relative p-2 rounded-lg transition-all duration-200 hover:bg-[var(--muted)]" style={{ color: "var(--foreground-muted)" }}>
+                    <ShoppingCart className="w-5 h-5" />
+                  </Link>
+                )}
 
                 {/* User menu */}
                 <div className="relative">
@@ -127,7 +129,9 @@ export function Navbar() {
                       <div className="p-2">
                         <Link href={dashboardLink} onClick={() => setUserMenuOpen(false)} className="btn-ghost w-full justify-start"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
                         <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="btn-ghost w-full justify-start"><User className="w-4 h-4" /> Hồ sơ</Link>
-                        <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="btn-ghost w-full justify-start"><ShoppingCart className="w-4 h-4" /> Đơn hàng</Link>
+                        {user.role === "student" && (
+                          <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="btn-ghost w-full justify-start"><ShoppingCart className="w-4 h-4" /> Đơn hàng</Link>
+                        )}
                         <button onClick={handleLogout} className="btn-ghost w-full justify-start" style={{ color: "#ef4444" }}><LogOut className="w-4 h-4" /> Đăng xuất</button>
                       </div>
                     </div>

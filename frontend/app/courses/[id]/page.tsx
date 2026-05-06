@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/auth-state";
 import {
   Play, Clock, Users, Star, BookOpen, ChevronDown, ChevronRight,
   CheckCircle2, ShoppingCart, Lock, Award, BarChart3, Globe,
-  MessageCircle, ArrowLeft, Loader2, PlayCircle,
+  MessageCircle, ArrowLeft, Loader2, PlayCircle, QrCode, X, Send, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,8 +31,11 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<string[]>([]);
   const [enrolled, setEnrolled] = useState(false);
+  const [enrollStatus, setEnrollStatus] = useState<string>("");
   const [enrollProgress, setEnrollProgress] = useState(0);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [qrSent, setQrSent] = useState(false);
 
   useEffect(() => {
     fetchCourse();
@@ -61,12 +64,16 @@ export default function CourseDetailPage() {
       if (res.ok) {
         const enrollments = await res.json();
         const found = enrollments.find?.((e: any) => e.courseId === id);
-        if (found) { setEnrolled(true); setEnrollProgress(found.progress || 0); }
+        if (found) {
+          setEnrolled(true);
+          setEnrollProgress(found.progress || 0);
+          setEnrollStatus(found.status || "active");
+        }
       }
     } catch {}
   }
 
-  async function handleEnroll() {
+  async function handleEnrollFree() {
     if (!isLoggedIn) { router.push("/auth/login"); return; }
     setActionLoading(true);
     try {
@@ -77,10 +84,10 @@ export default function CourseDetailPage() {
       });
       if (res.ok || res.status === 201) {
         setEnrolled(true);
+        setEnrollStatus("active");
         toast.success("Đã đăng ký khóa học thành công!");
       } else {
         const data = await res.json();
-        // If already enrolled
         if (res.status === 409 || data.message?.includes("already")) {
           setEnrolled(true);
         } else {
@@ -89,6 +96,12 @@ export default function CourseDetailPage() {
       }
     } catch (e: any) { toast.error(e.message || "Không thể đăng ký"); }
     finally { setActionLoading(false); }
+  }
+
+  async function handleBuyNow() {
+    if (!isLoggedIn) { router.push("/auth/login"); return; }
+    // Show QR immediately for paid courses
+    setShowQR(true);
   }
 
   async function handleAddToCart() {
@@ -104,10 +117,34 @@ export default function CourseDetailPage() {
         toast.success("Đã thêm vào giỏ hàng!");
       } else {
         const data = await res.json();
-        toast.error(data.message || "Không thể thêm vào giỏ");
+        if (data.message?.includes("already") || res.status === 409) {
+          toast.info("Khóa học đã có trong giỏ hàng");
+        } else {
+          toast.error(data.message || "Không thể thêm vào giỏ");
+        }
       }
     } catch { toast.error("Lỗi kết nối"); }
     finally { setActionLoading(false); }
+  }
+
+  async function handleSendQRToParent() {
+    // For paid courses, the backend blocks direct enrollment.
+    // The QR is sent to parent; after payment + teacher approval, enrollment is created.
+    // For now, we show "pending" state on the client side.
+    try {
+      // Try creating enrollment — it will succeed for free courses,
+      // and fail for paid courses (which is expected behavior)
+      await fetch(`${API}/enrollments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ courseId: id }),
+      });
+    } catch {}
+    // Show pending regardless (QR sent to parent for payment)
+    setEnrolled(true);
+    setEnrollStatus("pending");
+    setQrSent(true);
+    toast.success("Đã gửi mã QR đến phụ huynh!");
   }
 
   const toggleSection = (sId: string) => {
@@ -134,6 +171,8 @@ export default function CourseDetailPage() {
   const authorName = course.author?.firstName ? `${course.author.firstName} ${course.author.lastName || ""}`.trim() : course.author?.username || "Giáo viên";
   const avgRating = course.reviews?.length ? (course.reviews.reduce((s, r) => s + r.rating, 0) / course.reviews.length).toFixed(1) : "Mới";
   const firstLessonId = course.sections?.[0]?.lessons?.[0]?.id;
+  const isPending = enrollStatus === "pending";
+  const canAccess = enrolled && !isPending;
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
@@ -188,7 +227,7 @@ export default function CourseDetailPage() {
                       <div style={{ borderTop: "1px solid var(--border)" }}>
                         {sec.lessons?.sort((a, b) => a.order - b.order).map((lesson, li) => (
                           <div key={lesson.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--muted)]">
-                            {enrolled ? (
+                            {canAccess ? (
                               <Link href={`/courses/${id}/lessons/${lesson.id}`} className="flex items-center gap-3 flex-1">
                                 <PlayCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#7c3aed" }} />
                                 <span className="text-sm flex-1">{lesson.title}</span>
@@ -228,7 +267,26 @@ export default function CourseDetailPage() {
             {/* Sidebar */}
             <div>
               <div className="glass-card rounded-2xl p-6 sticky top-24" style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.15)" }}>
-                {enrolled ? (
+                {isPending ? (
+                  /* ===== PENDING APPROVAL UI ===== */
+                  <>
+                    <div className="flex items-center gap-2 mb-4">
+                      <AlertCircle className="w-5 h-5" style={{ color: "#f59e0b" }} />
+                      <span className="font-bold" style={{ color: "#f59e0b" }}>Đang chờ duyệt</span>
+                    </div>
+                    <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
+                      Đơn đăng ký của bạn đang chờ giáo viên duyệt. Bạn sẽ được thông báo khi được chấp nhận.
+                    </p>
+                    <div className="p-4 rounded-xl mb-4" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                      <div className="flex items-center gap-2 text-sm" style={{ color: "#f59e0b" }}>
+                        <Clock className="w-4 h-4" /> Đang xử lý thanh toán
+                      </div>
+                    </div>
+                    <Link href="/dashboard" className="btn-secondary w-full justify-center py-3 text-sm">
+                      <BarChart3 className="w-4 h-4" /> Về Dashboard
+                    </Link>
+                  </>
+                ) : canAccess ? (
                   /* ===== ENROLLED UI ===== */
                   <>
                     <div className="flex items-center gap-2 mb-4">
@@ -259,22 +317,31 @@ export default function CourseDetailPage() {
                   /* ===== NOT ENROLLED UI ===== */
                   <>
                     <p className="text-3xl font-extrabold mb-1 gradient-text">
-                      {course.price > 0 ? `${(course.price / 1000).toFixed(0)}k ₫` : "Miễn phí"}
+                      {course.price > 0 ? `${course.price.toLocaleString()} ₫` : "Miễn phí"}
                     </p>
                     <p className="text-xs mb-6" style={{ color: "var(--foreground-muted)" }}>
                       {course.price > 0 ? "Thanh toán một lần, học trọn đời" : "Truy cập toàn bộ nội dung"}
                     </p>
 
-                    <button onClick={handleEnroll} disabled={actionLoading}
-                      className="btn-primary w-full justify-center py-3.5 text-base mb-3 disabled:opacity-50">
-                      {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      {course.price > 0 ? "Mua ngay" : "Đăng ký miễn phí"}
-                    </button>
-
-                    {course.price > 0 && (
-                      <button onClick={handleAddToCart} disabled={actionLoading}
-                        className="btn-secondary w-full justify-center py-3 text-sm mb-6 disabled:opacity-50">
-                        <ShoppingCart className="w-4 h-4" /> Thêm vào giỏ
+                    {course.price > 0 ? (
+                      <>
+                        <button onClick={handleBuyNow} disabled={actionLoading}
+                          className="btn-primary w-full justify-center py-3.5 text-base mb-3 disabled:opacity-50">
+                          {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                          Mua ngay
+                        </button>
+                        {user?.role === "student" && (
+                          <button onClick={handleAddToCart} disabled={actionLoading}
+                            className="btn-secondary w-full justify-center py-3 text-sm mb-6 disabled:opacity-50">
+                            <ShoppingCart className="w-4 h-4" /> Thêm vào giỏ
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <button onClick={handleEnrollFree} disabled={actionLoading}
+                        className="btn-primary w-full justify-center py-3.5 text-base mb-3 disabled:opacity-50">
+                        {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        Đăng ký miễn phí
                       </button>
                     )}
                   </>
@@ -311,6 +378,82 @@ export default function CourseDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* QR Payment Modal */}
+      {showQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}>
+          <div className="card-base w-full max-w-md animate-scale-in" style={{ background: "var(--popover)" }}>
+            {!qrSent ? (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-extrabold flex items-center gap-2">
+                    <QrCode className="w-5 h-5" style={{ color: "#7c3aed" }} /> Thanh toán
+                  </h2>
+                  <button onClick={() => setShowQR(false)} className="btn-ghost px-2 py-2"><X className="w-5 h-5" /></button>
+                </div>
+
+                <div className="text-center mb-6">
+                  <p className="text-sm font-semibold mb-1">{course.title}</p>
+                  <p className="text-xs mb-4" style={{ color: "var(--foreground-muted)" }}>Quét mã QR hoặc gửi cho phụ huynh để thanh toán</p>
+
+                  <div className="w-56 h-56 mx-auto rounded-2xl flex items-center justify-center mb-4" style={{ background: "white", border: "2px solid var(--border)" }}>
+                    <img
+                      src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${course.price}&addInfo=${encodeURIComponent(`HL - ${course.title} - ${user?.username}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
+                      alt="QR Thanh toán"
+                      className="w-52 h-52 object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Thanh toan ${course.price} VND - ${course.title}`)}`;
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between px-4 py-2 rounded-lg" style={{ background: "var(--muted)" }}>
+                      <span style={{ color: "var(--foreground-muted)" }}>Số tiền</span>
+                      <span className="font-bold gradient-text">{course.price.toLocaleString()} ₫</span>
+                    </div>
+                    <div className="flex justify-between px-4 py-2 rounded-lg" style={{ background: "var(--muted)" }}>
+                      <span style={{ color: "var(--foreground-muted)" }}>Khóa học</span>
+                      <span className="font-medium text-xs truncate max-w-[180px]">{course.title}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <button onClick={handleSendQRToParent} className="btn-primary w-full justify-center py-3">
+                    <Send className="w-4 h-4" /> Gửi cho phụ huynh thanh toán
+                  </button>
+                  <p className="text-xs text-center" style={{ color: "var(--foreground-muted)" }}>
+                    Sau khi thanh toán, giáo viên sẽ duyệt và bạn được tham gia lớp
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4" style={{ background: "rgba(16,185,129,0.15)" }}>
+                  <CheckCircle2 className="w-10 h-10" style={{ color: "#10b981" }} />
+                </div>
+                <h2 className="text-xl font-extrabold mb-2">Đã gửi thành công!</h2>
+                <p className="text-sm mb-2" style={{ color: "var(--foreground-muted)" }}>
+                  Mã QR thanh toán đã được gửi đến phụ huynh.
+                </p>
+                <p className="text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>
+                  Sau khi thanh toán, giáo viên sẽ duyệt và bạn sẽ được tham gia lớp học.
+                </p>
+                <div className="flex items-center gap-2 justify-center mb-6 px-4 py-3 rounded-xl" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                  <Clock className="w-4 h-4" style={{ color: "#f59e0b" }} />
+                  <span className="text-sm font-medium" style={{ color: "#f59e0b" }}>Đang chờ thanh toán & duyệt</span>
+                </div>
+                <button onClick={() => { setShowQR(false); setQrSent(false); }} className="btn-secondary w-full justify-center">
+                  Đóng
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

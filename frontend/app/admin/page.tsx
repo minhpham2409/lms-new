@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { useAuth } from "@/components/auth/auth-state";
 import {
   Users, BookOpen, DollarSign, TrendingUp, Shield, BarChart3, Search,
   MoreVertical, Eye, Edit, Trash2, UserCheck, UserX, Plus, Download,
@@ -51,8 +53,32 @@ const statusIcons: Record<string, { color: string; Icon: any }> = {
 type Tab = "overview" | "users" | "courses" | "orders" | "coupons";
 
 export default function AdminPage() {
+  const router = useRouter();
+  const { user, isLoggedIn, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isLoggedIn) {
+      router.push("/auth/login");
+      return;
+    }
+    if (user?.role !== "admin") {
+      // Redirect non-admin to their dashboard
+      if (user?.role === "teacher") router.push("/teacher");
+      else if (user?.role === "parent") router.push("/parent");
+      else router.push("/dashboard");
+    }
+  }, [user, isLoggedIn, loading, router]);
+
+  if (loading || !user || user.role !== "admin") {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+        <div className="w-8 h-8 border-2 border-[#ef4444] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "overview", label: "Tổng quan", icon: BarChart3 },

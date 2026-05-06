@@ -42,7 +42,7 @@ export default function TeacherCourseEditPage() {
               <h1 className="text-xl font-extrabold">Chỉnh sửa khóa học</h1>
             </div>
             <div className="flex gap-2">
-              <button className="btn-secondary text-sm"><Eye className="w-4 h-4" /> Xem trước</button>
+              <button onClick={() => window.open(`/courses/${id}`, '_blank')} className="btn-secondary text-sm"><Eye className="w-4 h-4" /> Xem trước</button>
               <button className="btn-primary text-sm"><Save className="w-4 h-4" /> Lưu</button>
             </div>
           </div>

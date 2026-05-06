@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { useAuth } from "@/components/auth/auth-state";
 import {
   BookOpen, Users, DollarSign, TrendingUp, Plus, Eye, Edit, Star,
   BarChart3, MessageCircle, Clock, FileText, Play, Trash2, Upload,
-  Calendar, ArrowUpRight, CheckCircle2,
+  Calendar, ArrowUpRight, CheckCircle2, Settings, CreditCard, Building2, Send,
 } from "lucide-react";
 
 const myCourses = [
@@ -28,17 +30,55 @@ const recentQuestions = [
   { user: "Ngô F", course: "Toán lớp 6", text: "Con cảm ơn thầy đã giải thích!", time: "3h", answered: true },
 ];
 
-type Tab = "overview" | "courses" | "analytics" | "reviews";
+type Tab = "overview" | "courses" | "analytics" | "reviews" | "settings";
 
 export default function TeacherPage() {
+  const router = useRouter();
+  const { user, isLoggedIn, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
+  const [bankName, setBankName] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [bankOwner, setBankOwner] = useState("");
+  const [replyText, setReplyText] = useState<Record<number, string>>({});
+  const [repliedQuestions, setRepliedQuestions] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isLoggedIn) {
+      router.push("/auth/login");
+      return;
+    }
+    if (user?.role !== "teacher") {
+      if (user?.role === "admin") router.push("/admin");
+      else if (user?.role === "parent") router.push("/parent");
+      else router.push("/dashboard");
+    }
+  }, [user, isLoggedIn, loading, router]);
+
+  if (loading || !user || user.role !== "teacher") {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+        <div className="w-8 h-8 border-2 border-[#0891b2] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const displayName = user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.username || "Giáo viên";
 
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "overview", label: "Tổng quan", icon: BarChart3 },
     { id: "courses", label: "Khóa học", icon: BookOpen },
     { id: "analytics", label: "Phân tích", icon: TrendingUp },
     { id: "reviews", label: "Đánh giá & Hỏi đáp", icon: MessageCircle },
+    { id: "settings", label: "Cài đặt", icon: Settings },
   ];
+
+  const handleReply = (qi: number) => {
+    if (replyText[qi]?.trim()) {
+      setRepliedQuestions([...repliedQuestions, qi]);
+      setReplyText({ ...replyText, [qi]: "" });
+    }
+  };
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
@@ -48,7 +88,7 @@ export default function TeacherPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-extrabold mb-1">Giáo viên Dashboard</h1>
-              <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Xin chào, <span className="gradient-text font-bold">Thầy Minh</span></p>
+              <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Xin chào, <span className="gradient-text font-bold">{displayName}</span></p>
             </div>
             <Link href="/teacher/courses/new" className="btn-primary text-sm"><Plus className="w-4 h-4" /> Tạo khóa học</Link>
           </div>
@@ -107,7 +147,18 @@ export default function TeacherPage() {
                           </div>
                           <p className="text-xs" style={{ color: "var(--foreground-muted)" }}>{q.text}</p>
                         </div>
-                        {q.answered ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: "#10b981" }} /> : <button className="btn-primary text-[10px] px-2 py-1">Trả lời</button>}
+                        {(q.answered || repliedQuestions.includes(i)) ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: "#10b981" }} /> : (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <input
+                              value={replyText[i] || ""}
+                              onChange={(e) => setReplyText({ ...replyText, [i]: e.target.value })}
+                              placeholder="Trả lời..."
+                              className="input-base text-[10px] py-1 px-2 w-32"
+                              onKeyDown={(e) => e.key === "Enter" && handleReply(i)}
+                            />
+                            <button onClick={() => handleReply(i)} className="btn-primary text-[10px] px-2 py-1"><Send className="w-3 h-3" /></button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -217,6 +268,77 @@ export default function TeacherPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {tab === "settings" && (
+            <div className="space-y-6">
+              {/* Bank Account Settings */}
+              <div className="card-base">
+                <h3 className="font-bold mb-5 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5" style={{ color: "#7c3aed" }} /> Cài đặt tài khoản ngân hàng
+                </h3>
+                <p className="text-sm mb-5" style={{ color: "var(--foreground-muted)" }}>
+                  Thông tin này sẽ được dùng để tạo mã QR thanh toán gửi cho phụ huynh khi học sinh đăng ký khóa học trả phí.
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Ngân hàng</label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+                      <select value={bankName} onChange={(e) => setBankName(e.target.value)} className="input-base pl-9">
+                        <option value="">Chọn ngân hàng</option>
+                        <option value="VCB">Vietcombank (VCB)</option>
+                        <option value="TCB">Techcombank (TCB)</option>
+                        <option value="MB">MB Bank</option>
+                        <option value="ACB">ACB</option>
+                        <option value="VPB">VPBank</option>
+                        <option value="BIDV">BIDV</option>
+                        <option value="VTB">VietinBank</option>
+                        <option value="TPB">TPBank</option>
+                        <option value="MSB">MSB</option>
+                        <option value="SHB">SHB</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Số tài khoản</label>
+                    <input
+                      value={bankAccount} onChange={(e) => setBankAccount(e.target.value)}
+                      className="input-base" placeholder="VD: 1234567890"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Tên chủ tài khoản</label>
+                    <input
+                      value={bankOwner} onChange={(e) => setBankOwner(e.target.value)}
+                      className="input-base" placeholder="VD: NGUYEN VAN MINH"
+                    />
+                  </div>
+
+                  {/* QR Preview */}
+                  {bankName && bankAccount && bankOwner && (
+                    <div className="p-5 rounded-xl text-center" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
+                      <p className="text-xs font-semibold mb-3" style={{ color: "var(--foreground-muted)" }}>Xem trước mã QR thanh toán</p>
+                      <div className="w-48 h-48 mx-auto rounded-2xl flex items-center justify-center" style={{ background: "white" }}>
+                        <img
+                          src={`https://img.vietqr.io/image/${bankName}-${bankAccount}-compact.png?accountName=${encodeURIComponent(bankOwner)}`}
+                          alt="QR Code"
+                          className="w-44 h-44 object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                      <p className="text-xs mt-3" style={{ color: "var(--foreground-muted)" }}>
+                        {bankName} • {bankAccount} • {bankOwner}
+                      </p>
+                    </div>
+                  )}
+
+                  <button className="btn-primary">
+                    <CreditCard className="w-4 h-4" /> Lưu thông tin ngân hàng
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

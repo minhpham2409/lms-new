@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { useAuth } from "@/components/auth/auth-state";
 import { Users, BookOpen, Clock, TrendingUp, Award, BarChart3, Target, Calendar, Star, MessageCircle, Bell, Eye, ChevronDown } from "lucide-react";
 
 const children = [
@@ -26,8 +28,31 @@ const children = [
 type Tab = "overview" | "courses" | "activity" | "grades";
 
 export default function ParentPage() {
+  const router = useRouter();
+  const { user, isLoggedIn, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
   const [selectedChild] = useState(children[0]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isLoggedIn) {
+      router.push("/auth/login");
+      return;
+    }
+    if (user?.role !== "parent") {
+      if (user?.role === "admin") router.push("/admin");
+      else if (user?.role === "teacher") router.push("/teacher");
+      else router.push("/dashboard");
+    }
+  }, [user, isLoggedIn, loading, router]);
+
+  if (loading || !user || user.role !== "parent") {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+        <div className="w-8 h-8 border-2 border-[#f59e0b] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "overview", label: "Tổng quan", icon: BarChart3 },

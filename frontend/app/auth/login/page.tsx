@@ -30,7 +30,23 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Đăng nhập thất bại");
       login(data.access_token, data.refresh_token);
-      router.push("/dashboard");
+      
+      // Redirect based on user role from JWT
+      try {
+        const payload = JSON.parse(atob(data.access_token.split(".")[1]));
+        const role = payload.role;
+        if (role === "admin") {
+          router.push("/admin");
+        } else if (role === "teacher") {
+          router.push("/teacher");
+        } else if (role === "parent") {
+          router.push("/parent");
+        } else {
+          router.push("/dashboard");
+        }
+      } catch {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message || "Đăng nhập thất bại");
     } finally {

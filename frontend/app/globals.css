@@ -125,18 +125,18 @@
    Light Mode
    ============================================================ */
 html.light {
-  --background:          #f8f9fc;
-  --background-2:        #f0f2f7;
-  --background-3:        #e8ecf4;
-  --foreground:          #1a1d2e;
-  --foreground-muted:    #6b7280;
+  --background:          #f1f2f6;
+  --background-2:        #e5e7ee;
+  --background-3:        #d8dbe5;
+  --foreground:          #0f172a;
+  --foreground-muted:    #374151;
 
-  --card:                rgba(255, 255, 255, 0.9);
-  --card-border:         rgba(0, 0, 0, 0.08);
-  --card-foreground:     #1a1d2e;
+  --card:                #ffffff;
+  --card-border:         rgba(0, 0, 0, 0.15);
+  --card-foreground:     #0f172a;
 
   --popover:             #ffffff;
-  --popover-foreground:  #1a1d2e;
+  --popover-foreground:  #0f172a;
 
   --primary:             #7c3aed;
   --primary-light:       #9b5ff0;
@@ -147,83 +147,150 @@ html.light {
   --secondary-light:     #22d3ee;
   --secondary-foreground:#ffffff;
 
-  --muted:               rgba(0, 0, 0, 0.04);
-  --muted-foreground:    #6b7280;
+  --muted:               rgba(0, 0, 0, 0.07);
+  --muted-foreground:    #374151;
 
   --accent:              #3b82f6;
   --accent-foreground:   #ffffff;
 
-  --destructive:         #ef4444;
-  --success:             #10b981;
-  --warning:             #f59e0b;
+  --destructive:         #dc2626;
+  --success:             #059669;
+  --warning:             #d97706;
 
-  --border:              rgba(0, 0, 0, 0.08);
-  --border-strong:       rgba(0, 0, 0, 0.15);
-  --input:               rgba(0, 0, 0, 0.04);
-  --ring:                rgba(124, 58, 237, 0.3);
+  --border:              rgba(0, 0, 0, 0.16);
+  --border-strong:       rgba(0, 0, 0, 0.28);
+  --input:               rgba(0, 0, 0, 0.06);
+  --ring:                rgba(124, 58, 237, 0.4);
 
   --gradient-brand:      linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #0891b2 100%);
-  --gradient-glow:       radial-gradient(ellipse at center, rgba(124, 58, 237, 0.1), transparent 70%);
-  --gradient-hero:       linear-gradient(160deg, #f8f9fc 0%, #f0f2f7 40%, #ede8f5 100%);
-  --gradient-card:       linear-gradient(135deg, rgba(124, 58, 237, 0.06) 0%, rgba(8, 145, 178, 0.03) 100%);
+  --gradient-glow:       radial-gradient(ellipse at center, rgba(124, 58, 237, 0.15), transparent 70%);
+  --gradient-hero:       linear-gradient(160deg, #f1f2f6 0%, #e5e7ee 40%, #e0dbee 100%);
+  --gradient-card:       linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(8, 145, 178, 0.04) 100%);
 
-  --sidebar:             rgba(255, 255, 255, 0.95);
-  --sidebar-foreground:  #1a1d2e;
-  --sidebar-border:      rgba(0, 0, 0, 0.06);
+  --sidebar:             #ffffff;
+  --sidebar-foreground:  #0f172a;
+  --sidebar-border:      rgba(0, 0, 0, 0.14);
   --sidebar-primary:     #7c3aed;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent:      rgba(124, 58, 237, 0.08);
-  --sidebar-accent-foreground: #7c3aed;
-  --sidebar-ring:        rgba(124, 58, 237, 0.2);
+  --sidebar-accent:      rgba(124, 58, 237, 0.12);
+  --sidebar-accent-foreground: #6d28d9;
+  --sidebar-ring:        rgba(124, 58, 237, 0.3);
 }
 
 html.light .glass {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.14);
 }
 
 html.light .glass-strong {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(0, 0, 0, 0.18);
 }
 
 html.light .glass-card {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(8, 145, 178, 0.02) 100%);
-  border-color: rgba(124, 58, 237, 0.1);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(8, 145, 178, 0.04) 100%);
+  border-color: rgba(124, 58, 237, 0.2);
 }
 
 html.light .glow-violet {
-  box-shadow: 0 0 40px rgba(124, 58, 237, 0.1), 0 0 80px rgba(124, 58, 237, 0.05);
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.15), 0 0 80px rgba(124, 58, 237, 0.08);
 }
 
-html.light .orb-violet { background: rgba(124, 58, 237, 0.08); }
-html.light .orb-cyan { background: rgba(8, 145, 178, 0.06); }
-html.light .orb-blue { background: rgba(59, 130, 246, 0.05); }
+html.light .orb-violet { background: rgba(124, 58, 237, 0.12); }
+html.light .orb-cyan { background: rgba(8, 145, 178, 0.1); }
+html.light .orb-blue { background: rgba(59, 130, 246, 0.08); }
 
 html.light .stat-card {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(255, 255, 255, 0.9) 100%);
-  border-color: rgba(124, 58, 237, 0.1);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, #ffffff 100%);
+  border-color: rgba(124, 58, 237, 0.18);
 }
 
 html.light .divider {
-  background: linear-gradient(to right, transparent, rgba(0,0,0,0.1), transparent);
+  background: linear-gradient(to right, transparent, rgba(0,0,0,0.2), transparent);
 }
 
 html.light .section-tag {
-  background: rgba(124, 58, 237, 0.08);
-  border-color: rgba(124, 58, 237, 0.2);
-  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.3);
+  color: #5b21b6;
 }
 
 html.light .badge-primary {
-  background: rgba(124, 58, 237, 0.1);
-  color: #7c3aed;
-  border-color: rgba(124, 58, 237, 0.2);
+  background: rgba(124, 58, 237, 0.14);
+  color: #5b21b6;
+  border-color: rgba(124, 58, 237, 0.3);
 }
 
-html.light ::-webkit-scrollbar-track { background: #f0f2f7; }
-html.light ::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.3); }
-html.light ::selection { background: rgba(124, 58, 237, 0.2); color: #1a1d2e; }
+html.light .card-base {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+html.light .card-hover:hover {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(124, 58, 237, 0.2);
+}
+
+html.light .course-card {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+html.light .course-card:hover {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(124, 58, 237, 0.2);
+}
+
+html.light .input-base {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+html.light .input-base:focus {
+  background: #ffffff;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+html.light .btn-secondary {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.2);
+  color: #0f172a;
+}
+
+html.light .btn-secondary:hover {
+  background: #f8f9fc;
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+html.light .btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+html.light .nav-link { color: #374151; }
+html.light .nav-link:hover { color: #0f172a; }
+
+html.light .badge-success {
+  background: rgba(5, 150, 105, 0.12);
+  color: #047857;
+  border-color: rgba(5, 150, 105, 0.25);
+}
+
+html.light .badge-warning {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.25);
+}
+
+html.light .badge-cyan {
+  background: rgba(8, 145, 178, 0.12);
+  color: #0e7490;
+  border-color: rgba(8, 145, 178, 0.25);
+}
+
+html.light .table-row:hover { background: rgba(0, 0, 0, 0.04); }
+
+html.light .progress-bar { background: rgba(0, 0, 0, 0.1); }
+
+html.light ::-webkit-scrollbar-track { background: #e5e7ee; }
+html.light ::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.4); }
+html.light ::selection { background: rgba(124, 58, 237, 0.3); color: #0f172a; }
 
 /* ============================================================
    Base Styles
