@@ -147,20 +147,20 @@ export default function LessonPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       {/* Top bar */}
-      <div className="h-14 flex items-center justify-between px-4" style={{ background: "var(--card)", borderBottom: "1px solid var(--border)" }}>
+      <div className="h-14 flex items-center justify-between px-4 glass-strong sticky top-0 z-40" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center gap-3">
-          <Link href={`/courses/${id}`} className="flex items-center gap-1 text-sm" style={{ color: "var(--foreground-muted)" }}>
+          <Link href={`/courses/${id}`} className="flex items-center gap-1 text-sm hover:text-[#a78bfa] transition-colors" style={{ color: "var(--foreground-muted)" }}>
             <ChevronLeft className="w-4 h-4" /> Quay lại
           </Link>
           <div className="w-px h-5" style={{ background: "var(--border)" }} />
           <span className="text-sm font-medium truncate max-w-xs">{course?.title || ""}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>{currentIdx + 1}/{allLessons.length} bài</span>
-          <div className="w-20 progress-bar">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium" style={{ color: "var(--foreground-muted)" }}>Bài {currentIdx + 1}/{allLessons.length}</span>
+          <div className="w-24 progress-bar">
             <div className="progress-fill" style={{ width: `${allLessons.length ? ((currentIdx + 1) / allLessons.length) * 100 : 0}%` }} />
           </div>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg transition-colors ml-2 btn-ghost">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg transition-colors btn-ghost">
             <List className="w-4 h-4" />
           </button>
         </div>
@@ -168,9 +168,9 @@ export default function LessonPage() {
 
       <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1 overflow-y-auto">
-          {/* Video embed or placeholder */}
+          {/* Video embed or compact placeholder */}
           {lesson?.videoUrl ? (
-            <div className="aspect-video">
+            <div className="aspect-video bg-black">
               <iframe
                 src={lesson.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
                 className="w-full h-full" frameBorder="0"
@@ -178,16 +178,43 @@ export default function LessonPage() {
               />
             </div>
           ) : (
-            <div className="aspect-video flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(8,145,178,0.08))" }}>
-              <BookOpen className="w-16 h-16" style={{ color: "rgba(124,58,237,0.3)" }} />
+            <div className="relative overflow-hidden" style={{ height: "200px", background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(8,145,178,0.06))" }}>
+              <div className="absolute inset-0 dot-pattern opacity-30" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.2)" }}>
+                  <BookOpen className="w-8 h-8" style={{ color: "rgba(124,58,237,0.5)" }} />
+                </div>
+                <p className="text-sm font-medium" style={{ color: "var(--foreground-muted)" }}>Bài học văn bản</p>
+              </div>
             </div>
           )}
 
           {/* Lesson info */}
-          <div className="max-w-4xl mx-auto px-6 py-8">
-            <h1 className="text-xl font-extrabold mb-2">{lesson?.title || "Bài học"}</h1>
+          <div className="max-w-4xl mx-auto px-6 py-8 page-enter">
+            {/* Lesson header */}
+            <div className="mb-6">
+              {lesson?.section?.title && (
+                <div className="section-tag mb-3 text-[10px]">
+                  <BookOpen className="w-3 h-3" /> {lesson.section.title}
+                </div>
+              )}
+              <h1 className="text-2xl font-extrabold mb-3">{lesson?.title || "Bài học"}</h1>
+              <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: "var(--foreground-muted)" }}>
+                {lesson?.duration && (
+                  <span className="flex items-center gap-1.5 badge" style={{ background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.2)", color: "#a78bfa" }}>
+                    <Clock className="w-3 h-3" /> {lesson.duration} phút
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5 badge" style={{ background: "rgba(8,145,178,0.1)", border: "1px solid rgba(8,145,178,0.2)", color: "#22d3ee" }}>
+                  <Play className="w-3 h-3" /> Bài {currentIdx + 1}
+                </span>
+              </div>
+            </div>
+
+            <div className="gradient-line mb-6" />
+
             {lesson?.content && (
-              <div className="card-base mb-8">
+              <div className="card-base card-spotlight mb-8">
                 <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
                   <BookOpen className="w-4 h-4" style={{ color: "#7c3aed" }} /> Nội dung bài học
                 </h3>
