@@ -96,26 +96,29 @@ export default function LessonPage() {
   }
 
   async function markComplete() {
+    if (!token) { toast.error("Cần đăng nhập"); return; }
     try {
-      await fetch(`${API}/progress/course/${id}`, {
+      // PUT /progress/video automatically recalculates enrollment progress
+      const res = await fetch(`${API}/progress/video`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lessonId, completed: true }),
+        body: JSON.stringify({ lessonId, watchTime: 0, completed: true }),
       });
-      // Also update video progress
-      await fetch(`${API}/progress/video`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lessonId, courseId: id, watchedSeconds: 0, completed: true }),
-      }).catch(() => {});
-      // Update enrollment progress
-      await fetch(`${API}/enrollments/progress`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ courseId: id, lessonId, completed: true }),
-      }).catch(() => {});
-      toast.success("Đã hoàn thành bài học!");
-    } catch {}
+      if (res.ok) {
+        toast.success("Đã hoàn thành bài học!");
+        // Navigate to next lesson if available
+        const allL = course?.sections?.flatMap((s: any) => s.lessons?.sort((a: any, b: any) => a.order - b.order) || []) || [];
+        const idx = allL.findIndex((l: any) => l.id === lessonId);
+        if (idx < allL.length - 1) {
+          window.location.href = `/courses/${id}/lessons/${allL[idx + 1].id}`;
+        } else {
+          toast.success("🎉 Bạn đã hoàn thành tất cả bài học!");
+        }
+      } else {
+        const d = await res.json();
+        toast.error(d.message || "Lỗi cập nhật tiến độ");
+      }
+    } catch { toast.error("Lỗi kết nối"); }
   }
 
   async function submitAssignment(assignmentId: string, content: string) {
@@ -168,15 +171,39 @@ export default function LessonPage() {
 
       <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1 overflow-y-auto">
-          {/* Video embed or compact placeholder */}
+          {/* Video player */}
           {lesson?.videoUrl ? (
-            <div className="aspect-video bg-black">
-              <iframe
-                src={lesson.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
-                className="w-full h-full" frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
-              />
-            </div>
+            lesson.videoUrl.includes("youtube") || lesson.videoUrl.includes("youtu.be") ? (
+              <div className="aspect-video bg-black">
+                <iframe
+                  src={lesson.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+                  className="w-full h-full" frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="aspect-video bg-black relative">
+                <video
+                  src={`${lesson.videoUrl.startsWith("http") ? "" : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace("/api/v1", "")}${lesson.videoUrl}`}
+                  className="w-full h-full"
+                  controls
+                  controlsList="nodownload"
+                  playsInline
+                  onTimeUpdate={(e) => {
+                    const video = e.target as HTMLVideoElement;
+                    const seconds = Math.floor(video.currentTime);
+                    // Track progress every 15 seconds
+                    if (token && seconds > 0 && seconds % 15 === 0) {
+                      fetch(`${API}/progress/video`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ lessonId, watchTime: seconds, completed: video.currentTime >= video.duration - 2 }),
+                      }).catch(() => {});
+                    }
+                  }}
+                />
+              </div>
+            )
           ) : (
             <div className="relative overflow-hidden" style={{ height: "200px", background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(8,145,178,0.06))" }}>
               <div className="absolute inset-0 dot-pattern opacity-30" />

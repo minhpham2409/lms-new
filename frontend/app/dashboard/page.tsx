@@ -231,8 +231,8 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   {activeCourses.map((enrollment, i) => {
                     const color = courseColors[i % courseColors.length];
-                    const completedLessons = Math.round((enrollment.progress / 100) * (enrollment.course?._count?.lessons || 0));
-                    const totalLessons = enrollment.course?._count?.lessons || 0;
+                    const totalLessons = enrollment.course?.sections?.reduce((sum: number, sec: any) => sum + (sec.lessons?.length || 0), 0) || enrollment.course?._count?.lessons || 0;
+                    const completedLessons = totalLessons > 0 ? Math.round((enrollment.progress / 100) * totalLessons) : 0;
                     const authorName = enrollment.course?.author?.firstName || enrollment.course?.author?.username || "Giáo viên";
                     return (
                       <Link key={enrollment.id} href={`/courses/${enrollment.courseId}`}>
