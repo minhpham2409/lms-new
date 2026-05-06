@@ -26,4 +26,9 @@ export class CreateCourseDto {
   @IsOptional()
   @IsString()
   authorId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

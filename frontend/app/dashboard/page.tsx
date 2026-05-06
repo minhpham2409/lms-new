@@ -9,7 +9,9 @@ import { useAuth } from "@/components/auth/auth-state";
 import {
   BookOpen, Clock, Award, TrendingUp, Play, BarChart3,
   ChevronRight, Star, Target, Flame, Calendar, Loader2, AlertCircle,
+  UserPlus, CheckCircle2, XCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
@@ -40,6 +42,8 @@ export default function DashboardPage() {
   const { user, token, isLoggedIn, loading } = useAuth();
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
+  const [progressData, setProgressData] = useState<any>(null);
+  const [parentRequests, setParentRequests] = useState<any[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -55,6 +59,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (token && user?.role === "student") {
       fetchEnrolledCourses();
+      fetchParentRequests();
+      // Fetch overall progress
+      fetch(`${API}/progress`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null).then(d => { if (d) setProgressData(d); }).catch(() => {});
     }
   }, [token, user]);
 
@@ -72,6 +80,52 @@ export default function DashboardPage() {
     } finally {
       setCoursesLoading(false);
     }
+  }
+
+  async function unenroll(courseId: string) {
+    if (!confirm("Hủy đăng ký khóa học này?")) return;
+    try {
+      const res = await fetch(`${API}/enrollments/${courseId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setEnrolledCourses(enrolledCourses.filter(e => e.courseId !== courseId));
+        toast.success("Đã hủy đăng ký");
+      } else { const d = await res.json(); toast.error(d.message || "Không thể hủy"); }
+    } catch { toast.error("Lỗi kết nối"); }
+  }
+
+  async function fetchParentRequests() {
+    try {
+      const res = await fetch(`${API}/parents/link-requests/incoming`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setParentRequests(Array.isArray(data) ? data : []);
+      }
+    } catch {}
+  }
+
+  async function acceptParentRequest(id: string) {
+    try {
+      const res = await fetch(`${API}/parents/link-request/${id}/accept`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) { toast.success("Đã liên kết với phụ huynh!"); fetchParentRequests(); }
+      else { const d = await res.json(); toast.error(d.message || "Lỗi"); }
+    } catch { toast.error("Lỗi kết nối"); }
+  }
+
+  async function rejectParentRequest(id: string) {
+    try {
+      const res = await fetch(`${API}/parents/link-request/${id}/reject`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) { toast.success("Đã từ chối yêu cầu"); fetchParentRequests(); }
+      else toast.error("Lỗi");
+    } catch { toast.error("Lỗi kết nối"); }
   }
 
   if (loading || (user && user.role !== "student")) {
@@ -228,6 +282,32 @@ export default function DashboardPage() {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Parent link requests */}
+              {parentRequests.length > 0 && (
+                <div className="card-base" style={{ border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.05)" }}>
+                  <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" style={{ color: "#f59e0b" }} /> Yêu cầu liên kết phụ huynh
+                    <span className="w-5 h-5 rounded-full text-[10px] flex items-center justify-center text-white" style={{ background: "#ef4444" }}>{parentRequests.length}</span>
+                  </h3>
+                  <div className="space-y-2">
+                    {parentRequests.map((req: any) => (
+                      <div key={req.id} className="p-3 rounded-xl" style={{ background: "var(--card)" }}>
+                        <p className="text-sm font-semibold mb-1">{req.parent?.firstName || req.parent?.username || "Phụ huynh"}</p>
+                        <p className="text-[10px] mb-2" style={{ color: "var(--foreground-muted)" }}>{req.parent?.email || ""}</p>
+                        <div className="flex gap-2">
+                          <button onClick={() => acceptParentRequest(req.id)} className="btn-primary text-xs px-3 py-1.5 flex-1">
+                            <CheckCircle2 className="w-3 h-3" /> Xác nhận
+                          </button>
+                          <button onClick={() => rejectParentRequest(req.id)} className="btn-ghost text-xs px-3 py-1.5" style={{ color: "#ef4444" }}>
+                            <XCircle className="w-3 h-3" /> Từ chối
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Streak */}
               <div className="card-base text-center">
                 <Flame className="w-10 h-10 mx-auto mb-2" style={{ color: "#f59e0b" }} />

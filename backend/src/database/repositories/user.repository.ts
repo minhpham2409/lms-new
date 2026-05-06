@@ -99,6 +99,14 @@ export class UserRepository extends BaseRepository<User> {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        childLinks: {
+          where: { status: 'accepted' },
+          select: { id: true, parentId: true, status: true },
+        },
+        parentLinks: {
+          where: { status: 'accepted' },
+          select: { id: true, childId: true, status: true },
+        },
       },
     });
   }

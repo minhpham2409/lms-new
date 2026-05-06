@@ -42,16 +42,19 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/courses`).then((r) => r.json()).then((data) => {
-      setCourses(Array.isArray(data) ? data.filter((c: any) => c.status === "published") : []);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    const url = search.trim() ? `${API}/courses/search?q=${encodeURIComponent(search.trim())}` : `${API}/courses`;
+    const timer = setTimeout(() => {
+      setLoading(true);
+      fetch(url).then((r) => r.json()).then((data) => {
+        setCourses(Array.isArray(data) ? data.filter((c: any) => c.status === "published") : []);
+      }).catch(() => {}).finally(() => setLoading(false));
+    }, search.trim() ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const filtered = courses.filter((c) => {
     const cat = guessCategory(c.title);
-    const matchSearch = c.title.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeCategory === "Tất cả" || cat === activeCategory;
-    return matchSearch && matchCat;
+    return activeCategory === "Tất cả" || cat === activeCategory;
   });
 
   return (

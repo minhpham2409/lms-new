@@ -248,4 +248,24 @@ export class ParentsService {
     await this.parentChildRepository.delete(linkId);
     return { success: true };
   }
+
+  /** Parent views child's orders (especially pending ones for QR payment) */
+  async getChildOrders(parentId: string, childId: string) {
+    const link = await this.parentChildRepository.findLink(parentId, childId);
+    if (!link || link.status !== 'accepted') {
+      throw new ForbiddenException('Not linked to this student');
+    }
+
+    return this.prisma.order.findMany({
+      where: { userId: childId },
+      include: {
+        items: {
+          include: {
+            course: { select: { id: true, title: true, price: true, thumbnail: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

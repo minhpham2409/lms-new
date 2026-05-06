@@ -29,7 +29,7 @@ export class ParentChildRepository extends BaseRepository<ParentChild> {
   findPendingRequest(childId: string) {
     return this.prisma.parentChild.findMany({
       where: { childId, status: 'pending' },
-      include: { parent: { select: { id: true, username: true, firstName: true, lastName: true } } },
+      include: { parent: { select: { id: true, username: true, firstName: true, lastName: true, email: true } } },
     });
   }
 

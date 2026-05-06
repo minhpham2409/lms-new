@@ -110,4 +110,13 @@ export class ParentsController {
   getChildDashboard(@Param('id') childId: string, @GetUser() user: any) {
     return this.parentsService.getChildDashboard(user.id, childId);
   }
+
+  @Get('children/:id/orders')
+  @UseGuards(RolesGuard)
+  @Roles('parent')
+  @ApiOperation({ summary: 'Get child pending orders' })
+  @ApiResponse({ status: 200, description: 'Orders retrieved' })
+  getChildOrders(@Param('id') childId: string, @GetUser() user: any) {
+    return this.parentsService.getChildOrders(user.id, childId);
+  }
 }

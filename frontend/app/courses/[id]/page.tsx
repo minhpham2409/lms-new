@@ -36,6 +36,12 @@ export default function CourseDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [qrSent, setQrSent] = useState(false);
+  const [hasParent, setHasParent] = useState<boolean | null>(null);
+  const [sendingQR, setSendingQR] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
     fetchCourse();
@@ -43,7 +49,33 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     if (token && course) checkEnrollment();
+    if (token && user?.role === "student") checkParentLink();
   }, [token, course]);
+
+  async function checkParentLink() {
+    try {
+      // Check incoming link requests (pending or accepted)
+      const res = await fetch(`${API}/parents/link-requests/incoming`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) { setHasParent(true); return; }
+      }
+      // Try to check if any parent already linked (accepted links won't show in incoming)
+      // Use enrollments endpoint to infer — if student has completed paid courses, parent was linked
+      const profileRes = await fetch(`${API}/auth/profile`, { headers: { Authorization: `Bearer ${token}` } });
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        if (profile.childLinks?.length > 0 || profile.parentChild?.length > 0) {
+          setHasParent(true); return;
+        }
+      }
+      setHasParent(false); // No parent found — block
+    } catch { setHasParent(false); }
+  }
+
+  useEffect(() => {
+    if (course) fetchReviews();
+  }, [course]);
 
   async function fetchCourse() {
     try {
@@ -58,19 +90,58 @@ export default function CourseDetailPage() {
 
   async function checkEnrollment() {
     try {
-      const res = await fetch(`${API}/enrollments/my-courses`, {
+      const res = await fetch(`${API}/enrollments/${id}/status`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        const enrollments = await res.json();
-        const found = enrollments.find?.((e: any) => e.courseId === id);
-        if (found) {
+        const data = await res.json();
+        // API returns { isEnrolled: boolean, enrollment: {...} | null }
+        if (data.isEnrolled && data.enrollment) {
           setEnrolled(true);
-          setEnrollProgress(found.progress || 0);
-          setEnrollStatus(found.status || "active");
+          setEnrollProgress(data.enrollment.progress || 0);
+          setEnrollStatus(data.enrollment.status || "active");
+          return;
+        }
+        // Fallback: direct enrollment object (older format)
+        if (data.courseId) {
+          setEnrolled(true);
+          setEnrollProgress(data.progress || 0);
+          setEnrollStatus(data.status || "active");
+          return;
         }
       }
     } catch {}
+    // Final fallback: check from my-courses list
+    try {
+      const res2 = await fetch(`${API}/enrollments/my-courses`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res2.ok) {
+        const enrollments = await res2.json();
+        const found = enrollments.find?.((e: any) => e.courseId === id);
+        if (found) { setEnrolled(true); setEnrollProgress(found.progress || 0); setEnrollStatus(found.status || "active"); }
+      }
+    } catch {}
+  }
+
+  async function fetchReviews() {
+    try {
+      const res = await fetch(`${API}/courses/${id}/reviews`);
+      if (res.ok) setReviews(await res.json());
+    } catch {}
+  }
+
+  async function submitReview() {
+    if (!reviewText.trim()) { toast.error("Vui lòng nhập nội dung đánh giá"); return; }
+    setReviewSubmitting(true);
+    try {
+      const res = await fetch(`${API}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ courseId: id, rating: reviewRating, comment: reviewText }),
+      });
+      if (res.ok) { toast.success("Đã gửi đánh giá!"); setReviewText(""); fetchReviews(); }
+      else { const d = await res.json(); toast.error(d.message || "Lỗi gửi đánh giá"); }
+    } catch { toast.error("Lỗi kết nối"); }
+    finally { setReviewSubmitting(false); }
   }
 
   async function handleEnrollFree() {
@@ -100,7 +171,10 @@ export default function CourseDetailPage() {
 
   async function handleBuyNow() {
     if (!isLoggedIn) { router.push("/auth/login"); return; }
-    // Show QR immediately for paid courses
+    if (hasParent === false) {
+      toast.error("Bạn cần liên kết tài khoản phụ huynh trước khi mua khóa học!");
+      return;
+    }
     setShowQR(true);
   }
 
@@ -108,7 +182,7 @@ export default function CourseDetailPage() {
     if (!isLoggedIn) { router.push("/auth/login"); return; }
     setActionLoading(true);
     try {
-      const res = await fetch(`${API}/cart`, {
+      const res = await fetch(`${API}/cart/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ courseId: id }),
@@ -128,23 +202,54 @@ export default function CourseDetailPage() {
   }
 
   async function handleSendQRToParent() {
-    // For paid courses, the backend blocks direct enrollment.
-    // The QR is sent to parent; after payment + teacher approval, enrollment is created.
-    // For now, we show "pending" state on the client side.
+    setSendingQR(true);
     try {
-      // Try creating enrollment — it will succeed for free courses,
-      // and fail for paid courses (which is expected behavior)
-      await fetch(`${API}/enrollments`, {
+      // 1. Add course to cart first (order service reads from cart)
+      await fetch(`${API}/cart/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ courseId: id }),
+      }).catch(() => {});
+
+      // 2. Create order from cart
+      const orderRes = await fetch(`${API}/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
       });
-    } catch {}
-    // Show pending regardless (QR sent to parent for payment)
-    setEnrolled(true);
-    setEnrollStatus("pending");
-    setQrSent(true);
-    toast.success("Đã gửi mã QR đến phụ huynh!");
+      if (orderRes.ok) {
+        const order = await orderRes.json();
+        // 3. Generate QR payment
+        await fetch(`${API}/payments/qr`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ orderId: order.id }),
+        }).catch(() => {});
+      } else {
+        const err = await orderRes.json().catch(() => ({}));
+        // If already enrolled, just proceed
+        if (!err.message?.includes("already enrolled")) {
+          toast.error(err.message || "Không thể tạo đơn hàng");
+          setSendingQR(false);
+          return;
+        }
+      }
+
+      // 4. Create pending enrollment
+      await fetch(`${API}/enrollments/pending`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ courseId: id }),
+      }).catch(() => {});
+
+      setEnrolled(true);
+      setEnrollStatus("pending");
+      setQrSent(true);
+      toast.success("Đã gửi mã QR đến phụ huynh!");
+    } catch {
+      toast.error("Lỗi kết nối");
+    }
+    setSendingQR(false);
   }
 
   const toggleSection = (sId: string) => {
@@ -262,6 +367,53 @@ export default function CourseDetailPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Reviews section */}
+              <div className="divider mb-8" />
+              <h2 className="text-xl font-bold mb-4">Đánh giá ({reviews.length})</h2>
+
+              {/* Review form - only for enrolled students */}
+              {canAccess && user?.role === "student" && (
+                <div className="card-base mb-6">
+                  <h3 className="font-semibold text-sm mb-3">Viết đánh giá</h3>
+                  <div className="flex gap-1 mb-3">
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <button key={s} onClick={() => setReviewRating(s)}>
+                        <Star className="w-5 h-5" style={{ color: s <= reviewRating ? "#f59e0b" : "var(--border)", fill: s <= reviewRating ? "#f59e0b" : "none" }} />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Chia sẻ trải nghiệm học tập..." rows={3} className="input-base resize-none mb-3" />
+                  <button onClick={submitReview} disabled={reviewSubmitting} className="btn-primary text-sm">
+                    {reviewSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Gửi đánh giá
+                  </button>
+                </div>
+              )}
+
+              {reviews.length === 0 ? (
+                <div className="card-base text-center py-8">
+                  <Star className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--foreground-muted)" }} />
+                  <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Chưa có đánh giá nào</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reviews.map((r: any) => (
+                    <div key={r.id} className="card-base flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white" style={{ background: "rgba(124,58,237,0.4)" }}>
+                        {(r.user?.firstName || r.user?.username || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold">{r.user?.firstName || r.user?.username}</span>
+                          <span className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>{new Date(r.createdAt).toLocaleDateString("vi-VN")}</span>
+                        </div>
+                        <div className="flex gap-0.5 mb-1">{Array.from({ length: 5 }, (_, j) => <Star key={j} className="w-3 h-3" style={{ color: j < r.rating ? "#f59e0b" : "var(--border)", fill: j < r.rating ? "#f59e0b" : "none" }} />)}</div>
+                        <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>{r.comment}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -275,11 +427,11 @@ export default function CourseDetailPage() {
                       <span className="font-bold" style={{ color: "#f59e0b" }}>Đang chờ duyệt</span>
                     </div>
                     <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
-                      Đơn đăng ký của bạn đang chờ giáo viên duyệt. Bạn sẽ được thông báo khi được chấp nhận.
+                      Mã QR đã được gửi cho phụ huynh. Sau khi phụ huynh chuyển tiền, giáo viên sẽ xác nhận và duyệt bạn vào lớp.
                     </p>
                     <div className="p-4 rounded-xl mb-4" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>
                       <div className="flex items-center gap-2 text-sm" style={{ color: "#f59e0b" }}>
-                        <Clock className="w-4 h-4" /> Đang xử lý thanh toán
+                        <Clock className="w-4 h-4" /> Chờ phụ huynh thanh toán & giáo viên duyệt
                       </div>
                     </div>
                     <Link href="/dashboard" className="btn-secondary w-full justify-center py-3 text-sm">
@@ -322,6 +474,16 @@ export default function CourseDetailPage() {
                     <p className="text-xs mb-6" style={{ color: "var(--foreground-muted)" }}>
                       {course.price > 0 ? "Thanh toán một lần, học trọn đời" : "Truy cập toàn bộ nội dung"}
                     </p>
+
+                    {course.price > 0 && hasParent === false && user?.role === "student" && (
+                      <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)" }}>
+                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#f59e0b" }} />
+                        <div>
+                          <p className="text-xs font-semibold" style={{ color: "#f59e0b" }}>Chưa liên kết phụ huynh</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>Liên kết tài khoản phụ huynh để được thanh toán</p>
+                        </div>
+                      </div>
+                    )}
 
                     {course.price > 0 ? (
                       <>

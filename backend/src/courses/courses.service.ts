@@ -17,7 +17,7 @@ export class CoursesService {
 
   async create(dto: CreateCourseDto, authorId: string) {
     return this.courseRepository.createWithAuthor(
-      { ...dto, status: 'draft' },
+      { ...dto, status: dto.status ?? 'draft' },
       authorId,
     );
   }

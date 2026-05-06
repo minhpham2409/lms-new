@@ -1,112 +1,266 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
+import { useAuth } from "@/components/auth/auth-state";
 import {
   Play, ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Clock,
-  MessageCircle, ThumbsUp, Send, List, X,
+  MessageCircle, Send, List, X, Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
-const lessonData = {
-  title: "Bài 3: Phân số — Khái niệm và phép tính",
-  course: "Toán học cơ bản — Lớp 6",
-  duration: "15:30",
-  content: `Phân số là một cách biểu diễn một phần của một tổng thể. Một phân số gồm hai phần: tử số (số trên) và mẫu số (số dưới).
-
-Ví dụ: 3/4 có nghĩa là 3 phần trong tổng số 4 phần bằng nhau.
-
-**Phép cộng phân số cùng mẫu:**
-a/c + b/c = (a+b)/c
-
-**Phép cộng phân số khác mẫu:**
-Quy đồng mẫu số, sau đó cộng tử số.`,
-};
-
-const sidebarLessons = [
-  { id: "l1", title: "Chào mừng đến khóa học", completed: true, duration: "5:30" },
-  { id: "l2", title: "Cách sử dụng nền tảng", completed: true, duration: "8:15" },
-  { id: "l3", title: "Phân số — Khái niệm", completed: false, duration: "15:00", active: true },
-  { id: "l4", title: "Ví dụ minh họa", completed: false, duration: "12:30" },
-  { id: "l5", title: "Bài tập thực hành", completed: false, duration: "20:00" },
-];
-
-const comments = [
-  { user: "Trần B", avatar: "T", text: "Thầy ơi, phần quy đồng mẫu số con chưa hiểu lắm ạ", time: "2 giờ trước", likes: 3 },
-  { user: "Thầy Minh", avatar: "M", text: "Con xem lại ví dụ ở phút 8:30 nhé, thầy giải thích kỹ phần đó rồi.", time: "1 giờ trước", likes: 5, isTeacher: true },
-];
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 export default function LessonPage() {
   const { id, lessonId } = useParams();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, token } = useAuth();
+  const [lesson, setLesson] = useState<any>(null);
+  const [course, setCourse] = useState<any>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
   const [comment, setComment] = useState("");
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => { fetchData(); }, [lessonId, id]);
+
+  async function fetchData() {
+    setLoading(true);
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      const [lessonR, courseR] = await Promise.all([
+        fetch(`${API}/lessons/${lessonId}`, { headers }),
+        fetch(`${API}/courses/${id}`, { headers }),
+      ]);
+      if (lessonR.ok) setLesson(await lessonR.json());
+      if (courseR.ok) setCourse(await courseR.json());
+    } catch {} finally { setLoading(false); }
+    fetchComments();
+    fetchMaterials();
+    fetchAssignments();
+    // Track video progress
+    if (token) {
+      fetch(`${API}/progress/video/lesson/${lessonId}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }
+  }
+
+  async function fetchComments() {
+    try {
+      const res = await fetch(`${API}/lessons/${lessonId}/comments`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.ok) setComments(await res.json());
+    } catch {}
+  }
+
+  async function fetchMaterials() {
+    try {
+      const res = await fetch(`${API}/materials?lessonId=${lessonId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.ok) setMaterials(await res.json());
+    } catch {}
+  }
+
+  async function fetchAssignments() {
+    try {
+      const res = await fetch(`${API}/assignments?lessonId=${lessonId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.ok) setAssignments(await res.json());
+    } catch {}
+  }
+
+  async function postComment() {
+    if (!comment.trim()) return;
+    try {
+      const res = await fetch(`${API}/lessons/${lessonId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content: comment.trim() }),
+      });
+      if (res.ok) { setComment(""); fetchComments(); toast.success("Đã gửi bình luận"); }
+      else { const d = await res.json(); toast.error(d.message || "Lỗi gửi bình luận"); }
+    } catch { toast.error("Lỗi kết nối"); }
+  }
+
+  async function postReply(commentId: string) {
+    const text = replyText[commentId];
+    if (!text?.trim()) return;
+    try {
+      const res = await fetch(`${API}/lessons/${lessonId}/comments/${commentId}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content: text.trim() }),
+      });
+      if (res.ok) { setReplyText({ ...replyText, [commentId]: "" }); fetchComments(); toast.success("Đã trả lời"); }
+    } catch { toast.error("Lỗi"); }
+  }
+
+  async function markComplete() {
+    try {
+      await fetch(`${API}/progress/course/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lessonId, completed: true }),
+      });
+      // Also update video progress
+      await fetch(`${API}/progress/video`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lessonId, courseId: id, watchedSeconds: 0, completed: true }),
+      }).catch(() => {});
+      // Update enrollment progress
+      await fetch(`${API}/enrollments/progress`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ courseId: id, lessonId, completed: true }),
+      }).catch(() => {});
+      toast.success("Đã hoàn thành bài học!");
+    } catch {}
+  }
+
+  async function submitAssignment(assignmentId: string, content: string) {
+    try {
+      const res = await fetch(`${API}/assignments/${assignmentId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content }),
+      });
+      if (res.ok) toast.success("Đã nộp bài!");
+      else { const d = await res.json(); toast.error(d.message || "Lỗi nộp bài"); }
+    } catch { toast.error("Lỗi"); }
+  }
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#7c3aed" }} />
+    </div>
+  );
+
+  // Find current lesson index for prev/next navigation
+  const allLessons = course?.sections?.flatMap((s: any) => s.lessons?.sort((a: any, b: any) => a.order - b.order) || []) || [];
+  const currentIdx = allLessons.findIndex((l: any) => l.id === lessonId);
+  const prevLesson = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
+  const nextLesson = currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
+
+  const initials = (user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?").toUpperCase();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       {/* Top bar */}
-      <div className="h-14 flex items-center justify-between px-4 border-b" style={{ background: "rgba(13,19,34,0.95)", borderColor: "rgba(255,255,255,0.06)" }}>
+      <div className="h-14 flex items-center justify-between px-4" style={{ background: "var(--card)", borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center gap-3">
-          <Link href={`/courses/${id}`} className="flex items-center gap-1 text-sm" style={{ color: "#8892a4" }}>
+          <Link href={`/courses/${id}`} className="flex items-center gap-1 text-sm" style={{ color: "var(--foreground-muted)" }}>
             <ChevronLeft className="w-4 h-4" /> Quay lại
           </Link>
-          <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
-          <span className="text-sm font-medium truncate max-w-xs">{lessonData.course}</span>
+          <div className="w-px h-5" style={{ background: "var(--border)" }} />
+          <span className="text-sm font-medium truncate max-w-xs">{course?.title || ""}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: "#8892a4" }}>3 / 5 bài</span>
+          <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>{currentIdx + 1}/{allLessons.length} bài</span>
           <div className="w-20 progress-bar">
-            <div className="progress-fill" style={{ width: "40%" }} />
+            <div className="progress-fill" style={{ width: `${allLessons.length ? ((currentIdx + 1) / allLessons.length) * 100 : 0}%` }} />
           </div>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg hover:bg-white/5 transition-colors ml-2">
-            <List className="w-4 h-4" style={{ color: "#8892a4" }} />
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg transition-colors ml-2 btn-ghost">
+            <List className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Main content */}
         <div className="flex-1 overflow-y-auto">
-          {/* Video player placeholder */}
-          <div className="aspect-video flex items-center justify-center relative" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(8,145,178,0.08))" }}>
-            <button className="w-20 h-20 rounded-full flex items-center justify-center transition-transform hover:scale-110" style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)", boxShadow: "0 8px 40px rgba(124,58,237,0.5)" }}>
-              <Play className="w-9 h-9 text-white ml-1" />
-            </button>
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-              <span className="text-xs font-mono px-2 py-1 rounded" style={{ background: "rgba(0,0,0,0.6)", color: "#8892a4" }}>0:00 / {lessonData.duration}</span>
+          {/* Video embed or placeholder */}
+          {lesson?.videoUrl ? (
+            <div className="aspect-video">
+              <iframe
+                src={lesson.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+                className="w-full h-full" frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
+              />
             </div>
-          </div>
+          ) : (
+            <div className="aspect-video flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(8,145,178,0.08))" }}>
+              <BookOpen className="w-16 h-16" style={{ color: "rgba(124,58,237,0.3)" }} />
+            </div>
+          )}
 
           {/* Lesson info */}
           <div className="max-w-4xl mx-auto px-6 py-8">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-extrabold">{lessonData.title}</h1>
-              <span className="flex items-center gap-1.5 text-xs" style={{ color: "#8892a4" }}>
-                <Clock className="w-3 h-3" /> {lessonData.duration}
-              </span>
-            </div>
-
-            {/* Lesson text content */}
-            <div className="card-base mb-8">
-              <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-                <BookOpen className="w-4 h-4" style={{ color: "#7c3aed" }} /> Nội dung bài học
-              </h3>
-              <div className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "#8892a4" }}>
-                {lessonData.content}
+            <h1 className="text-xl font-extrabold mb-2">{lesson?.title || "Bài học"}</h1>
+            {lesson?.content && (
+              <div className="card-base mb-8">
+                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" style={{ color: "#7c3aed" }} /> Nội dung bài học
+                </h3>
+                <div className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "var(--foreground-muted)" }}>
+                  {lesson.content}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Materials */}
+            {materials.length > 0 && (
+              <div className="card-base mb-6">
+                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">📎 Tài liệu ({materials.length})</h3>
+                <div className="space-y-2">
+                  {materials.map((m: any) => (
+                    <a key={m.id} href={m.fileUrl || m.url || "#"} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors hover:bg-[var(--muted)]"
+                      style={{ border: "1px solid var(--border)" }}>
+                      <span className="text-sm font-medium flex-1">{m.title || m.name}</span>
+                      <span className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>{m.type || "PDF"}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Assignments */}
+            {assignments.length > 0 && (
+              <div className="card-base mb-6">
+                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">📝 Bài tập ({assignments.length})</h3>
+                <div className="space-y-3">
+                  {assignments.map((a: any) => (
+                    <div key={a.id} className="p-3 rounded-xl" style={{ border: "1px solid var(--border)", background: "var(--muted)" }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold">{a.title}</span>
+                        <span className="badge text-[10px]" style={{ background: a.type === "quiz" ? "rgba(124,58,237,0.15)" : "rgba(245,158,11,0.15)" }}>
+                          {a.type === "quiz" ? "Trắc nghiệm" : "Tự luận"}
+                        </span>
+                      </div>
+                      {a.description && <p className="text-xs mb-2" style={{ color: "var(--foreground-muted)" }}>{a.description}</p>}
+                      {a.type === "quiz" && a.quizId ? (
+                        <Link href={`/quiz/${a.quizId}`} className="btn-primary text-xs">Làm quiz</Link>
+                      ) : (
+                        <div className="mt-2">
+                          <textarea placeholder="Nhập bài làm..." rows={2} className="input-base resize-none text-sm mb-2"
+                            id={`assignment-${a.id}`} />
+                          <button onClick={() => {
+                            const el = document.getElementById(`assignment-${a.id}`) as HTMLTextAreaElement;
+                            if (el) submitAssignment(a.id, el.value);
+                          }} className="btn-primary text-xs">Nộp bài</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Navigation */}
             <div className="flex items-center justify-between mb-10">
-              <Link href={`/courses/${id}/lessons/l2`} className="btn-secondary text-sm">
-                <ChevronLeft className="w-4 h-4" /> Bài trước
-              </Link>
-              <button className="btn-primary text-sm">
+              {prevLesson ? (
+                <Link href={`/courses/${id}/lessons/${prevLesson.id}`} className="btn-secondary text-sm">
+                  <ChevronLeft className="w-4 h-4" /> Bài trước
+                </Link>
+              ) : <div />}
+              <button onClick={markComplete} className="btn-primary text-sm">
                 <CheckCircle2 className="w-4 h-4" /> Hoàn thành & tiếp tục
               </button>
-              <Link href={`/courses/${id}/lessons/l4`} className="btn-secondary text-sm">
-                Bài tiếp <ChevronRight className="w-4 h-4" />
-              </Link>
+              {nextLesson ? (
+                <Link href={`/courses/${id}/lessons/${nextLesson.id}`} className="btn-secondary text-sm">
+                  Bài tiếp <ChevronRight className="w-4 h-4" />
+                </Link>
+              ) : <div />}
             </div>
 
             {/* Comments */}
@@ -115,33 +269,55 @@ export default function LessonPage() {
               <MessageCircle className="w-4 h-4" style={{ color: "#7c3aed" }} /> Thảo luận ({comments.length})
             </h3>
 
-            {/* New comment */}
-            <div className="flex gap-3 mb-6">
-              <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white" style={{ background: "#7c3aed" }}>A</div>
-              <div className="flex-1 flex gap-2">
-                <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Viết bình luận..." className="input-base text-sm flex-1" />
-                <button className="btn-primary px-3"><Send className="w-4 h-4" /></button>
+            {token && (
+              <div className="flex gap-3 mb-6">
+                <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white" style={{ background: "#7c3aed" }}>{initials}</div>
+                <div className="flex-1 flex gap-2">
+                  <input value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={e => e.key === "Enter" && postComment()} placeholder="Viết bình luận..." className="input-base text-sm flex-1" />
+                  <button onClick={postComment} className="btn-primary px-3"><Send className="w-4 h-4" /></button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Comments list */}
             <div className="space-y-4">
-              {comments.map((c, i) => (
-                <div key={i} className="flex gap-3">
-                  <div
-                    className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white"
-                    style={{ background: c.isTeacher ? "linear-gradient(135deg, #7c3aed, #0891b2)" : "rgba(124,58,237,0.4)" }}
-                  >{c.avatar}</div>
+              {comments.length === 0 ? (
+                <p className="text-sm text-center py-4" style={{ color: "var(--foreground-muted)" }}>Chưa có bình luận nào</p>
+              ) : comments.map((c: any) => (
+                <div key={c.id} className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white"
+                    style={{ background: c.user?.role === "teacher" ? "linear-gradient(135deg, #7c3aed, #0891b2)" : "rgba(124,58,237,0.4)" }}>
+                    {(c.user?.firstName || c.user?.username || "?").charAt(0).toUpperCase()}
+                  </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold">{c.user}</span>
-                      {c.isTeacher && <span className="badge badge-primary text-[9px]">Giáo viên</span>}
-                      <span className="text-xs" style={{ color: "#8892a4" }}>{c.time}</span>
+                      <span className="text-sm font-semibold">{c.user?.firstName || c.user?.username}</span>
+                      {c.user?.role === "teacher" && <span className="badge badge-primary text-[9px]">Giáo viên</span>}
+                      <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>{new Date(c.createdAt).toLocaleDateString("vi-VN")}</span>
                     </div>
-                    <p className="text-sm" style={{ color: "#8892a4" }}>{c.text}</p>
-                    <button className="flex items-center gap-1 mt-1.5 text-xs" style={{ color: "#8892a4" }}>
-                      <ThumbsUp className="w-3 h-3" /> {c.likes}
-                    </button>
+                    <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>{c.content}</p>
+                    {/* Replies */}
+                    {c.replies?.map((r: any) => (
+                      <div key={r.id} className="flex gap-2 mt-3 ml-4 p-2 rounded-lg" style={{ background: "var(--muted)" }}>
+                        <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+                          style={{ background: r.user?.role === "teacher" ? "linear-gradient(135deg, #7c3aed, #0891b2)" : "rgba(124,58,237,0.3)" }}>
+                          {(r.user?.firstName || r.user?.username || "?").charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold">{r.user?.firstName || r.user?.username}</span>
+                          {r.user?.role === "teacher" && <span className="badge badge-primary text-[8px] ml-1">GV</span>}
+                          <p className="text-xs mt-0.5" style={{ color: "var(--foreground-muted)" }}>{r.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {/* Reply input */}
+                    {token && (
+                      <div className="flex gap-2 mt-2 ml-4">
+                        <input value={replyText[c.id] || ""} onChange={e => setReplyText({ ...replyText, [c.id]: e.target.value })}
+                          onKeyDown={e => e.key === "Enter" && postReply(c.id)}
+                          placeholder="Trả lời..." className="input-base text-xs flex-1 py-1.5" />
+                        <button onClick={() => postReply(c.id)} className="btn-ghost text-xs px-2 py-1"><Send className="w-3 h-3" /></button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -149,34 +325,32 @@ export default function LessonPage() {
           </div>
         </div>
 
-        {/* Sidebar - lesson list */}
+        {/* Sidebar */}
         {sidebarOpen && (
-          <div className="w-80 border-l overflow-y-auto flex-shrink-0" style={{ background: "rgba(13,19,34,0.95)", borderColor: "rgba(255,255,255,0.06)" }}>
-            <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+          <div className="w-80 border-l overflow-y-auto flex-shrink-0" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+            <div className="flex items-center justify-between p-4" style={{ borderBottom: "1px solid var(--border)" }}>
               <h3 className="font-bold text-sm">Danh sách bài</h3>
-              <button onClick={() => setSidebarOpen(false)}><X className="w-4 h-4" style={{ color: "#8892a4" }} /></button>
+              <button onClick={() => setSidebarOpen(false)}><X className="w-4 h-4" style={{ color: "var(--foreground-muted)" }} /></button>
             </div>
             <div className="p-2">
-              {sidebarLessons.map((l) => (
-                <div
-                  key={l.id}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl transition-all cursor-pointer"
-                  style={{
-                    background: l.active ? "rgba(124,58,237,0.15)" : "transparent",
-                    borderLeft: l.active ? "3px solid #7c3aed" : "3px solid transparent",
-                  }}
-                >
-                  {l.completed ? (
-                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: "#10b981" }} />
-                  ) : l.active ? (
-                    <Play className="w-4 h-4 flex-shrink-0" style={{ color: "#7c3aed" }} />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full border flex-shrink-0" style={{ borderColor: "rgba(255,255,255,0.2)" }} />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate" style={{ color: l.active ? "#f1f5ff" : "#8892a4" }}>{l.title}</p>
-                    <p className="text-[10px]" style={{ color: "#8892a4" }}>{l.duration}</p>
-                  </div>
+              {course?.sections?.sort((a: any, b: any) => a.order - b.order).map((sec: any) => (
+                <div key={sec.id} className="mb-3">
+                  <p className="text-[10px] font-semibold uppercase px-3 py-1" style={{ color: "var(--foreground-muted)" }}>{sec.title}</p>
+                  {sec.lessons?.sort((a: any, b: any) => a.order - b.order).map((l: any) => (
+                    <Link key={l.id} href={`/courses/${id}/lessons/${l.id}`}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl transition-all"
+                      style={{
+                        background: l.id === lessonId ? "rgba(124,58,237,0.15)" : "transparent",
+                        borderLeft: l.id === lessonId ? "3px solid #7c3aed" : "3px solid transparent",
+                      }}>
+                      {l.id === lessonId ? (
+                        <Play className="w-4 h-4 flex-shrink-0" style={{ color: "#7c3aed" }} />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border flex-shrink-0" style={{ borderColor: "var(--border)" }} />
+                      )}
+                      <span className="text-xs font-medium truncate" style={{ color: l.id === lessonId ? "var(--foreground)" : "var(--foreground-muted)" }}>{l.title}</span>
+                    </Link>
+                  ))}
                 </div>
               ))}
             </div>

@@ -1,22 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
-import { User, Mail, Phone, MapPin, Camera, Save, Shield, Bell, Key } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-state";
+import { User, Mail, Phone, MapPin, Camera, Save, Shield, Bell, Key, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 export default function ProfilePage() {
-  const [tab, setTab] = useState<"info" | "security" | "notifications">("info");
-  const [form, setForm] = useState({
-    firstName: "Nguyễn", lastName: "Văn A", email: "nguyenvana@email.com",
-    phone: "0901234567", address: "TP. Hồ Chí Minh", bio: "Học sinh lớp 8, yêu thích Toán học",
-  });
+  const { user, token } = useAuth();
+  const [tab, setTab] = useState<"info" | "security">("info");
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", address: "", bio: "" });
+  const [saving, setSaving] = useState(false);
+  const [pwForm, setPwForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [pwSaving, setPwSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        firstName: user.firstName || "", lastName: user.lastName || "",
+        email: user.email || "", phone: (user as any).phone || "",
+        address: (user as any).address || "", bio: (user as any).bio || "",
+      });
+    }
+  }, [user]);
+
+  async function saveProfile() {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/auth/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) toast.success("Đã lưu thay đổi!");
+      else { const d = await res.json(); toast.error(d.message || "Lỗi lưu profile"); }
+    } catch { toast.error("Lỗi kết nối"); }
+    finally { setSaving(false); }
+  }
+
+  async function changePassword() {
+    if (pwForm.newPassword !== pwForm.confirmPassword) { toast.error("Mật khẩu mới không khớp"); return; }
+    if (pwForm.newPassword.length < 6) { toast.error("Mật khẩu mới tối thiểu 6 ký tự"); return; }
+    setPwSaving(true);
+    try {
+      const res = await fetch(`${API}/auth/change-password`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
+      });
+      if (res.ok) { toast.success("Đã đổi mật khẩu!"); setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" }); }
+      else { const d = await res.json(); toast.error(d.message || "Sai mật khẩu hiện tại"); }
+    } catch { toast.error("Lỗi kết nối"); }
+    finally { setPwSaving(false); }
+  }
 
   const tabs = [
     { id: "info" as const, label: "Thông tin", icon: User },
     { id: "security" as const, label: "Bảo mật", icon: Shield },
-    { id: "notifications" as const, label: "Thông báo", icon: Bell },
   ];
+
+  const roleLabels: Record<string, string> = { student: "Học sinh", teacher: "Giáo viên", parent: "Phụ huynh", admin: "Admin" };
+  const initials = (user?.firstName?.charAt(0) || "") + (user?.lastName?.charAt(0) || user?.username?.charAt(0) || "?");
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
@@ -25,45 +72,30 @@ export default function ProfilePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-2xl font-extrabold mb-6">Hồ sơ cá nhân</h1>
 
-          {/* Avatar */}
           <div className="card-base mb-6 flex items-center gap-5">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}>
-                NA
-              </div>
-              <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "#7c3aed" }}>
-                <Camera className="w-3.5 h-3.5 text-white" />
-              </button>
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}>
+              {initials.toUpperCase()}
             </div>
             <div>
-              <h2 className="text-lg font-bold">Nguyễn Văn A</h2>
-              <p className="text-sm" style={{ color: "#8892a4" }}>Học sinh • Tham gia 6 tháng trước</p>
-              <div className="flex gap-2 mt-2">
-                <span className="badge badge-primary">3 khóa học</span>
-                <span className="badge badge-success">1 chứng chỉ</span>
-              </div>
+              <h2 className="text-lg font-bold">{user?.firstName || user?.username || "—"} {user?.lastName || ""}</h2>
+              <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>{roleLabels[user?.role || ""] || user?.role} • {user?.email}</p>
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-2 mb-6">
             {tabs.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
+              <button key={id} onClick={() => setTab(id)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
                 style={{
-                  background: tab === id ? "rgba(124,58,237,0.2)" : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${tab === id ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.08)"}`,
-                  color: tab === id ? "#a78bfa" : "#8892a4",
-                }}
-              >
+                  background: tab === id ? "rgba(124,58,237,0.2)" : "var(--muted)",
+                  border: `1px solid ${tab === id ? "rgba(124,58,237,0.4)" : "var(--border)"}`,
+                  color: tab === id ? "#a78bfa" : "var(--foreground-muted)",
+                }}>
                 <Icon className="w-4 h-4" /> {label}
               </button>
             ))}
           </div>
 
-          {/* Tab content */}
           {tab === "info" && (
             <div className="card-base">
               <h3 className="font-bold mb-5">Thông tin cá nhân</h3>
@@ -77,19 +109,15 @@ export default function ProfilePage() {
                   <div key={key}>
                     <label className="block text-sm font-medium mb-2">{label}</label>
                     <div className="relative">
-                      <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#8892a4" }} />
-                      <input
-                        value={(form as any)[key]}
-                        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                        className="input-base pl-11"
-                      />
+                      <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+                      <input value={(form as any)[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className="input-base pl-11" />
                     </div>
                   </div>
                 ))}
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium mb-2">Địa chỉ</label>
                   <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#8892a4" }} />
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
                     <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="input-base pl-11" />
                   </div>
                 </div>
@@ -98,7 +126,9 @@ export default function ProfilePage() {
                   <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} className="input-base resize-none" />
                 </div>
               </div>
-              <button className="btn-primary mt-6"><Save className="w-4 h-4" /> Lưu thay đổi</button>
+              <button onClick={saveProfile} disabled={saving} className="btn-primary mt-6">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Lưu thay đổi
+              </button>
             </div>
           )}
 
@@ -106,40 +136,30 @@ export default function ProfilePage() {
             <div className="card-base">
               <h3 className="font-bold mb-5">Đổi mật khẩu</h3>
               <div className="space-y-4 max-w-md">
-                {["Mật khẩu hiện tại", "Mật khẩu mới", "Xác nhận mật khẩu mới"].map((label) => (
-                  <div key={label}>
-                    <label className="block text-sm font-medium mb-2">{label}</label>
-                    <div className="relative">
-                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#8892a4" }} />
-                      <input type="password" placeholder="••••••••" className="input-base pl-11" />
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Mật khẩu hiện tại</label>
+                  <div className="relative">
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+                    <input type="password" value={pwForm.currentPassword} onChange={e => setPwForm({ ...pwForm, currentPassword: e.target.value })} placeholder="••••••••" className="input-base pl-11" />
                   </div>
-                ))}
-                <button className="btn-primary"><Save className="w-4 h-4" /> Cập nhật mật khẩu</button>
-              </div>
-            </div>
-          )}
-
-          {tab === "notifications" && (
-            <div className="card-base">
-              <h3 className="font-bold mb-5">Cài đặt thông báo</h3>
-              <div className="space-y-4">
-                {[
-                  { label: "Thông báo email", desc: "Nhận thông báo qua email" },
-                  { label: "Bài học mới", desc: "Khi giáo viên thêm bài học mới" },
-                  { label: "Nhắc nhở học tập", desc: "Nhắc nhở học hàng ngày" },
-                  { label: "Kết quả bài kiểm tra", desc: "Khi có kết quả mới" },
-                ].map(({ label, desc }) => (
-                  <div key={label} className="flex items-center justify-between py-3 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-                    <div>
-                      <p className="text-sm font-medium">{label}</p>
-                      <p className="text-xs" style={{ color: "#8892a4" }}>{desc}</p>
-                    </div>
-                    <button className="w-11 h-6 rounded-full relative transition-colors" style={{ background: "rgba(124,58,237,0.5)" }}>
-                      <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 right-0.5 transition-all" />
-                    </button>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Mật khẩu mới</label>
+                  <div className="relative">
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+                    <input type="password" value={pwForm.newPassword} onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })} placeholder="••••••••" className="input-base pl-11" />
                   </div>
-                ))}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Xác nhận mật khẩu mới</label>
+                  <div className="relative">
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+                    <input type="password" value={pwForm.confirmPassword} onChange={e => setPwForm({ ...pwForm, confirmPassword: e.target.value })} placeholder="••••••••" className="input-base pl-11" />
+                  </div>
+                </div>
+                <button onClick={changePassword} disabled={pwSaving} className="btn-primary">
+                  {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Cập nhật mật khẩu
+                </button>
               </div>
             </div>
           )}

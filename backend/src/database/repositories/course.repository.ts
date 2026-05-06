@@ -41,7 +41,7 @@ export class CourseRepository extends BaseRepository<Course> {
 
   createWithAuthor(data: any, authorId: string) {
     return this.prisma.course.create({
-      data: { ...data, authorId, status: data.status ?? 'draft' },
+      data: { ...data, authorId },
       include: {
         author: { select: { id: true, username: true } },
       },
