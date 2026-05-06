@@ -143,12 +143,19 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       <Navbar />
-      <div className="pt-20 pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pt-20 pb-24 page-enter">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          {/* Background orbs */}
+          <div className="orb orb-violet w-[350px] h-[350px] -top-40 right-[-100px] opacity-20 pointer-events-none" />
+          <div className="orb orb-cyan w-[250px] h-[250px] top-60 left-[-80px] opacity-15 pointer-events-none" />
+
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-8 animate-slide-up">
+            <div className="section-tag mb-3">
+              <BookOpen className="w-3.5 h-3.5" /> Dashboard
+            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold mb-2">
-              Xin chào, <span className="gradient-text">{displayName}!</span> 👋
+              Xin chào, <span className="text-shimmer">{displayName}!</span> 👋
             </h1>
             <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Tiếp tục hành trình học tập của bạn</p>
           </div>
@@ -160,8 +167,8 @@ export default function DashboardPage() {
               { label: "Chờ duyệt", value: String(pendingCourses.length), icon: Clock, color: "#f59e0b" },
               { label: "Hoàn thành", value: String(activeCourses.filter(c => c.progress >= 100).length), icon: Target, color: "#10b981" },
               { label: "Chứng chỉ", value: "0", icon: Award, color: "#0891b2" },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="card-base">
+            ].map(({ label, value, icon: Icon, color }, i) => (
+              <div key={label} className="card-base card-spotlight hover-lift" style={{ animationDelay: `${i * 80}ms` }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}22` }}>
                     <Icon className="w-5 h-5" style={{ color }} />
