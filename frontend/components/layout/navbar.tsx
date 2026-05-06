@@ -10,9 +10,9 @@ import {
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth/auth-state";
 
-const navLinks = [
-  { href: "/courses", label: "Khóa học" },
-  { href: "/about", label: "Giới thiệu" },
+const allNavLinks = [
+  { href: "/courses", label: "Khóa học", roles: ["student", null] },
+  { href: "/about", label: "Giới thiệu", roles: null }, // visible to all
 ];
 
 export function Navbar() {
@@ -53,6 +53,13 @@ export function Navbar() {
   const displayName = user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.username || "";
 
   const dashboardLink = user?.role === "admin" ? "/admin" : user?.role === "teacher" ? "/teacher" : user?.role === "parent" ? "/parent" : "/dashboard";
+
+  // Filter nav links based on role: "Khóa học" only for students & guests
+  const userRole = user?.role || null;
+  const navLinks = allNavLinks.filter((link) => {
+    if (!link.roles) return true; // visible to all
+    return link.roles.includes(userRole);
+  });
 
   return (
     <header
