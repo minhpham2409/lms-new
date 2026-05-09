@@ -34,9 +34,10 @@ export default function TeacherPage() {
   const [stats, setStats] = useState<any>(null);
   const [pendingStudents, setPendingStudents] = useState<any[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingSubmissionCount, setPendingSubmissionCount] = useState(0);
 
   useEffect(() => {
-    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); }
+    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); }
   }, [token]);
 
   async function fetchMyCourses() {
@@ -94,6 +95,19 @@ export default function TeacherPage() {
       }
       setPendingStudents(allPending);
     } catch {} finally { setPendingLoading(false); }
+  }
+
+  async function fetchPendingSubmissions() {
+    try {
+      const res = await fetch(`${API}/assignments/teacher/all-submissions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const pending = (Array.isArray(data) ? data : []).filter((s: any) => s.status !== 'graded');
+        setPendingSubmissionCount(pending.length);
+      }
+    } catch {}
   }
 
   async function approveStudent(enrollmentId: string) {
@@ -184,7 +198,14 @@ export default function TeacherPage() {
               <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Xin chào, <span className="gradient-text font-bold">{user?.firstName || user?.username || "Giáo viên"}</span></p>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/teacher/grades" className="btn-secondary text-sm gap-1.5">📝 Chấm bài</Link>
+              <Link href="/teacher/grades" className="btn-secondary text-sm gap-1.5 relative">
+                📝 Chấm bài
+                {pendingSubmissionCount > 0 && (
+                  <span className="w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white" style={{ background: "#ef4444" }}>
+                    {pendingSubmissionCount}
+                  </span>
+                )}
+              </Link>
               <Link href="/teacher/courses/new" className="btn-primary text-sm"><Plus className="w-4 h-4" /> Tạo khóa học</Link>
             </div>
           </div>

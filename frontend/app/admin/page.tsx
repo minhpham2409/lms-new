@@ -36,6 +36,8 @@ export default function AdminPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
+  const [revenueData, setRevenueData] = useState<any>(null);
+  const [courseStats, setCourseStats] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
@@ -56,18 +58,22 @@ export default function AdminPage() {
     setDataLoading(true);
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const [statsR, usersR, coursesR, ordersR, couponsR] = await Promise.all([
+      const [statsR, usersR, coursesR, ordersR, couponsR, revR, csR] = await Promise.all([
         fetch(`${API}/admin/dashboard`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/admin/users`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/courses`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/orders`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/coupons`, { headers }).then(r => r.ok ? r.json() : []),
+        fetch(`${API}/admin/stats/revenue`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${API}/admin/stats/courses`, { headers }).then(r => r.ok ? r.json() : []),
       ]);
       setStats(statsR);
       setUsers(Array.isArray(usersR) ? usersR : []);
       setCourses(Array.isArray(coursesR) ? coursesR : []);
       setOrders(Array.isArray(ordersR) ? ordersR : []);
       setCoupons(Array.isArray(couponsR) ? couponsR : []);
+      setRevenueData(revR);
+      setCourseStats(Array.isArray(csR) ? csR : []);
     } catch {} finally { setDataLoading(false); }
   }
 
@@ -178,41 +184,214 @@ export default function AdminPage() {
           ) : (
             <>
               {/* OVERVIEW */}
-              {tab === "overview" && (
-                <>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    {[
-                      { label: "Tổng người dùng", value: stats?.totalUsers ?? users.length, icon: Users, color: "#7c3aed" },
-                      { label: "Khóa học", value: stats?.totalCourses ?? courses.length, icon: BookOpen, color: "#0891b2" },
-                      { label: "Đơn hàng", value: stats?.totalOrders ?? orders.length, icon: Package, color: "#10b981" },
-                      { label: "Doanh thu", value: stats?.totalRevenue ? `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫` : "—", icon: DollarSign, color: "#f59e0b" },
-                    ].map(({ label, value, icon: Icon, color }) => (
-                      <div key={label} className="card-base">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
-                            <Icon className="w-5 h-5" style={{ color }} />
+              {tab === "overview" && (() => {
+                const revMonths = revenueData?.months || [];
+                const maxRev = Math.max(...revMonths.map((m: any) => m.revenue), 1);
+                const roleData = stats?.usersByRole || { student: 0, teacher: 0, parent: 0, admin: 0 };
+                const totalRoleUsers = Object.values(roleData).reduce((a: number, b: any) => a + (b as number), 0) as number;
+                const csData = stats?.coursesByStatus || { draft: 0, pending: 0, published: 0 };
+                const topCourses = [...courseStats].sort((a: any, b: any) => (b.enrollments || 0) - (a.enrollments || 0)).slice(0, 5);
+                const pendingCourses = courses.filter(c => c.status === 'pending' || c.status === 'draft');
+                const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'paid');
+                const pendingOrders = orders.filter(o => o.status === 'pending');
+
+                return (
+                  <>
+                    {/* Top stats */}
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+                      {[
+                        { label: "Người dùng", value: stats?.users ?? users.length, icon: Users, color: "#7c3aed", sub: `+${(stats?.recentUsers || []).length} mới` },
+                        { label: "Khóa học", value: stats?.courses ?? courses.length, icon: BookOpen, color: "#0891b2", sub: `${csData.published} xuất bản` },
+                        { label: "Bài học", value: stats?.lessons ?? 0, icon: Activity, color: "#ec4899", sub: "tổng bài" },
+                        { label: "Đăng ký", value: stats?.enrollments ?? 0, icon: TrendingUp, color: "#10b981", sub: "lượt đăng ký" },
+                        { label: "Đơn hàng", value: orders.length, icon: Package, color: "#f59e0b", sub: `${pendingOrders.length} chờ xử lý` },
+                        { label: "Doanh thu", value: revenueData?.totalRevenue ? `${(revenueData.totalRevenue / 1000000).toFixed(1)}M` : stats?.revenue ? `${(stats.revenue / 1000000).toFixed(1)}M` : "0", icon: DollarSign, color: "#10b981", sub: "VNĐ" },
+                      ].map(({ label, value, icon: Icon, color, sub }) => (
+                        <div key={label} className="card-base card-hover">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
+                              <Icon className="w-4 h-4" style={{ color }} />
+                            </div>
                           </div>
+                          <p className="text-xl font-extrabold">{value}</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>{label}</p>
+                          <p className="text-[10px]" style={{ color }}>{sub}</p>
                         </div>
-                        <p className="text-2xl font-extrabold">{value}</p>
-                        <p className="text-xs mt-1" style={{ color: "var(--foreground-muted)" }}>{label}</p>
+                      ))}
+                    </div>
+
+                    <div className="grid lg:grid-cols-3 gap-6 mb-6">
+                      {/* Revenue chart */}
+                      <div className="lg:col-span-2 card-base">
+                        <h3 className="font-bold text-sm mb-1 flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" style={{ color: "#10b981" }} /> Doanh thu 12 tháng
+                        </h3>
+                        <p className="text-[10px] mb-4" style={{ color: "var(--foreground-muted)" }}>
+                          Tổng: {(revenueData?.totalRevenue || 0).toLocaleString()} ₫
+                        </p>
+                        <div className="flex items-end gap-1.5 h-44">
+                          {revMonths.map((m: any, i: number) => {
+                            const h = maxRev > 0 ? (m.revenue / maxRev) * 100 : 0;
+                            const isLast = i === revMonths.length - 1;
+                            return (
+                              <div key={m.month} className="flex-1 flex flex-col items-center gap-1 group relative">
+                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                                  {m.revenue.toLocaleString()} ₫ · {m.orders} đơn
+                                </div>
+                                <div className="w-full rounded-t-md transition-all duration-300 hover:opacity-80" style={{
+                                  height: `${Math.max(h, 4)}%`,
+                                  background: isLast ? "linear-gradient(to top, #10b981, #0891b2)" : "rgba(16,185,129,0.25)",
+                                  minHeight: 4,
+                                }} />
+                                <span className="text-[9px]" style={{ color: "var(--foreground-muted)" }}>{m.month.split('-')[1]}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                      { label: "Học sinh", value: users.filter(u => u.role === "student").length, color: "#7c3aed" },
-                      { label: "Giáo viên", value: users.filter(u => u.role === "teacher").length, color: "#0891b2" },
-                      { label: "Phụ huynh", value: users.filter(u => u.role === "parent").length, color: "#f59e0b" },
-                      { label: "Khóa xuất bản", value: courses.filter(c => c.status === "published").length, color: "#10b981" },
-                    ].map(({ label, value, color }) => (
-                      <div key={label} className="card-base text-center">
-                        <p className="text-xl font-extrabold" style={{ color }}>{value}</p>
-                        <p className="text-xs mt-1" style={{ color: "var(--foreground-muted)" }}>{label}</p>
+
+                      {/* User role distribution */}
+                      <div className="card-base">
+                        <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
+                          <Users className="w-4 h-4" style={{ color: "#7c3aed" }} /> Phân bố người dùng
+                        </h3>
+                        <div className="space-y-3">
+                          {([
+                            { role: "student", label: "Học sinh", color: "#7c3aed", icon: "🎓" },
+                            { role: "teacher", label: "Giáo viên", color: "#0891b2", icon: "👨‍🏫" },
+                            { role: "parent", label: "Phụ huynh", color: "#f59e0b", icon: "👪" },
+                            { role: "admin", label: "Admin", color: "#ef4444", icon: "🛡️" },
+                          ] as const).map(({ role, label, color, icon }) => {
+                            const count = roleData[role] || 0;
+                            const pct = totalRoleUsers > 0 ? Math.round((count / totalRoleUsers) * 100) : 0;
+                            return (
+                              <div key={role}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs flex items-center gap-1.5">{icon} {label}</span>
+                                  <span className="text-xs font-bold">{count} <span style={{ color: "var(--foreground-muted)" }}>({pct}%)</span></span>
+                                </div>
+                                <div className="w-full h-2 rounded-full" style={{ background: "var(--border)" }}>
+                                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-4 pt-3 text-center" style={{ borderTop: "1px solid var(--border)" }}>
+                          <p className="text-2xl font-extrabold gradient-text">{totalRoleUsers}</p>
+                          <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Tổng người dùng</p>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </>
-              )}
+                    </div>
+
+                    <div className="grid lg:grid-cols-3 gap-6 mb-6">
+                      {/* Course status */}
+                      <div className="card-base">
+                        <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
+                          <BookOpen className="w-4 h-4" style={{ color: "#0891b2" }} /> Trạng thái khóa học
+                        </h3>
+                        <div className="grid grid-cols-3 gap-3 text-center mb-4">
+                          {[
+                            { label: "Xuất bản", value: csData.published, color: "#10b981" },
+                            { label: "Chờ duyệt", value: csData.pending, color: "#f59e0b" },
+                            { label: "Nháp", value: csData.draft, color: "#6b7280" },
+                          ].map(({ label, value, color }) => (
+                            <div key={label} className="p-3 rounded-xl" style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
+                              <p className="text-xl font-extrabold" style={{ color }}>{value}</p>
+                              <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>{label}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {pendingCourses.length > 0 && (
+                          <div className="p-2.5 rounded-xl" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                            <p className="text-xs font-semibold flex items-center gap-1" style={{ color: "#f59e0b" }}>
+                              <Clock className="w-3 h-3" /> {pendingCourses.length} khóa học cần xử lý
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Top courses */}
+                      <div className="lg:col-span-2 card-base">
+                        <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" style={{ color: "#ec4899" }} /> Top khóa học (theo học sinh)
+                        </h3>
+                        {topCourses.length === 0 ? (
+                          <p className="text-xs text-center py-4" style={{ color: "var(--foreground-muted)" }}>Chưa có dữ liệu</p>
+                        ) : (
+                          <div className="space-y-2.5">
+                            {topCourses.map((c: any, i: number) => {
+                              const maxEnroll = topCourses[0]?.enrollments || 1;
+                              const barW = Math.max((c.enrollments / maxEnroll) * 100, 8);
+                              const colors = ["#7c3aed", "#0891b2", "#ec4899", "#f59e0b", "#10b981"];
+                              return (
+                                <div key={c.id} className="flex items-center gap-3">
+                                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: colors[i % 5] }}>
+                                    {i + 1}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <p className="text-xs font-semibold truncate">{c.title}</p>
+                                      <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: colors[i % 5] }}>{c.enrollments}</span>
+                                    </div>
+                                    <div className="w-full h-1.5 rounded-full" style={{ background: "var(--border)" }}>
+                                      <div className="h-full rounded-full transition-all" style={{ width: `${barW}%`, background: colors[i % 5] }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid lg:grid-cols-2 gap-6">
+                      {/* Recent users */}
+                      <div className="card-base">
+                        <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
+                          <Users className="w-4 h-4" style={{ color: "#7c3aed" }} /> Người dùng mới nhất
+                        </h3>
+                        <div className="space-y-2">
+                          {(stats?.recentUsers || []).map((u: any) => (
+                            <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: "var(--muted)" }}>
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: roleColors[u.role] || "#7c3aed" }}>
+                                {(u.username || "?").charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold truncate">{u.username}</p>
+                                <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>{u.email}</p>
+                              </div>
+                              <span className="badge text-[10px]" style={{ background: `${roleColors[u.role]}18`, color: roleColors[u.role], border: `1px solid ${roleColors[u.role]}33` }}>{roleLabels[u.role]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Recent courses */}
+                      <div className="card-base">
+                        <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
+                          <BookOpen className="w-4 h-4" style={{ color: "#0891b2" }} /> Khóa học gần đây
+                        </h3>
+                        <div className="space-y-2">
+                          {(stats?.recentCourses || []).map((c: any) => (
+                            <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: "var(--muted)" }}>
+                              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(8,145,178,0.12)" }}>
+                                <BookOpen className="w-4 h-4" style={{ color: "#0891b2" }} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold truncate">{c.title}</p>
+                                <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>{c.author?.username} · {c._count?.enrollments || 0} HS</p>
+                              </div>
+                              <span className={`badge ${c.status === "published" ? "badge-success" : "badge-warning"} text-[10px]`}>{c.status === "published" ? "Xuất bản" : c.status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* USERS */}
               {tab === "users" && (

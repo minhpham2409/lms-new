@@ -274,4 +274,28 @@ export class AuthService {
 
     return await this.userRepository.getUserProfile(updatedUser.id);
   }
+
+  /**
+   * Get active sessions (refresh tokens) for a user
+   */
+  async getSessions(userId: string) {
+    const tokens = await this.refreshTokenRepository.findByUserId(userId);
+    return tokens.map(t => ({
+      id: t.id,
+      createdAt: t.createdAt,
+      expiresAt: t.expiresAt,
+    }));
+  }
+
+  /**
+   * Revoke a specific session
+   */
+  async revokeSession(userId: string, sessionId: string) {
+    const token = await this.refreshTokenRepository.findById(sessionId);
+    if (!token || token.userId !== userId) {
+      throw new BadRequestException('Session not found');
+    }
+    await this.refreshTokenRepository.deleteById(sessionId);
+    return { message: 'Session revoked successfully' };
+  }
 }

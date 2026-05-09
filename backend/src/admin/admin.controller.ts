@@ -56,6 +56,11 @@ export class AdminController {
     return this.adminService.deleteUser(id, requester.id);
   }
 
+  @Put('users/:id/status')
+  toggleUserStatus(@Param('id') id: string, @Body() body: { isActive: boolean }) {
+    return this.adminService.toggleUserStatus(id, body.isActive);
+  }
+
   @Get('orders')
   getAllOrders() {
     return this.adminService.getAllOrders();
@@ -79,6 +84,26 @@ export class AdminController {
   @Put('courses/:id/reject')
   rejectCourse(@Param('id') id: string) {
     return this.adminService.rejectCourse(id);
+  }
+
+  @Get('courses/pending')
+  getPendingCourses() {
+    return this.adminService.getPendingCourses();
+  }
+
+  @Post('courses/:id/approve')
+  approveCourse(@Param('id') id: string) {
+    return this.adminService.publishCourse(id);
+  }
+
+  @Post('courses/:id/reject')
+  rejectCoursePost(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.adminService.rejectCourse(id);
+  }
+
+  @Get('stats')
+  getStats() {
+    return this.adminService.getDashboardStats();
   }
 
   @Patch('courses/:id')
@@ -109,5 +134,15 @@ export class AdminController {
   @Delete('lessons/:id')
   deleteLesson(@Param('id') id: string) {
     return this.adminService.deleteLesson(id);
+  }
+
+  @Get('stats/revenue')
+  getStatsRevenue() {
+    return this.adminService.getStatsRevenue();
+  }
+
+  @Get('stats/courses')
+  getStatsCourses() {
+    return this.adminService.getStatsCourses();
   }
 }

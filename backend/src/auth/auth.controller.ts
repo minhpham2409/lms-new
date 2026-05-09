@@ -7,6 +7,8 @@ import {
   Get,
   Put,
   Patch,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from '../common/guards/local-auth.guard';
@@ -119,5 +121,23 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async resetPassword(@Body() body: ResetPasswordDto) {
     return this.authService.resetPassword(body.token, body.newPassword);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('sessions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get active login sessions' })
+  @ApiResponse({ status: 200, description: 'Sessions retrieved' })
+  async getSessions(@GetUser() user: any) {
+    return this.authService.getSessions(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('sessions/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiResponse({ status: 200, description: 'Session revoked' })
+  async revokeSession(@GetUser() user: any, @Param('id') id: string) {
+    return this.authService.revokeSession(user.id, id);
   }
 }

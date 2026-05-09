@@ -148,11 +148,11 @@ export default function ParentPage() {
   const child = selectedChild?.child || selectedChild;
   const gradedCount = childGrades.filter((g: any) => g.status === 'graded').length;
   const tabs = [
+    { id: "requests" as const, label: "Liên kết", icon: UserPlus },
     { id: "overview" as const, label: "Tổng quan", icon: BarChart3 },
     { id: "courses" as const, label: "Khóa học", icon: BookOpen },
     { id: "grades" as const, label: "Bảng điểm", icon: Award, badge: gradedCount },
     { id: "payments" as const, label: "Thanh toán", icon: CreditCard, badge: pendingOrders.length },
-    { id: "requests" as const, label: "Liên kết", icon: UserPlus },
   ];
 
   return (

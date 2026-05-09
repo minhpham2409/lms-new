@@ -8,6 +8,10 @@ export class UpdateVideoProgressDto {
   @IsOptional()
   watchTime?: number;
 
+  @IsNumber()
+  @IsOptional()
+  watchedPercentage?: number;
+
   @IsBoolean()
   @IsOptional()
   completed?: boolean;

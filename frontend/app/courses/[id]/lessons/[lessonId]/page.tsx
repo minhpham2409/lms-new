@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
@@ -123,10 +123,74 @@ export default function LessonPage() {
   const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set());
   const [canComplete, setCanComplete] = useState(true);
   const [hasAssignment, setHasAssignment] = useState(false);
+  const [assignmentSubmitted, setAssignmentSubmitted] = useState(false);
+  const [videoWatched, setVideoWatched] = useState(true);
+  const [watchedPercentage, setWatchedPercentage] = useState(0);
   const [comment, setComment] = useState("");
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const lastSentPercent = useRef(0);
+  const ytPlayerRef = useRef<any>(null);
+  const ytIntervalRef = useRef<any>(null);
+  const ytContainerRef = useRef<HTMLDivElement>(null);
+  const ytInitedRef = useRef<string | null>(null);
+  // Use refs for tracking to avoid re-creating callbacks
+  const watchedPctRef = useRef(0);
+  const videoWatchedRef = useRef(true);
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+
+  // Keep refs in sync with state
+  useEffect(() => { watchedPctRef.current = watchedPercentage; }, [watchedPercentage]);
+  useEffect(() => { videoWatchedRef.current = videoWatched; }, [videoWatched]);
+
+  // Stable YouTube progress tracking (uses refs, no deps)
+  const trackYoutubeProgress = useCallback(() => {
+    const player = ytPlayerRef.current;
+    if (!player?.getDuration || !player?.getCurrentTime) return;
+    const duration = player.getDuration();
+    if (!duration || duration <= 0) return;
+    const pct = Math.round((player.getCurrentTime() / duration) * 100);
+    if (pct > watchedPctRef.current) {
+      watchedPctRef.current = pct;
+      setWatchedPercentage(pct);
+    }
+    if (pct >= 80 && !videoWatchedRef.current) {
+      videoWatchedRef.current = true;
+      setVideoWatched(true);
+      checkCanComplete();
+    }
+    if (tokenRef.current && pct >= lastSentPercent.current + 10) {
+      lastSentPercent.current = pct;
+      fetch(`${API}/progress/video`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenRef.current}` },
+        body: JSON.stringify({ lessonId, watchTime: Math.floor(player.getCurrentTime()), watchedPercentage: pct, completed: pct >= 95 }),
+      }).then(() => checkCanComplete()).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessonId]);
+
+  // Load YouTube IFrame API script once
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!(window as any).YT && !document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
+    }
+  }, []);
+
+  // Cleanup on lessonId change
+  useEffect(() => {
+    return () => {
+      if (ytIntervalRef.current) clearInterval(ytIntervalRef.current);
+      if (ytPlayerRef.current) { try { ytPlayerRef.current.destroy(); } catch {} }
+      ytPlayerRef.current = null;
+      ytInitedRef.current = null;
+    };
+  }, [lessonId]);
 
   useEffect(() => { fetchData(); }, [lessonId, id]);
 
@@ -169,9 +233,17 @@ export default function LessonPage() {
       });
       if (res.ok) {
         const d = await res.json();
-        setCanComplete(d.canComplete);
         setHasAssignment(d.hasAssignment);
+        setAssignmentSubmitted(d.submitted === true);
         if (d.submitted) setSubmittedIds(new Set([lessonId]));
+        // Keep the higher value between local and server
+        const serverPct = d.watchedPercentage || 0;
+        setWatchedPercentage(prev => Math.max(prev, serverPct));
+        const effectiveVideoWatched = (d.videoWatched !== false) || (watchedPctRef.current >= 80);
+        setVideoWatched(effectiveVideoWatched);
+        // Recalculate canComplete using local knowledge
+        const effectiveCanComplete = effectiveVideoWatched && (d.hasAssignment ? d.submitted === true : true);
+        setCanComplete(effectiveCanComplete);
       }
     } catch {}
   }
@@ -232,15 +304,16 @@ export default function LessonPage() {
 
   async function markComplete() {
     if (!token) { toast.error("Cần đăng nhập"); return; }
-    if (hasAssignment && !canComplete) {
-      toast.error("⚠️ Bạn cần nộp bài tập trước khi hoàn thành bài học!");
+    if (!canComplete) {
+      if (!videoWatched) toast.error(`⚠️ Bạn cần xem ít nhất 80% video! (Hiện tại: ${watchedPercentage}%)`);
+      else if (hasAssignment) toast.error("⚠️ Bạn cần nộp bài tập trước khi hoàn thành bài học!");
       return;
     }
     try {
       const res = await fetch(`${API}/progress/video`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lessonId, watchTime: 0, completed: true }),
+        body: JSON.stringify({ lessonId, watchTime: 0, watchedPercentage, completed: true }),
       });
       if (res.ok) {
         toast.success("🎉 Hoàn thành bài học!");
@@ -311,21 +384,41 @@ export default function LessonPage() {
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" style={{ maxWidth: sidebarOpen ? 'calc(100% - 320px)' : '100%' }}>
           {/* Video player */}
           {lesson?.videoUrl ? (
             (() => {
               const embedUrl = isYoutubeUrl(lesson.videoUrl) ? getYoutubeEmbedUrl(lesson.videoUrl) : null;
-              if (embedUrl) {
+              const ytVideoId = embedUrl?.split('/embed/')?.[1]?.split('?')?.[0];
+              if (embedUrl && ytVideoId) {
                 return (
                   <div className="aspect-video bg-black">
-                    <iframe
-                      src={embedUrl}
-                      className="w-full h-full"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                    <div id={`yt-player-${lessonId}`} ref={(el) => {
+                      if (!el || ytInitedRef.current === ytVideoId) return;
+                      ytInitedRef.current = ytVideoId;
+                      const initPlayer = () => {
+                        if (ytPlayerRef.current) { try { ytPlayerRef.current.destroy(); } catch {} }
+                        if (ytIntervalRef.current) clearInterval(ytIntervalRef.current);
+                        ytPlayerRef.current = new (window as any).YT.Player(el, {
+                          videoId: ytVideoId,
+                          width: '100%', height: '100%',
+                          playerVars: { autoplay: 0, rel: 0, modestbranding: 1 },
+                          events: {
+                            onStateChange: (e: any) => {
+                              if (e.data === 1) {
+                                if (ytIntervalRef.current) clearInterval(ytIntervalRef.current);
+                                ytIntervalRef.current = setInterval(trackYoutubeProgress, 3000);
+                              } else {
+                                if (ytIntervalRef.current) clearInterval(ytIntervalRef.current);
+                                trackYoutubeProgress();
+                              }
+                            },
+                          },
+                        });
+                      };
+                      if ((window as any).YT?.Player) { initPlayer(); }
+                      else { (window as any).onYouTubeIframeAPIReady = initPlayer; }
+                    }} className="w-full h-full" />
                   </div>
                 );
               }
@@ -342,13 +435,20 @@ export default function LessonPage() {
                     playsInline
                     onTimeUpdate={(e) => {
                       const video = e.target as HTMLVideoElement;
+                      if (!video.duration) return;
+                      const pct = Math.round((video.currentTime / video.duration) * 100);
                       const seconds = Math.floor(video.currentTime);
-                      if (token && seconds > 0 && seconds % 15 === 0) {
+                      // Update local state
+                      if (pct > watchedPercentage) setWatchedPercentage(pct);
+                      if (pct >= 80 && !videoWatched) { setVideoWatched(true); checkCanComplete(); }
+                      // Send to server every 10%
+                      if (token && pct >= lastSentPercent.current + 10) {
+                        lastSentPercent.current = pct;
                         fetch(`${API}/progress/video`, {
                           method: "PUT",
                           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({ lessonId, watchTime: seconds, completed: video.currentTime >= video.duration - 2 }),
-                        }).catch(() => {});
+                          body: JSON.stringify({ lessonId, watchTime: seconds, watchedPercentage: pct, completed: pct >= 95 }),
+                        }).then(() => checkCanComplete()).catch(() => {});
                       }
                     }}
                   />
@@ -519,9 +619,41 @@ export default function LessonPage() {
             )}
 
             {/* Navigation */}
-            {hasAssignment && !canComplete && (
+            {/* Progress checklist */}
+            <div className="card-base mb-6">
+              <h3 className="font-bold text-sm mb-3 flex items-center gap-2">📊 Tiến độ bài học</h3>
+              <div className="space-y-2">
+                {lesson?.videoUrl && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: watchedPercentage >= 80 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: watchedPercentage >= 80 ? '#10b981' : 'var(--border)', color: '#fff' }}>
+                      {watchedPercentage >= 80 ? '✓' : ''}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium">Xem video ({watchedPercentage}% / 80%)</p>
+                      <div className="w-full h-1.5 rounded-full mt-1" style={{ background: 'var(--border)' }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, watchedPercentage)}%`, background: watchedPercentage >= 80 ? '#10b981' : '#f59e0b' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {hasAssignment && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: assignmentSubmitted ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: assignmentSubmitted ? '#10b981' : 'var(--border)', color: '#fff' }}>
+                      {assignmentSubmitted ? '✓' : ''}
+                    </div>
+                    <p className="text-xs font-medium">{assignmentSubmitted ? 'Đã nộp bài tập ✓' : 'Chưa nộp bài tập'}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            {!canComplete && (
               <div className="mb-4 p-3 rounded-xl flex items-center gap-2 text-sm" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", color: "#f59e0b" }}>
-                ⚠️ Bạn cần nộp bài tập trước khi hoàn thành bài học này
+                ⚠️ {watchedPercentage < 80 && hasAssignment && !assignmentSubmitted
+                  ? `Cần xem 80% video (${watchedPercentage}%) và nộp bài tập`
+                  : watchedPercentage < 80
+                    ? `Cần xem ít nhất 80% video (hiện tại: ${watchedPercentage}%)`
+                    : 'Cần nộp bài tập'
+                } trước khi hoàn thành
               </div>
             )}
             <div className="flex items-center justify-between mb-10">
@@ -532,12 +664,12 @@ export default function LessonPage() {
               ) : <div />}
               <button
                 onClick={markComplete}
-                disabled={hasAssignment && !canComplete}
+                disabled={!canComplete}
                 className="btn-primary text-sm"
-                style={hasAssignment && !canComplete ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                style={!canComplete ? { opacity: 0.5, cursor: "not-allowed" } : {}}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {hasAssignment && !canComplete ? "🔒 Cần nộp bài tập" : "Hoàn thành & tiếp tục"}
+                {!canComplete ? "🔒 Chưa đủ điều kiện" : "Hoàn thành & tiếp tục"}
               </button>
               {nextLesson ? (
                 <Link href={`/courses/${id}/lessons/${nextLesson.id}`} className="btn-secondary text-sm">
@@ -608,37 +740,42 @@ export default function LessonPage() {
           </div>
         </div>
 
-        {/* Sidebar */}
-        {sidebarOpen && (
-          <div className="w-80 border-l overflow-y-auto flex-shrink-0" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-            <div className="flex items-center justify-between p-4" style={{ borderBottom: "1px solid var(--border)" }}>
-              <h3 className="font-bold text-sm">Danh sách bài</h3>
-              <button onClick={() => setSidebarOpen(false)}><X className="w-4 h-4" style={{ color: "var(--foreground-muted)" }} /></button>
-            </div>
-            <div className="p-2">
-              {course?.sections?.sort((a: any, b: any) => a.order - b.order).map((sec: any) => (
-                <div key={sec.id} className="mb-3">
-                  <p className="text-[10px] font-semibold uppercase px-3 py-1" style={{ color: "var(--foreground-muted)" }}>{sec.title}</p>
-                  {sec.lessons?.sort((a: any, b: any) => a.order - b.order).map((l: any) => (
-                    <Link key={l.id} href={`/courses/${id}/lessons/${l.id}`}
-                      className="flex items-center gap-3 px-3 py-3 rounded-xl transition-all"
-                      style={{
-                        background: l.id === lessonId ? "rgba(124,58,237,0.15)" : "transparent",
-                        borderLeft: l.id === lessonId ? "3px solid #7c3aed" : "3px solid transparent",
-                      }}>
-                      {l.id === lessonId ? (
-                        <Play className="w-4 h-4 flex-shrink-0" style={{ color: "#7c3aed" }} />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border flex-shrink-0" style={{ borderColor: "var(--border)" }} />
-                      )}
-                      <span className="text-xs font-medium truncate" style={{ color: l.id === lessonId ? "var(--foreground)" : "var(--foreground-muted)" }}>{l.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Sidebar - always visible on desktop */}
+        <div className="border-l overflow-y-auto flex-shrink-0 hidden md:block" style={{ width: sidebarOpen ? '320px' : '0px', background: "var(--card)", borderColor: "var(--border)", transition: 'width 0.3s' }}>
+          {sidebarOpen && (
+            <>
+              <div className="flex items-center justify-between p-4" style={{ borderBottom: "1px solid var(--border)" }}>
+                <h3 className="font-bold text-sm">📚 Nội dung khóa học</h3>
+                <button onClick={() => setSidebarOpen(false)}><X className="w-4 h-4" style={{ color: "var(--foreground-muted)" }} /></button>
+              </div>
+              <div className="p-2">
+                {course?.sections?.sort((a: any, b: any) => a.order - b.order).map((sec: any, si: number) => (
+                  <div key={sec.id} className="mb-3">
+                    <p className="text-[10px] font-semibold uppercase px-3 py-1.5" style={{ color: "var(--foreground-muted)" }}>Chương {si + 1}: {sec.title}</p>
+                    {sec.lessons?.sort((a: any, b: any) => a.order - b.order).map((l: any, li: number) => {
+                      const isCurrent = l.id === lessonId;
+                      return (
+                        <Link key={l.id} href={`/courses/${id}/lessons/${l.id}`}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-xs"
+                          style={{
+                            background: isCurrent ? "rgba(124,58,237,0.15)" : "transparent",
+                            borderLeft: isCurrent ? "3px solid #7c3aed" : "3px solid transparent",
+                          }}>
+                          {isCurrent ? (
+                            <Play className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#7c3aed" }} />
+                          ) : (
+                            <div className="w-3.5 h-3.5 rounded-full border flex-shrink-0" style={{ borderColor: "var(--border)" }} />
+                          )}
+                          <span className="font-medium truncate" style={{ color: isCurrent ? "var(--foreground)" : "var(--foreground-muted)" }}>{li + 1}. {l.title}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

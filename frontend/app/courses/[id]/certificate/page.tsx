@@ -73,7 +73,7 @@ export default function CourseCertificatePage() {
           </Link>
         </div>
 
-        <div className="relative rounded-3xl overflow-hidden" style={{ border: "2px solid rgba(124,58,237,0.3)", boxShadow: "0 40px 100px rgba(124,58,237,0.2)" }}>
+        <div className="cert-card relative rounded-3xl overflow-hidden" style={{ border: "2px solid rgba(124,58,237,0.3)", boxShadow: "0 40px 100px rgba(124,58,237,0.2)" }}>
           <div className="h-2" style={{ background: "linear-gradient(to right, #7c3aed, #0891b2)" }} />
 
           <div className="p-10 sm:p-14 text-center" style={{ background: "linear-gradient(135deg, rgba(19,26,46,0.95), rgba(124,58,237,0.08))" }}>
@@ -110,10 +110,18 @@ export default function CourseCertificatePage() {
         </div>
 
         <div className="flex items-center justify-center gap-3 mt-8">
-          <button className="btn-primary">
+          <button onClick={() => {
+            // Use print dialog to save as PDF
+            const style = document.createElement('style');
+            style.id = 'print-cert';
+            style.textContent = `@media print { body * { visibility: hidden !important; } .cert-card, .cert-card * { visibility: visible !important; } .cert-card { position: absolute; left: 0; top: 0; width: 100%; } .no-print { display: none !important; } }`;
+            document.head.appendChild(style);
+            window.print();
+            setTimeout(() => document.getElementById('print-cert')?.remove(), 1000);
+          }} className="btn-primary">
             <Download className="w-4 h-4" /> Tải xuống PDF
           </button>
-          <button onClick={verifyCert} className="btn-secondary">
+          <button onClick={verifyCert} className="btn-secondary no-print">
             <Share2 className="w-4 h-4" /> Xác minh
           </button>
         </div>

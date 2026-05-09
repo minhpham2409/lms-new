@@ -115,6 +115,27 @@ export class AdminService implements OnApplicationBootstrap {
     });
   }
 
+  async toggleUserStatus(id: string, isActive: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: { id: true, username: true, email: true, role: true, isActive: true },
+    });
+  }
+
+  async getPendingCourses() {
+    return this.prisma.course.findMany({
+      where: { status: { in: ['pending', 'draft'] } },
+      include: {
+        author: { select: { id: true, username: true, firstName: true } },
+        _count: { select: { enrollments: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async getAllCourses() {
     return this.prisma.course.findMany({
       include: {
@@ -368,5 +389,57 @@ export class AdminService implements OnApplicationBootstrap {
       recentUsers,
       recentCourses,
     };
+  }
+
+  /** Revenue stats by month (last 12 months) */
+  async getStatsRevenue() {
+    const now = new Date();
+    const months: { month: string; revenue: number; orders: number }[] = [];
+
+    for (let i = 11; i >= 0; i--) {
+      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const label = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
+
+      const [agg, count] = await Promise.all([
+        this.prisma.order.aggregate({
+          where: { status: { in: ['paid', 'completed'] }, createdAt: { gte: start, lte: end } },
+          _sum: { finalPrice: true },
+        }),
+        this.prisma.order.count({
+          where: { status: { in: ['paid', 'completed'] }, createdAt: { gte: start, lte: end } },
+        }),
+      ]);
+
+      months.push({ month: label, revenue: agg._sum.finalPrice ?? 0, orders: count });
+    }
+
+    const totalRevenue = months.reduce((s, m) => s + m.revenue, 0);
+    return { totalRevenue, months };
+  }
+
+  /** Course stats: enrollment count, average rating */
+  async getStatsCourses() {
+    const courses = await this.prisma.course.findMany({
+      include: {
+        author: { select: { id: true, username: true, firstName: true } },
+        _count: { select: { enrollments: true, reviews: true } },
+        reviews: { select: { rating: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return courses.map(c => ({
+      id: c.id,
+      title: c.title,
+      status: c.status,
+      author: c.author,
+      enrollments: c._count.enrollments,
+      reviewCount: c._count.reviews,
+      avgRating: c.reviews.length > 0
+        ? +(c.reviews.reduce((s, r) => s + r.rating, 0) / c.reviews.length).toFixed(1)
+        : null,
+      createdAt: c.createdAt,
+    }));
   }
 }

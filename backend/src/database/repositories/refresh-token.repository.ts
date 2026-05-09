@@ -55,4 +55,19 @@ export class RefreshTokenRepository extends BaseRepository<RefreshToken> {
     });
     return result.count;
   }
+
+  async findByUserId(userId: string): Promise<RefreshToken[]> {
+    return this.model.findMany({
+      where: { userId, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findById(id: string): Promise<RefreshToken | null> {
+    return this.model.findUnique({ where: { id } });
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await this.model.delete({ where: { id } });
+  }
 }
