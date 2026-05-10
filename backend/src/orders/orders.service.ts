@@ -46,6 +46,10 @@ export class OrdersService {
       if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
         throw new BadRequestException('Coupon usage limit reached');
       }
+      // Streak coupons are personal — only the owner can use them
+      if (coupon.type === 'streak' && coupon.userId && coupon.userId !== userId) {
+        throw new BadRequestException('Mã giảm giá này không thuộc về bạn');
+      }
       finalPrice = totalPrice * (1 - coupon.discount / 100);
       couponId = coupon.id;
       await this.couponRepository.incrementUsed(coupon.id);

@@ -470,33 +470,33 @@ export default function LessonPage() {
           {/* Lesson info */}
           <div className="max-w-4xl mx-auto px-6 py-8 page-enter">
             {/* Lesson header */}
-            <div className="mb-6">
+            <div className="mb-8">
               {lesson?.section?.title && (
-                <div className="section-tag mb-3 text-[10px]">
-                  <BookOpen className="w-3 h-3" /> {lesson.section.title}
+                <div className="section-tag mb-3 text-xs">
+                  <BookOpen className="w-3.5 h-3.5" /> {lesson.section.title}
                 </div>
               )}
-              <h1 className="text-2xl font-extrabold mb-3">{lesson?.title || "Bài học"}</h1>
-              <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: "var(--foreground-muted)" }}>
+              <h1 className="text-3xl font-extrabold mb-4">{lesson?.title || "Bài học"}</h1>
+              <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: "var(--foreground-muted)" }}>
                 {lesson?.duration && (
                   <span className="flex items-center gap-1.5 badge" style={{ background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.2)", color: "#a78bfa" }}>
-                    <Clock className="w-3 h-3" /> {lesson.duration} phút
+                    <Clock className="w-3.5 h-3.5" /> {lesson.duration} phút
                   </span>
                 )}
                 <span className="flex items-center gap-1.5 badge" style={{ background: "rgba(8,145,178,0.1)", border: "1px solid rgba(8,145,178,0.2)", color: "#22d3ee" }}>
-                  <Play className="w-3 h-3" /> Bài {currentIdx + 1}
+                  <Play className="w-3.5 h-3.5" /> Bài {currentIdx + 1}
                 </span>
               </div>
             </div>
 
-            <div className="gradient-line mb-6" />
+            <div className="gradient-line mb-8" />
 
             {lesson?.content && (
               <div className="card-base card-spotlight mb-8">
-                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" style={{ color: "#7c3aed" }} /> Nội dung bài học
+                <h3 className="font-bold text-base mb-4 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" style={{ color: "#7c3aed" }} /> Nội dung bài học
                 </h3>
-                <div className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "var(--foreground-muted)" }}>
+                <div className="text-base leading-relaxed whitespace-pre-line" style={{ color: "var(--foreground)" }}>
                   {lesson.content}
                 </div>
               </div>
@@ -504,8 +504,8 @@ export default function LessonPage() {
 
             {/* Materials */}
             {materials.length > 0 && (
-              <div className="card-base mb-6">
-                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">📎 Tài liệu ({materials.length})</h3>
+              <div className="card-base mb-8">
+                <h3 className="font-bold text-base mb-4 flex items-center gap-2">📎 Tài liệu ({materials.length})</h3>
                 <div className="space-y-2">
                   {materials.map((m: any) => {
                     const rawUrl = m.fileUrl || m.url || "";
@@ -529,8 +529,8 @@ export default function LessonPage() {
 
             {/* Assignments */}
             {assignments.length > 0 && (
-              <div className="card-base mb-6">
-                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">📝 Bài tập ({assignments.length})</h3>
+              <div className="card-base mb-8">
+                <h3 className="font-bold text-base mb-4 flex items-center gap-2">📝 Bài tập ({assignments.length})</h3>
                 <div className="space-y-3">
                   {assignments.map((a: any) => (
                     <div key={a.id} className="p-3 rounded-xl" style={{ border: "1px solid var(--border)", background: "var(--muted)" }}>
@@ -620,8 +620,8 @@ export default function LessonPage() {
 
             {/* Navigation */}
             {/* Progress checklist */}
-            <div className="card-base mb-6">
-              <h3 className="font-bold text-sm mb-3 flex items-center gap-2">📊 Tiến độ bài học</h3>
+            <div className="card-base mb-8">
+              <h3 className="font-bold text-base mb-4 flex items-center gap-2">📊 Tiến độ bài học</h3>
               <div className="space-y-2">
                 {lesson?.videoUrl && (
                   <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: watchedPercentage >= 80 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>

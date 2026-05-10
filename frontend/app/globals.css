@@ -125,14 +125,14 @@
    Light Mode
    ============================================================ */
 html.light {
-  --background:          #f1f2f6;
-  --background-2:        #e5e7ee;
-  --background-3:        #d8dbe5;
+  --background:          #f8f9fc;
+  --background-2:        #eef0f6;
+  --background-3:        #e2e5ef;
   --foreground:          #0f172a;
-  --foreground-muted:    #374151;
+  --foreground-muted:    #475569;
 
   --card:                #ffffff;
-  --card-border:         rgba(0, 0, 0, 0.15);
+  --card-border:         rgba(0, 0, 0, 0.12);
   --card-foreground:     #0f172a;
 
   --popover:             #ffffff;
@@ -147,8 +147,8 @@ html.light {
   --secondary-light:     #22d3ee;
   --secondary-foreground:#ffffff;
 
-  --muted:               rgba(0, 0, 0, 0.07);
-  --muted-foreground:    #374151;
+  --muted:               rgba(0, 0, 0, 0.05);
+  --muted-foreground:    #475569;
 
   --accent:              #3b82f6;
   --accent-foreground:   #ffffff;
@@ -157,22 +157,22 @@ html.light {
   --success:             #059669;
   --warning:             #d97706;
 
-  --border:              rgba(0, 0, 0, 0.16);
-  --border-strong:       rgba(0, 0, 0, 0.28);
-  --input:               rgba(0, 0, 0, 0.06);
+  --border:              rgba(0, 0, 0, 0.12);
+  --border-strong:       rgba(0, 0, 0, 0.22);
+  --input:               rgba(0, 0, 0, 0.04);
   --ring:                rgba(124, 58, 237, 0.4);
 
   --gradient-brand:      linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #0891b2 100%);
   --gradient-glow:       radial-gradient(ellipse at center, rgba(124, 58, 237, 0.15), transparent 70%);
-  --gradient-hero:       linear-gradient(160deg, #f1f2f6 0%, #e5e7ee 40%, #e0dbee 100%);
-  --gradient-card:       linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(8, 145, 178, 0.04) 100%);
+  --gradient-hero:       linear-gradient(160deg, #f8f9fc 0%, #eef0f6 40%, #e8e4f4 100%);
+  --gradient-card:       linear-gradient(135deg, rgba(124, 58, 237, 0.06) 0%, rgba(8, 145, 178, 0.03) 100%);
 
   --sidebar:             #ffffff;
   --sidebar-foreground:  #0f172a;
-  --sidebar-border:      rgba(0, 0, 0, 0.14);
+  --sidebar-border:      rgba(0, 0, 0, 0.1);
   --sidebar-primary:     #7c3aed;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent:      rgba(124, 58, 237, 0.12);
+  --sidebar-accent:      rgba(124, 58, 237, 0.1);
   --sidebar-accent-foreground: #6d28d9;
   --sidebar-ring:        rgba(124, 58, 237, 0.3);
 }
@@ -310,8 +310,14 @@ html.light ::selection { background: rgba(124, 58, 237, 0.3); color: #0f172a; }
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 15px;
     line-height: 1.6;
     overflow-x: hidden;
+  }
+
+  html.light body {
+    -webkit-font-smoothing: auto;
+    text-rendering: optimizeLegibility;
   }
 
   /* Scrollbar */

@@ -22,6 +22,8 @@ model User {
   resetTokenExpiry DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  currentStreak  Int             @default(0)
+  lastActivityDate DateTime?
   enrollments    Enrollment[]
   courses        Course[]        @relation("AuthoredCourses")
   videoProgress  VideoProgress[]
@@ -36,6 +38,8 @@ model User {
   certificates   Certificate[]
   parentLinks    ParentChild[]   @relation("ParentRelations")
   childLinks     ParentChild[]   @relation("ChildRelations")
+  coupons        Coupon[]        @relation("UserCoupons")
+  badges         UserBadge[]     @relation("UserBadges")
 }
 
 model RefreshToken {
@@ -218,6 +222,9 @@ model Coupon {
   usedCount Int       @default(0)
   expiresAt DateTime?
   isActive  Boolean   @default(true)
+  type      String    @default("admin")
+  userId    String?
+  user      User?     @relation("UserCoupons", fields: [userId], references: [id], onDelete: Cascade)
   orders    Order[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -342,3 +349,28 @@ model VideoProgress {
 
   @@unique([userId, lessonId])
 }
+
+model Badge {
+  id          String      @id @default(uuid())
+  code        String      @unique
+  name        String
+  description String?
+  icon        String
+  category    String      @default("streak")
+  tier        String      @default("bronze")
+  requirement Int         @default(1)
+  userBadges  UserBadge[]
+  createdAt   DateTime    @default(now())
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserBadges", fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt  DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+

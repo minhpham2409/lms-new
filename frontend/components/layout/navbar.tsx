@@ -5,13 +5,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   GraduationCap, Bell, ShoppingCart, User, Menu, X,
-  ChevronDown, LogOut, Settings, LayoutDashboard, Zap, Sun, Moon,
+  ChevronDown, LogOut, Settings, LayoutDashboard, Zap, Sun, Moon, Trophy,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth/auth-state";
 
 const allNavLinks = [
   { href: "/courses", label: "Khóa học", roles: ["student", null] },
+  { href: "/achievements", label: "Thành tích", roles: ["student"] },
   { href: "/about", label: "Giới thiệu", roles: null }, // visible to all
 ];
 
@@ -136,6 +137,9 @@ export function Navbar() {
                       <div className="p-2">
                         <Link href={dashboardLink} onClick={() => setUserMenuOpen(false)} className="btn-ghost w-full justify-start"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
                         <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="btn-ghost w-full justify-start"><User className="w-4 h-4" /> Hồ sơ</Link>
+                        {user.role === "student" && (
+                          <Link href="/achievements" onClick={() => setUserMenuOpen(false)} className="btn-ghost w-full justify-start"><Trophy className="w-4 h-4" /> Thành tích</Link>
+                        )}
                         {user.role === "student" && (
                           <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="btn-ghost w-full justify-start"><ShoppingCart className="w-4 h-4" /> Đơn hàng</Link>
                         )}

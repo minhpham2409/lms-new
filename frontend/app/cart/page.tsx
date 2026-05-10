@@ -8,7 +8,7 @@ import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
   ShoppingCart, Trash2, Tag, BookOpen, ArrowRight, ShieldCheck,
-  QrCode, CheckCircle2, X, Clock, Send, Loader2, AlertTriangle, UserPlus,
+  QrCode, CheckCircle2, X, Clock, Send, Loader2, AlertTriangle, UserPlus, Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,13 +24,15 @@ export default function CartPage() {
   const [paymentSent, setPaymentSent] = useState(false);
   const [hasParent, setHasParent] = useState<boolean | null>(null);
   const [sending, setSending] = useState(false);
+  const [streakCoupon, setStreakCoupon] = useState<any>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; savings: number } | null>(null);
 
   useEffect(() => {
     if (!loading && isLoggedIn && user?.role !== "student") router.push("/dashboard");
   }, [user, isLoggedIn, loading, router]);
 
   useEffect(() => {
-    if (token) { fetchCart(); checkParent(); }
+    if (token) { fetchCart(); checkParent(); fetchStreakCoupon(); }
   }, [token]);
 
   async function fetchCart() {
@@ -67,23 +69,40 @@ export default function CartPage() {
     }
   }
 
+  async function fetchStreakCoupon() {
+    try {
+      const res = await fetch(`${API}/users/me/streak-coupon`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        if (data) setStreakCoupon(data);
+      }
+    } catch {}
+  }
+
   async function removeItem(itemId: string) {
     try {
       await fetch(`${API}/cart/item/${itemId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       setItems(items.filter(i => i.id !== itemId));
+      setAppliedCoupon(null); // Reset applied coupon since total changed
       toast.success("Đã xóa khỏi giỏ hàng");
     } catch { toast.error("Không thể xóa"); }
   }
 
-  async function applyCoupon() {
-    if (!coupon.trim()) return;
+  async function applyCoupon(code?: string) {
+    const couponCode = code || coupon.trim();
+    if (!couponCode) return;
     try {
       const res = await fetch(`${API}/cart/apply-coupon`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ code: coupon.trim() }),
+        body: JSON.stringify({ code: couponCode }),
       });
-      if (res.ok) { toast.success("Đã áp dụng mã giảm giá!"); fetchCart(); }
+      if (res.ok) {
+        const data = await res.json();
+        setAppliedCoupon({ code: data.code, discount: data.discount, savings: data.savings });
+        setCoupon(data.code);
+        toast.success(`Đã áp dụng mã giảm giá ${data.discount}%!`);
+      }
       else { const d = await res.json(); toast.error(d.message || "Mã không hợp lệ"); }
     } catch { toast.error("Lỗi"); }
   }
@@ -92,11 +111,18 @@ export default function CartPage() {
     if (!confirm("Xóa toàn bộ giỏ hàng?")) return;
     try {
       await fetch(`${API}/cart/clear`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-      setItems([]); toast.success("Đã xóa giỏ hàng");
+      setItems([]); setAppliedCoupon(null); setCoupon(""); toast.success("Đã xóa giỏ hàng");
     } catch { toast.error("Lỗi"); }
   }
 
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCoupon("");
+    toast.success("Đã hủy mã giảm giá");
+  }
+
   const total = items.reduce((s, i) => s + (i.course?.price || 0), 0);
+  const finalTotal = appliedCoupon ? total * (1 - appliedCoupon.discount / 100) : total;
   const colors = ["#7c3aed", "#3b82f6", "#f59e0b", "#10b981", "#ec4899"];
 
   async function handleCheckout() {
@@ -110,11 +136,11 @@ export default function CartPage() {
   async function handleSendToParent() {
     setSending(true);
     try {
-      // 1. Create order from cart
+      // 1. Create order from cart (with coupon if applied)
       const orderRes = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
+        body: JSON.stringify(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
       });
       if (!orderRes.ok) {
         const d = await orderRes.json();
@@ -212,13 +238,56 @@ export default function CartPage() {
                 <h3 className="font-bold mb-4">Tóm tắt đơn hàng</h3>
                 <div className="space-y-3 text-sm mb-4">
                   <div className="flex justify-between" style={{ color: "var(--foreground-muted)" }}><span>Tạm tính</span><span>{total.toLocaleString()} ₫</span></div>
+                  {appliedCoupon && (
+                    <>
+                      <div className="flex justify-between items-center" style={{ color: "#10b981" }}>
+                        <span className="flex items-center gap-1.5">
+                          <Tag className="w-3 h-3" />
+                          Giảm {appliedCoupon.discount}%
+                          <button onClick={removeCoupon} className="ml-1 opacity-60 hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
+                        </span>
+                        <span>−{appliedCoupon.savings.toLocaleString()} ₫</span>
+                      </div>
+                    </>
+                  )}
                   <div className="divider" />
-                  <div className="flex justify-between font-bold text-base"><span>Tổng cộng</span><span className="gradient-text">{total.toLocaleString()} ₫</span></div>
+                  <div className="flex justify-between font-bold text-base"><span>Tổng cộng</span><span className="gradient-text">{finalTotal.toLocaleString()} ₫</span></div>
                 </div>
-                <div className="flex gap-2 mb-4">
-                  <input value={coupon} onChange={(e) => setCoupon(e.target.value)} onKeyDown={e => e.key === "Enter" && applyCoupon()} placeholder="Mã giảm giá" className="input-base flex-1 py-2.5 text-sm" />
-                  <button onClick={applyCoupon} className="btn-secondary px-4 py-2.5 text-sm">Áp dụng</button>
-                </div>
+
+                {/* Streak coupon picker */}
+                {streakCoupon && !appliedCoupon && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: "#f59e0b" }}>
+                      <Gift className="w-3.5 h-3.5" /> Mã giảm giá cá nhân
+                    </p>
+                    <button
+                      onClick={() => applyCoupon(streakCoupon.code)}
+                      className="w-full p-3 rounded-xl text-left transition-all hover:scale-[1.02]"
+                      style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.08))", border: "1px solid rgba(124,58,237,0.2)" }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-mono text-sm font-bold" style={{ color: "#a78bfa" }}>{streakCoupon.code}</span>
+                          <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>
+                            Giảm {streakCoupon.discount}% · Hết hạn {new Date(streakCoupon.expiresAt).toLocaleDateString("vi-VN")}
+                          </p>
+                        </div>
+                        <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: "rgba(16,185,129,0.15)", color: "#10b981" }}>
+                          Dùng ngay
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
+                {/* Manual coupon input */}
+                {!appliedCoupon && (
+                  <div className="flex gap-2 mb-4">
+                    <input value={coupon} onChange={(e) => setCoupon(e.target.value)} onKeyDown={e => e.key === "Enter" && applyCoupon()} placeholder="Nhập mã giảm giá" className="input-base flex-1 py-2.5 text-sm" />
+                    <button onClick={() => applyCoupon()} className="btn-secondary px-4 py-2.5 text-sm">Áp dụng</button>
+                  </div>
+                )}
+
                 <button onClick={handleCheckout} className="btn-primary w-full justify-center py-3.5 text-base">
                   Thanh toán <ArrowRight className="w-4 h-4" />
                 </button>
@@ -248,14 +317,14 @@ export default function CartPage() {
                   <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>Mã QR sẽ được gửi đến phụ huynh của bạn</p>
                   <div className="w-56 h-56 mx-auto rounded-2xl flex items-center justify-center mb-4" style={{ background: "white", border: "2px solid var(--border)" }}>
                     <img
-                      src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${total}&addInfo=${encodeURIComponent(`HL - ${user?.username}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
+                      src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${finalTotal}&addInfo=${encodeURIComponent(`HL - ${user?.username}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
                       alt="QR" className="w-52 h-52 object-contain"
-                      onError={(e) => { (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Thanh toan ${total} VND`)}`; }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Thanh toan ${finalTotal} VND`)}`; }}
                     />
                   </div>
                   <div className="flex justify-between px-4 py-2 rounded-lg text-sm" style={{ background: "var(--muted)" }}>
                     <span style={{ color: "var(--foreground-muted)" }}>Tổng</span>
-                    <span className="font-bold gradient-text">{total.toLocaleString()} ₫</span>
+                    <span className="font-bold gradient-text">{finalTotal.toLocaleString()} ₫</span>
                   </div>
                 </div>
                 <button onClick={handleSendToParent} disabled={sending} className="btn-primary w-full justify-center py-3">

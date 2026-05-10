@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
@@ -10,6 +10,24 @@ export class UsersController {
   @Get('profile')
   getProfile(@Request() req) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/dashboard')
+  getDashboardData(@Request() req) {
+    return this.usersService.getStudentDashboard(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('me/streak/check-in')
+  checkInStreak(@Request() req) {
+    return this.usersService.checkInStreak(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/streak-coupon')
+  getMyStreakCoupon(@Request() req) {
+    return this.usersService.getMyStreakCoupon(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)

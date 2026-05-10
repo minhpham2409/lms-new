@@ -26,6 +26,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { ParentsModule } from './parents/parents.module';
 import { UploadModule } from './upload/upload.module';
+import { AchievementsModule } from './achievements/achievements.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { UploadModule } from './upload/upload.module';
     CertificatesModule,
     ParentsModule,
     UploadModule,
+    AchievementsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
