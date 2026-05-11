@@ -219,6 +219,24 @@ export default function TeacherCourseEditPage() {
               </div>
             </div>
             <div className="flex gap-2">
+              <label className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg border cursor-pointer hover:bg-[var(--muted)] transition-colors"
+                     style={{ borderColor: "var(--border)", color: course?.allowPlatformPromotions ? "#10b981" : "var(--foreground-muted)" }}>
+                <input type="checkbox" checked={course?.allowPlatformPromotions ?? true} 
+                       onChange={async (e) => {
+                         const val = e.target.checked;
+                         setCourse({ ...course, allowPlatformPromotions: val });
+                         try {
+                           await fetch(`${API}/courses/${id}`, {
+                             method: "PATCH",
+                             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                             body: JSON.stringify({ allowPlatformPromotions: val }),
+                           });
+                           toast.success(val ? "Đã bật chạy khuyến mãi nền tảng" : "Đã tắt khuyến mãi nền tảng");
+                         } catch { toast.error("Lỗi cập nhật"); }
+                       }} 
+                       className="hidden" />
+                {course?.allowPlatformPromotions ? "Khuyến mãi: Bật" : "Khuyến mãi: Tắt"}
+              </label>
               <button onClick={() => window.open(`/courses/${id}`, '_blank')} className="btn-secondary text-sm"><Eye className="w-4 h-4" /> Xem trước</button>
             </div>
           </div>

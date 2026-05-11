@@ -24,7 +24,7 @@ export default function CartPage() {
   const [paymentSent, setPaymentSent] = useState(false);
   const [hasParent, setHasParent] = useState<boolean | null>(null);
   const [sending, setSending] = useState(false);
-  const [streakCoupon, setStreakCoupon] = useState<any>(null);
+  const [myCoupons, setMyCoupons] = useState<any[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; savings: number } | null>(null);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function CartPage() {
   }, [user, isLoggedIn, loading, router]);
 
   useEffect(() => {
-    if (token) { fetchCart(); checkParent(); fetchStreakCoupon(); }
+    if (token) { fetchCart(); checkParent(); fetchMyCoupons(); }
   }, [token]);
 
   async function fetchCart() {
@@ -69,12 +69,12 @@ export default function CartPage() {
     }
   }
 
-  async function fetchStreakCoupon() {
+  async function fetchMyCoupons() {
     try {
-      const res = await fetch(`${API}/users/me/streak-coupon`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API}/coupons/my-coupons`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
-        if (data) setStreakCoupon(data);
+        if (data) setMyCoupons(data);
       }
     } catch {}
   }
@@ -254,29 +254,34 @@ export default function CartPage() {
                   <div className="flex justify-between font-bold text-base"><span>Tổng cộng</span><span className="gradient-text">{finalTotal.toLocaleString()} ₫</span></div>
                 </div>
 
-                {/* Streak coupon picker */}
-                {streakCoupon && !appliedCoupon && (
+                {/* Voucher picker */}
+                {myCoupons.length > 0 && !appliedCoupon && (
                   <div className="mb-4">
                     <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: "#f59e0b" }}>
-                      <Gift className="w-3.5 h-3.5" /> Mã giảm giá cá nhân
+                      <Gift className="w-3.5 h-3.5" /> Voucher dành cho bạn
                     </p>
-                    <button
-                      onClick={() => applyCoupon(streakCoupon.code)}
-                      className="w-full p-3 rounded-xl text-left transition-all hover:scale-[1.02]"
-                      style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.08))", border: "1px solid rgba(124,58,237,0.2)" }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-mono text-sm font-bold" style={{ color: "#a78bfa" }}>{streakCoupon.code}</span>
-                          <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>
-                            Giảm {streakCoupon.discount}% · Hết hạn {new Date(streakCoupon.expiresAt).toLocaleDateString("vi-VN")}
-                          </p>
-                        </div>
-                        <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: "rgba(16,185,129,0.15)", color: "#10b981" }}>
-                          Dùng ngay
-                        </span>
-                      </div>
-                    </button>
+                    <div className="space-y-2">
+                      {myCoupons.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => applyCoupon(c.code)}
+                          className="w-full p-3 rounded-xl text-left transition-all hover:scale-[1.02] cursor-pointer"
+                          style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.08))", border: "1px solid rgba(124,58,237,0.2)" }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-mono text-sm font-bold" style={{ color: "#a78bfa" }}>{c.code}</span>
+                              <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>
+                                Giảm {c.discount}% · {c.expiresAt ? `Hết hạn ${new Date(c.expiresAt).toLocaleDateString("vi-VN")}` : 'Không có hạn'}
+                              </p>
+                            </div>
+                            <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: "rgba(16,185,129,0.15)", color: "#10b981" }}>
+                              Dùng
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -319,7 +324,7 @@ export default function CartPage() {
                     <img
                       src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${finalTotal}&addInfo=${encodeURIComponent(`HL - ${user?.username}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
                       alt="QR" className="w-52 h-52 object-contain"
-                      onError={(e) => { (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Thanh toan ${finalTotal} VND`)}`; }}
+                      onError={(e) => { e.currentTarget.onerror = null; (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Thanh toan ${finalTotal} VND`)}`; }}
                     />
                   </div>
                   <div className="flex justify-between px-4 py-2 rounded-lg text-sm" style={{ background: "var(--muted)" }}>

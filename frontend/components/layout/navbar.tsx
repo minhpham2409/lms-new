@@ -14,6 +14,7 @@ const allNavLinks = [
   { href: "/courses", label: "Khóa học", roles: ["student", null] },
   { href: "/teachers", label: "Giáo viên", roles: null },
   { href: "/achievements", label: "Thành tích", roles: ["student"] },
+  { href: "/monthly-race", label: "Thi đua tháng", roles: ["student"] },
   { href: "/about", label: "Giới thiệu", roles: null }, // visible to all
 ];
 

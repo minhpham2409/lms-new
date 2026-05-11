@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CouponsService } from './coupons.service';
 import { CreateCouponDto } from './dto';
@@ -29,6 +29,14 @@ export class CouponsController {
   @ApiResponse({ status: 200, description: 'Coupons retrieved' })
   findAll() {
     return this.couponsService.findAll();
+  }
+
+  @Get('my-coupons')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get user coupons' })
+  findUserCoupons(@Request() req: any) {
+    return this.couponsService.findUserCoupons(req.user.id);
   }
 
   @Get(':code')

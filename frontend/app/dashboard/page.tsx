@@ -75,6 +75,7 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardData>({ streak: 0, nextReward: null, activities: [] });
   const [rewardPopup, setRewardPopup] = useState<RewardResult | null>(null);
   const [streakCoupon, setStreakCoupon] = useState<{ code: string; discount: number; expiresAt: string } | null>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -107,6 +108,12 @@ export default function DashboardPage() {
             }
           }
         })
+        .catch(() => {});
+
+      // Fetch achievements/badges
+      fetch(`${API}/achievements/me`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.badges) setAchievements(d.badges); })
         .catch(() => {});
     }
   }, [token, user]);
@@ -434,10 +441,80 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Achievements */}
-              <Link href="/achievements" className="card-base card-hover block text-center" style={{ border: "1px solid rgba(255,215,0,0.2)" }}>
-                <p className="text-sm font-semibold" style={{ color: "#ffd700" }}>🏆 Bảng Thành Tích →</p>
-              </Link>
+              {/* Achievements / Badges Showcase */}
+              <div className="card-base" style={{ border: "1px solid rgba(255,215,0,0.15)" }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-sm flex items-center gap-1.5">
+                    🏆 Cây huy hiệu
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                        style={{ background: "rgba(255,215,0,0.1)", color: "#fbbf24" }}>
+                    {achievements.filter(b => b.earned).length}/{achievements.length}
+                  </span>
+                </div>
+
+                {achievements.length === 0 ? (
+                  <p className="text-xs text-center py-4" style={{ color: "var(--foreground-muted)" }}>Đang tải huy hiệu...</p>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Group badges by category */}
+                    {[
+                      { key: "streak", label: "🔥 Chuỗi ngày" },
+                      { key: "enrollment", label: "📖 Đăng ký" },
+                      { key: "course", label: "🎓 Hoàn thành" },
+                      { key: "video", label: "🎬 Video" },
+                      { key: "quiz", label: "🧠 Trắc nghiệm" },
+                      { key: "assignment", label: "✍️ Bài tập" },
+                      { key: "social", label: "💬 Cộng đồng" },
+                      { key: "certificate", label: "📜 Chứng chỉ" },
+                    ].map(cat => {
+                      const catBadges = achievements.filter(b => b.category === cat.key);
+                      if (catBadges.length === 0) return null;
+                      return (
+                        <div key={cat.key}>
+                          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--foreground-muted)" }}>
+                            {cat.label}
+                          </p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {catBadges.map(badge => (
+                              <div key={badge.code} className="relative group/badge">
+                                <div className="flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 cursor-default"
+                                     style={{
+                                       background: badge.earned ? "rgba(255,215,0,0.08)" : "var(--muted)",
+                                       opacity: badge.earned ? 1 : 0.5,
+                                       border: badge.earned ? "1px solid rgba(255,215,0,0.2)" : "1px solid transparent",
+                                     }}>
+                                  <span className="text-xl">{badge.icon}</span>
+                                  {!badge.earned && (
+                                    <div className="w-full rounded-full overflow-hidden" style={{ height: 3, background: "var(--border)" }}>
+                                      <div className="h-full rounded-full" style={{ width: `${badge.progress}%`, background: "linear-gradient(to right, #7c3aed, #a78bfa)" }} />
+                                    </div>
+                                  )}
+                                  {badge.earned && (
+                                    <span className="text-[8px]" style={{ color: "#10b981" }}>✓</span>
+                                  )}
+                                </div>
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover/badge:opacity-100 transition-opacity pointer-events-none z-10"
+                                     style={{ background: "var(--popover)", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", color: "var(--foreground)" }}>
+                                  <p className="font-semibold">{badge.name}</p>
+                                  <p style={{ color: "var(--foreground-muted)" }}>{badge.description}</p>
+                                  {!badge.earned && <p style={{ color: "#a78bfa" }}>Tiến độ: {badge.progress}%</p>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <Link href="/achievements" className="block text-center mt-4 text-xs font-semibold py-2 rounded-xl transition-colors"
+                      style={{ background: "rgba(255,215,0,0.06)", color: "#fbbf24" }}>
+                  Xem chi tiết →
+                </Link>
+              </div>
 
               {/* Explore */}
               <Link href="/courses" className="card-base card-hover block text-center">

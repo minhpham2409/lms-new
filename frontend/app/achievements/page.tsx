@@ -271,8 +271,6 @@ export default function AchievementsPage() {
 
                     {/* Badge tree - connected nodes */}
                     <div className="relative">
-                      {/* Connection line */}
-                      <div className="absolute top-1/2 left-0 right-0 h-0.5 -translate-y-1/2 hidden sm:block" style={{ background: "linear-gradient(to right, rgba(124,58,237,0.3), rgba(8,145,178,0.2), rgba(245,158,11,0.2))" }} />
 
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         {catBadges.map((badge, i) => {

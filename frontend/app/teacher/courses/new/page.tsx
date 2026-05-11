@@ -36,6 +36,7 @@ export default function CourseWizardPage() {
   const [category, setCategory] = useState("");
   const [level, setLevel] = useState("");
   const [price, setPrice] = useState("0");
+  const [allowPlatformPromotions, setAllowPlatformPromotions] = useState(true);
 
   // Step 2 & 3 State
   const [sections, setSections] = useState<any[]>([]);
@@ -64,6 +65,7 @@ export default function CourseWizardPage() {
           description: description.trim(),
           price: Number(price) || 0,
           status: publish ? "published" : "draft",
+          allowPlatformPromotions,
         }),
       });
       if (!courseRes.ok) throw new Error("Lỗi tạo khóa học");
@@ -171,6 +173,7 @@ export default function CourseWizardPage() {
                 category={category} setCategory={setCategory}
                 level={level} setLevel={setLevel}
                 price={price} setPrice={setPrice}
+                allowPlatformPromotions={allowPlatformPromotions} setAllowPlatformPromotions={setAllowPlatformPromotions}
               />
             )}
             {currentStep === 1 && <Step2Sections sections={sections} setSections={setSections} />}

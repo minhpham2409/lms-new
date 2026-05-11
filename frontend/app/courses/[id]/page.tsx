@@ -564,6 +564,7 @@ export default function CourseDetailPage() {
                       alt="QR Thanh toán"
                       className="w-52 h-52 object-contain"
                       onError={(e) => {
+                        e.currentTarget.onerror = null;
                         const target = e.target as HTMLImageElement;
                         target.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Thanh toan ${course.price} VND - ${course.title}`)}`;
                       }}

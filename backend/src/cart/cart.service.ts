@@ -62,6 +62,14 @@ export class CartService {
     }
 
     const items = await this.cartRepository.findByUser(userId);
+
+    // If it's a platform coupon, check if any course in the cart rejects it
+    if (coupon.type === 'streak' || coupon.type === 'platform') {
+      const unsupportedItems = items.filter(item => !item.course.allowPlatformPromotions);
+      if (unsupportedItems.length > 0) {
+        throw new BadRequestException('Giỏ hàng chứa khóa học không áp dụng mã giảm giá của hệ thống.');
+      }
+    }
     const total = items.reduce((sum, item) => sum + item.course.price, 0);
     const finalTotal = total * (1 - coupon.discount / 100);
 

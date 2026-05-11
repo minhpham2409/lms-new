@@ -35,4 +35,14 @@ export class CouponsService {
     }
     return coupon;
   }
+
+  async findUserCoupons(userId: string) {
+    const coupons = await this.couponRepository.findByUserId(userId);
+    // Filter out expired or used up ones
+    return coupons.filter(c => {
+      if (c.expiresAt && c.expiresAt < new Date()) return false;
+      if (c.maxUses && c.usedCount >= c.maxUses) return false;
+      return true;
+    });
+  }
 }

@@ -31,4 +31,8 @@ export class CreateCourseDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  allowPlatformPromotions?: boolean;
 }

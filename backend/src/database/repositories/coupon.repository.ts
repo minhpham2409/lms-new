@@ -23,4 +23,10 @@ export class CouponRepository extends BaseRepository<Coupon> {
       data: { usedCount: { increment: 1 } },
     });
   }
+
+  findByUserId(userId: string) {
+    return this.prisma.coupon.findMany({
+      where: { userId, isActive: true },
+    });
+  }
 }

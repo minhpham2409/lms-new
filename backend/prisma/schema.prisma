@@ -41,6 +41,7 @@ model User {
   childLinks     ParentChild[]   @relation("ChildRelations")
   coupons        Coupon[]        @relation("UserCoupons")
   badges         UserBadge[]     @relation("UserBadges")
+  monthlyWins    MonthlyWinner[] @relation("MonthlyWinners")
 }
 
 model RefreshToken {
@@ -59,6 +60,7 @@ model Course {
   price          Float
   thumbnail      String?
   status         String          @default("draft")
+  allowPlatformPromotions Boolean @default(true)
   authorId       String
   author         User            @relation("AuthoredCourses", fields: [authorId], references: [id])
   createdAt      DateTime        @default(now())
@@ -373,5 +375,20 @@ model UserBadge {
   earnedAt  DateTime @default(now())
 
   @@unique([userId, badgeId])
+}
+
+model MonthlyWinner {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("MonthlyWinners", fields: [userId], references: [id], onDelete: Cascade)
+  month     Int
+  year      Int
+  rank      Int
+  xp        Int
+  discount  Int
+  couponCode String?
+  createdAt DateTime @default(now())
+
+  @@unique([month, year, rank])
 }
 

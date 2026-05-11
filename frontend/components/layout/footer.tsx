@@ -132,7 +132,7 @@ export function Footer() {
         >
           {[
             { icon: Mail, text: "providminh24092004@gmail.com" },
-            { icon: Phone, text: "+84 (028) 3600 0000" },
+            { icon: Phone, text: "0916 869 648" },
             { icon: MapPin, text: "TP. Hồ Chí Minh, Việt Nam" },
           ].map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-2 text-sm" style={{ color: "#8892a4" }}>
