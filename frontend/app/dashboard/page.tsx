@@ -372,9 +372,9 @@ export default function DashboardPage() {
                     { days: 10, discount: 0 },
                     { days: 14, discount: 10 },
                     { days: 30, discount: 15 },
-                    { days: 60, discount: 20 },
-                    { days: 100, discount: 25 },
-                    { days: 180, discount: 30 },
+                    { days: 60, discount: 25 },
+                    { days: 100, discount: 35 },
+                    { days: 180, discount: 50 },
                   ].map(m => {
                     const done = dashboard.streak >= m.days;
                     return (
