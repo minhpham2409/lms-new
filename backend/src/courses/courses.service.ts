@@ -99,7 +99,7 @@ export class CoursesService {
       }),
       this.prisma.enrollment.findMany({
         where: { course: { authorId } },
-        select: { userId: true },
+        select: { userId: true, createdAt: true },
       }),
       this.prisma.review.findMany({
         where: { course: { authorId } },
@@ -110,7 +110,7 @@ export class CoursesService {
           order: { status: { in: ['paid', 'completed'] } },
           course: { authorId },
         },
-        select: { price: true },
+        select: { price: true, order: { select: { createdAt: true } } },
       }),
       this.prisma.enrollment.findMany({
         where: { course: { authorId } },
@@ -131,6 +131,33 @@ export class CoursesService {
     const publishedCourses = courses.filter((c) => c.status === 'published').length;
     const draftCourses = courses.filter((c) => c.status === 'draft').length;
 
+    const monthlyData = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      return {
+        month: d.toLocaleString('vi-VN', { month: 'short' }) + ' ' + d.getFullYear(),
+        revenue: 0,
+        enrollments: 0,
+        yearMonth: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      };
+    }).reverse();
+
+    revenue.forEach(item => {
+      if (!item.order?.createdAt) return;
+      const d = new Date(item.order.createdAt);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const month = monthlyData.find(m => m.yearMonth === ym);
+      if (month) month.revenue += item.price;
+    });
+
+    enrollments.forEach(item => {
+      if (!item.createdAt) return;
+      const d = new Date(item.createdAt);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const month = monthlyData.find(m => m.yearMonth === ym);
+      if (month) month.enrollments += 1;
+    });
+
     return {
       totalCourses: courses.length,
       publishedCourses,
@@ -140,6 +167,7 @@ export class CoursesService {
       avgRating: Math.round(avgRating * 10) / 10,
       totalReviews: reviews.length,
       recentEnrollments,
+      monthlyData,
     };
   }
 }
