@@ -433,10 +433,10 @@ export default function TeacherPage() {
                 <h3 className="font-bold mb-4">Thống kê chi tiết</h3>
                 <div className="space-y-4">
                   {[
-                    { label: "Tổng lượt xem video", value: "45,230", change: "+15%" },
-                    { label: "Thời gian xem TB", value: "12.5 phút", change: "+8%" },
-                    { label: "Tỷ lệ hoàn thành bài tập", value: "78%", change: "+3%" },
-                    { label: "Tỷ lệ hài lòng", value: "94%", change: "+2%" },
+                    { label: "Tổng khóa học", value: String(stats?.totalCourses || 0), change: "" },
+                    { label: "Tổng học sinh", value: String(stats?.totalStudents || 0), change: "" },
+                    { label: "Doanh thu", value: stats?.totalRevenue ? `${(stats.totalRevenue).toLocaleString()} ₫` : "0 ₫", change: "" },
+                    { label: "Đánh giá trung bình", value: stats?.avgRating ? `⭐ ${stats.avgRating}` : "Chưa có", change: "" },
                   ].map(({ label, value, change }) => (
                     <div key={label} className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid var(--border)" }}>
                       <span className="text-sm" style={{ color: "var(--foreground-muted)" }}>{label}</span>

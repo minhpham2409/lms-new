@@ -48,7 +48,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch (err: any) {
-      setError(err.message || "Đăng nhập thất bại");
+      setError("Tên đăng nhập hoặc mật khẩu không đúng.");
     } finally {
       setLoading(false);
     }
@@ -127,7 +127,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: "#f1f5ff" }}>
+              <label className="block text-sm font-medium mb-2" style={{ color: "var(--foreground)" }}>
                 Email hoặc tên đăng nhập
               </label>
               <div className="relative">
@@ -146,7 +146,7 @@ export default function LoginPage() {
             {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium" style={{ color: "#f1f5ff" }}>
+                <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
                   Mật khẩu
                 </label>
                 <Link href="/auth/forgot-password" className="text-xs" style={{ color: "#a78bfa" }}>

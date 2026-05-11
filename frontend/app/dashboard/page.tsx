@@ -268,11 +268,11 @@ export default function DashboardPage() {
                               <h3 className="font-semibold text-sm truncate">{enrollment.course?.title || "Khóa học"}</h3>
                               <p className="text-xs mt-0.5" style={{ color: "var(--foreground-muted)" }}>{authorName} · {completedLessons}/{totalLessons} bài</p>
                               <div className="mt-2 progress-bar">
-                                <div className="progress-fill" style={{ width: `${enrollment.progress}%` }} />
+                                <div className="progress-fill" style={{ width: `${Math.min(100, enrollment.progress)}%` }} />
                               </div>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="text-lg font-bold" style={{ color }}>{enrollment.progress}%</p>
+                              <p className="text-lg font-bold" style={{ color }}>{Number(enrollment.progress).toFixed(2)}%</p>
                             </div>
                           </div>
                         </Link>
@@ -365,22 +365,25 @@ export default function DashboardPage() {
                 )}
 
                 {/* Milestones */}
-                <div className="space-y-1.5">
+                <div className="space-y-2 mt-4">
                   {[
+                    { days: 3, discount: 0 },
+                    { days: 7, discount: 0 },
+                    { days: 10, discount: 0 },
                     { days: 14, discount: 10 },
                     { days: 30, discount: 15 },
-                    { days: 60, discount: 25 },
-                    { days: 100, discount: 35 },
-                    { days: 180, discount: 50 },
+                    { days: 60, discount: 20 },
+                    { days: 100, discount: 25 },
+                    { days: 180, discount: 30 },
                   ].map(m => {
                     const done = dashboard.streak >= m.days;
                     return (
-                      <div key={m.days} className="flex items-center justify-between text-xs py-1">
+                      <div key={m.days} className="flex items-center justify-between text-sm py-1.5 font-medium">
                         <span style={{ color: done ? "#10b981" : "var(--foreground-muted)", textDecoration: done ? "line-through" : "none" }}>
                           {m.days} ngày
                         </span>
                         <span style={{ color: done ? "#10b981" : "var(--foreground-muted)" }}>
-                          {done ? "Đã nhận" : `−${m.discount}%`}
+                          {done ? "Đã đạt" : (m.discount > 0 ? `−${m.discount}%` : "Cơ bản")}
                         </span>
                       </div>
                     );

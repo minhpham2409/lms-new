@@ -30,6 +30,16 @@ export class UsersController {
     return this.usersService.getMyStreakCoupon(req.user.id);
   }
 
+  @Get('public/teachers')
+  getPublicTeachers() {
+    return this.usersService.findPublicTeachers();
+  }
+
+  @Get('public/teachers/:id')
+  getPublicTeacherById(@Param('id') id: string) {
+    return this.usersService.findPublicTeacherById(id);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {

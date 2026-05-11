@@ -449,9 +449,9 @@ export default function CourseDetailPage() {
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>Tiến độ</span>
-                        <span className="text-sm font-bold" style={{ color: "#a78bfa" }}>{enrollProgress}%</span>
+                        <span className="text-sm font-bold" style={{ color: "#a78bfa" }}>{Number(enrollProgress).toFixed(2)}%</span>
                       </div>
-                      <div className="progress-bar"><div className="progress-fill" style={{ width: `${enrollProgress}%` }} /></div>
+                      <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.min(100, enrollProgress)}%` }} /></div>
                     </div>
 
                     {firstLessonId && (

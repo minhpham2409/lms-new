@@ -16,4 +16,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @ApiProperty({ example: 'Xin chào, tôi là giáo viên...', required: false })
+  @IsOptional()
+  @IsString()
+  bio?: string;
 }

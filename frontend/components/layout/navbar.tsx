@@ -12,6 +12,7 @@ import { useAuth } from "@/components/auth/auth-state";
 
 const allNavLinks = [
   { href: "/courses", label: "Khóa học", roles: ["student", null] },
+  { href: "/teachers", label: "Giáo viên", roles: null },
   { href: "/achievements", label: "Thành tích", roles: ["student"] },
   { href: "/about", label: "Giới thiệu", roles: null }, // visible to all
 ];
@@ -61,6 +62,10 @@ export function Navbar() {
     if (!link.roles) return true; // visible to all
     return link.roles.includes(userRole);
   });
+
+  if (isLoggedIn && user) {
+    navLinks.push({ href: dashboardLink, label: "Dashboard", roles: null });
+  }
 
   return (
     <header

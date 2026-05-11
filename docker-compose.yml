@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lms-backend:latest
+    container_name: lms-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=file:./dev.db
+      - JWT_SECRET=super_secret_jwt_key_here
+      - FRONTEND_URL=http://localhost:3000
+      - PORT=3001
+    volumes:
+      - ./backend/prisma/dev.db:/app/prisma/dev.db
+      - ./backend/uploads:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: lms-frontend:latest
+    container_name: lms-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+    depends_on:
+      - backend
+    restart: unless-stopped

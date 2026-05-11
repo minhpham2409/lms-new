@@ -49,7 +49,7 @@ export default function ProfilePage() {
       const res = await fetch(`${API}/auth/change-password`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
+        body: JSON.stringify({ oldPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
       });
       if (res.ok) { toast.success("Đã đổi mật khẩu!"); setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" }); }
       else { const d = await res.json(); toast.error(d.message || "Sai mật khẩu hiện tại"); }

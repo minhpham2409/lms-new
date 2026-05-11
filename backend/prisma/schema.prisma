@@ -24,6 +24,7 @@ model User {
   updatedAt      DateTime        @updatedAt
   currentStreak  Int             @default(0)
   lastActivityDate DateTime?
+  bio            String?
   enrollments    Enrollment[]
   courses        Course[]        @relation("AuthoredCourses")
   videoProgress  VideoProgress[]

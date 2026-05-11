@@ -30,6 +30,7 @@ export default function ParentPage() {
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [childGrades, setChildGrades] = useState<any[]>([]);
   const [tab, setTab] = useState<"overview" | "courses" | "grades" | "payments" | "requests">("overview");
+  const [qrPopup, setQrPopup] = useState<{url: string, amount: number, id: string} | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -158,6 +159,28 @@ export default function ParentPage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       <Navbar />
+
+      {/* QR Popup overlay */}
+      {qrPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.7)" }} onClick={() => setQrPopup(null)}>
+          <div className="card-base max-w-sm w-full text-center relative p-8 animate-scale-in" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setQrPopup(null)} className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition-opacity">
+              <XCircle className="w-6 h-6" />
+            </button>
+            <h2 className="text-xl font-bold mb-2">Quét mã thanh toán</h2>
+            <p className="text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>
+              Đơn hàng <span className="font-mono" style={{ color: "#7c3aed" }}>#{qrPopup.id?.substring(0, 8)}</span>
+            </p>
+            <div className="bg-white p-2 rounded-2xl mx-auto w-fit mb-6">
+              <img src={qrPopup.url} alt="QR Code Lớn" className="w-72 h-72 object-contain" 
+                   onError={(e) => { (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`Thanh toan ${qrPopup.amount} VND`)}`; }} />
+            </div>
+            <p className="text-3xl font-extrabold gradient-text mb-2">{qrPopup.amount.toLocaleString()} ₫</p>
+            <p className="text-xs" style={{ color: "#f59e0b" }}>Dùng ứng dụng ngân hàng để quét mã QR</p>
+          </div>
+        </div>
+      )}
+
       <div className="pt-20 pb-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
@@ -393,8 +416,8 @@ export default function ParentPage() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-semibold text-sm truncate">{course.title}</h4>
-                                <p className="text-xs mt-1" style={{ color: "var(--foreground-muted)" }}>Tiến độ: {Math.round(enrollment.progress || 0)}%</p>
-                                <div className="progress-bar mt-2"><div className="progress-fill" style={{ width: `${enrollment.progress || 0}%` }} /></div>
+                                <p className="text-xs mt-1" style={{ color: "var(--foreground-muted)" }}>Tiến độ: {Number(enrollment.progress || 0).toFixed(2)}%</p>
+                                <div className="progress-bar mt-2"><div className="progress-fill" style={{ width: `${Math.min(100, enrollment.progress || 0)}%` }} /></div>
                               </div>
                             </div>
                           </div>
@@ -578,18 +601,25 @@ export default function ParentPage() {
                               • {item.course?.title || "Khóa học"}
                             </p>
                           ))}
-                          <div className="mt-4 text-center">
-                            <p className="text-2xl font-extrabold gradient-text mb-3">
-                              {(order.finalPrice || order.totalPrice || 0).toLocaleString()} ₫
-                            </p>
-                            <div className="w-48 h-48 mx-auto rounded-xl flex items-center justify-center mb-3" style={{ background: "white", border: "2px solid var(--border)" }}>
-                              <img
-                                src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${order.finalPrice || order.totalPrice || 0}&addInfo=${encodeURIComponent(`HL-${order.id?.substring(0, 8)}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
-                                alt="QR" className="w-44 h-44 object-contain"
-                                onError={(e) => { (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`Thanh toan ${order.finalPrice || order.totalPrice} VND`)}`; }}
-                              />
-                            </div>
-                            <p className="text-xs mb-2" style={{ color: "var(--foreground-muted)" }}>Quét mã QR bằng app ngân hàng để thanh toán</p>
+                            <div className="text-center mt-4">
+                              <p className="text-2xl font-extrabold gradient-text mb-3">
+                                {(order.finalPrice || order.totalPrice || 0).toLocaleString()} ₫
+                              </p>
+                              <div 
+                                className="w-48 h-48 mx-auto rounded-xl flex items-center justify-center mb-3 cursor-pointer hover:opacity-80 transition-opacity" 
+                                style={{ background: "white", border: "2px solid var(--border)" }}
+                                onClick={() => {
+                                  const imgUrl = `https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${order.finalPrice || order.totalPrice || 0}&addInfo=${encodeURIComponent(`HL-${order.id?.substring(0, 8)}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`;
+                                  setQrPopup({ url: imgUrl, amount: order.finalPrice || order.totalPrice || 0, id: order.id });
+                                }}
+                              >
+                                <img
+                                  src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${order.finalPrice || order.totalPrice || 0}&addInfo=${encodeURIComponent(`HL-${order.id?.substring(0, 8)}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
+                                  alt="QR" className="w-44 h-44 object-contain pointer-events-none"
+                                  onError={(e) => { (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`Thanh toan ${order.finalPrice || order.totalPrice} VND`)}`; }}
+                                />
+                              </div>
+                              <p className="text-xs mb-2" style={{ color: "var(--foreground-muted)" }}>Nhấn vào mã QR để phóng to</p>
                             <div className="p-3 rounded-xl mt-2" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
                               <p className="text-xs font-medium flex items-center gap-1.5" style={{ color: "#f59e0b" }}>
                                 <Clock className="w-3.5 h-3.5" /> Sau khi chuyển tiền, giáo viên sẽ xác nhận và duyệt học sinh vào lớp

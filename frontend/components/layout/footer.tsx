@@ -131,7 +131,7 @@ export function Footer() {
           }}
         >
           {[
-            { icon: Mail, text: "support@hoclotrinh.vn" },
+            { icon: Mail, text: "providminh24092004@gmail.com" },
             { icon: Phone, text: "+84 (028) 3600 0000" },
             { icon: MapPin, text: "TP. Hồ Chí Minh, Việt Nam" },
           ].map(({ icon: Icon, text }) => (

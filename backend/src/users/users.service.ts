@@ -34,6 +34,62 @@ export class UsersService {
     });
   }
 
+  async findPublicTeachers() {
+    const teachers = await this.prisma.user.findMany({
+      where: { role: 'teacher' },
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        email: true, // We can optionally return email, but maybe limit what is public
+        // Fetch course count
+        _count: {
+          select: {
+            courses: true
+          }
+        }
+      },
+    });
+
+    return teachers;
+  }
+
+  async findPublicTeacherById(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id, role: 'teacher' },
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        bio: true,
+        createdAt: true,
+        courses: {
+          where: { status: 'published' },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            price: true,
+            thumbnail: true,
+            _count: {
+              select: { enrollments: true }
+            },
+            sections: {
+              select: {
+                _count: {
+                  select: { lessons: true }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
   async findOne(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
