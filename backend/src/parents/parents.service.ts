@@ -5,15 +5,14 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { ParentChildRepository } from '../database/repositories';
-import { PrismaService } from '../prisma/prisma.service';
+import { ParentChildRepository, ParentDashboardRepository } from '../database/repositories';
 import { LinkChildDto } from './dto';
 
 @Injectable()
 export class ParentsService {
   constructor(
     private readonly parentChildRepository: ParentChildRepository,
-    private readonly prisma: PrismaService,
+    private readonly dashboardRepository: ParentDashboardRepository,
   ) {}
 
   async linkChild(dto: LinkChildDto, parentId: string) {
@@ -22,7 +21,7 @@ export class ParentsService {
       throw new BadRequestException('Enter the student email, username, or account ID');
     }
 
-    const child = await this.resolveStudentUser(raw);
+    const child = await this.dashboardRepository.resolveStudentUser(raw);
     if (!child) throw new NotFoundException('Student not found');
     if (child.role !== 'student') throw new ForbiddenException('Target user is not a student');
     if (child.id === parentId) throw new ForbiddenException('Cannot link to yourself');
@@ -31,32 +30,6 @@ export class ParentsService {
     if (existing) throw new ConflictException('Link request already exists');
 
     return this.parentChildRepository.create({ parentId, childId: child.id, status: 'pending' });
-  }
-
-  /** UUID, email (with @), or username — case-insensitive for email/username on SQLite. */
-  private async resolveStudentUser(raw: string) {
-    const s = raw.trim();
-    if (this.looksLikeUuid(s)) {
-      return this.prisma.user.findUnique({ where: { id: s } });
-    }
-    if (s.includes('@')) {
-      const rows = await this.prisma.$queryRaw<{ id: string }[]>`
-        SELECT id FROM User WHERE lower(email) = lower(${s}) LIMIT 1
-      `;
-      if (!rows[0]) return null;
-      return this.prisma.user.findUnique({ where: { id: rows[0].id } });
-    }
-    const exact = await this.prisma.user.findUnique({ where: { username: s } });
-    if (exact) return exact;
-    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
-      SELECT id FROM User WHERE lower(username) = lower(${s}) LIMIT 1
-    `;
-    if (!rows[0]) return null;
-    return this.prisma.user.findUnique({ where: { id: rows[0].id } });
-  }
-
-  private looksLikeUuid(value: string): boolean {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
 
   async acceptLink(linkId: string, childId: string) {
@@ -83,29 +56,14 @@ export class ParentsService {
     const link = await this.parentChildRepository.findLink(parentId, childId);
     if (!link || link.status !== 'accepted') throw new ForbiddenException('Not linked to this student');
 
-    return this.prisma.enrollment.findMany({
-      where: { userId: childId },
-      include: {
-        course: { select: { id: true, title: true, thumbnail: true } },
-      },
-    });
+    return this.dashboardRepository.getChildEnrollments(childId);
   }
 
   async getChildCourses(parentId: string, childId: string) {
     const link = await this.parentChildRepository.findLink(parentId, childId);
     if (!link || link.status !== 'accepted') throw new ForbiddenException('Not linked to this student');
 
-    return this.prisma.enrollment.findMany({
-      where: { userId: childId },
-      include: {
-        course: {
-          include: {
-            author: { select: { id: true, username: true } },
-            _count: { select: { sections: true } },
-          },
-        },
-      },
-    });
+    return this.dashboardRepository.getChildCourses(childId);
   }
 
   /** Full snapshot for parent UI: profile, enrollments + lesson stats, certificates, activity counts. */
@@ -115,44 +73,19 @@ export class ParentsService {
       throw new ForbiddenException('Not linked to this student');
     }
 
-    const child = await this.prisma.user.findUnique({
-      where: { id: childId },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-        isActive: true,
-      },
-    });
+    const child = await this.dashboardRepository.getChildProfile(childId);
     if (!child) throw new NotFoundException('Student not found');
 
-    const enrollments = await this.prisma.enrollment.findMany({
-      where: { userId: childId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        course: {
-          include: {
-            author: {
-              select: { id: true, username: true, firstName: true, lastName: true, email: true },
-            },
-            _count: { select: { sections: true } },
-          },
-        },
-      },
-    });
-
+    const enrollments = await this.dashboardRepository.getChildEnrollmentsDetailed(childId);
     const courseIds = enrollments.map(e => e.courseId);
 
-    const sections =
-      courseIds.length === 0
-        ? []
-        : await this.prisma.section.findMany({
-            where: { courseId: { in: courseIds } },
-            select: { courseId: true, _count: { select: { lessons: true } } },
-          });
+    const [sections, vpRows, certificates, activity] = await Promise.all([
+      this.dashboardRepository.getSectionLessonCounts(courseIds),
+      this.dashboardRepository.getCompletedVideoLessons(childId, courseIds),
+      this.dashboardRepository.getChildCertificates(childId),
+      this.dashboardRepository.getActivityCounts(childId),
+    ]);
+
     const totalLessonsByCourse = new Map<string, number>();
     for (const s of sections) {
       totalLessonsByCourse.set(
@@ -161,35 +94,11 @@ export class ParentsService {
       );
     }
 
-    const vpRows =
-      courseIds.length === 0
-        ? []
-        : await this.prisma.videoProgress.findMany({
-            where: {
-              userId: childId,
-              completed: true,
-              lesson: { section: { courseId: { in: courseIds } } },
-            },
-            select: { lesson: { select: { section: { select: { courseId: true } } } } },
-          });
     const completedLessonsByCourse = new Map<string, number>();
     for (const row of vpRows) {
       const cid = row.lesson.section.courseId;
       completedLessonsByCourse.set(cid, (completedLessonsByCourse.get(cid) ?? 0) + 1);
     }
-
-    const certificates = await this.prisma.certificate.findMany({
-      where: { userId: childId },
-      include: {
-        course: { select: { id: true, title: true, thumbnail: true, status: true } },
-      },
-      orderBy: { issuedAt: 'desc' },
-    });
-
-    const [quizAttemptsCount, submissionCount] = await Promise.all([
-      this.prisma.quizAttempt.count({ where: { studentId: childId } }),
-      this.prisma.submission.count({ where: { studentId: childId } }),
-    ]);
 
     const enrollmentRows = enrollments.map(e => ({
       id: e.id,
@@ -216,8 +125,8 @@ export class ParentsService {
       enrollments: enrollmentRows,
       certificates,
       activity: {
-        quizAttempts: quizAttemptsCount,
-        assignmentSubmissions: submissionCount,
+        quizAttempts: activity.quizAttemptsCount,
+        assignmentSubmissions: activity.submissionCount,
         videoLessonsCompleted: vpRows.length,
       },
     };
@@ -249,53 +158,21 @@ export class ParentsService {
     return { success: true };
   }
 
-  /** Parent views child's orders (especially pending ones for QR payment) */
+  /** Parent views child's orders */
   async getChildOrders(parentId: string, childId: string) {
     const link = await this.parentChildRepository.findLink(parentId, childId);
     if (!link || link.status !== 'accepted') {
       throw new ForbiddenException('Not linked to this student');
     }
-
-    return this.prisma.order.findMany({
-      where: { userId: childId },
-      include: {
-        items: {
-          include: {
-            course: { select: { id: true, title: true, price: true, thumbnail: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.dashboardRepository.getChildOrders(childId);
   }
+
   /** Parent views child's graded submissions (bảng điểm) */
   async getChildGrades(parentId: string, childId: string) {
     const link = await this.parentChildRepository.findLink(parentId, childId);
     if (!link || link.status !== 'accepted') {
       throw new ForbiddenException('Not linked to this student');
     }
-
-    return this.prisma.submission.findMany({
-      where: { studentId: childId },
-      include: {
-        assignment: {
-          include: {
-            lesson: {
-              select: {
-                id: true,
-                title: true,
-                section: {
-                  select: {
-                    title: true,
-                    course: { select: { id: true, title: true } },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.dashboardRepository.getChildGrades(childId);
   }
 }

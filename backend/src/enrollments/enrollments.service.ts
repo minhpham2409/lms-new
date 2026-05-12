@@ -100,7 +100,10 @@ export class EnrollmentsService {
     return this.enrollmentRepository.findByCourse(courseId, status);
   }
 
-  /** Teacher/admin: approve a pending enrollment */
+  /**
+   * Teacher/admin: approve a pending enrollment.
+   * Uses atomic transaction: Enrollment ✓ → Orders ✓ → Payments ✓
+   */
   async approveEnrollment(enrollmentId: string, user: any) {
     const enrollment = await this.enrollmentRepository.findByIdWithCourse(enrollmentId);
     if (!enrollment) throw new NotFoundException('Enrollment not found');
@@ -110,30 +113,14 @@ export class EnrollmentsService {
       throw new ForbiddenException('Not your course');
     }
 
-    const updated = await this.enrollmentRepository.updateStatus(enrollmentId, 'active');
+    // Atomic transaction: activate enrollment + mark orders/payments as paid
+    const updated = await this.enrollmentRepository.approveEnrollmentTransaction({
+      enrollmentId,
+      userId: enrollment.userId,
+      courseId: enrollment.courseId,
+    });
 
-    // Mark associated order(s) as paid so revenue is tracked
-    try {
-      const orderItems = await this.enrollmentRepository.findOrderItemsForEnrollment(
-        enrollment.userId,
-        enrollment.courseId,
-      );
-
-      for (const item of orderItems) {
-        await this.enrollmentRepository['prisma'].order.update({
-          where: { id: item.orderId },
-          data: { status: 'paid' },
-        });
-        await this.enrollmentRepository['prisma'].payment.updateMany({
-          where: { orderId: item.orderId, status: { not: 'paid' } },
-          data: { status: 'paid', paidAt: new Date() },
-        });
-      }
-    } catch {
-      // Non-critical: revenue tracking should not block enrollment approval
-    }
-
-    // Emit event instead of calling NotificationsService directly
+    // Emit event — NotificationEventListener handles user notification
     this.eventEmitter.emit(AppEvents.ENROLLMENT_APPROVED, {
       enrollmentId,
       userId: enrollment.userId,

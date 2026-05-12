@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { AchievementRepository } from '../database/repositories';
 
 // All available badges in the system
 const BADGE_DEFINITIONS = [
@@ -60,39 +60,19 @@ const BADGE_DEFINITIONS = [
 
 @Injectable()
 export class AchievementsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly achievementRepository: AchievementRepository) {}
 
   async seedBadges() {
     for (const def of BADGE_DEFINITIONS) {
-      await this.prisma.badge.upsert({
-        where: { code: def.code },
-        create: def,
-        update: { name: def.name, description: def.description, icon: def.icon, tier: def.tier, requirement: def.requirement },
-      });
+      await this.achievementRepository.upsertBadge(def);
     }
   }
 
   async getUserAchievements(userId: string) {
-    // Get user badges
-    const userBadges = await this.prisma.userBadge.findMany({
-      where: { userId },
-      include: { badge: true },
-      orderBy: { earnedAt: 'desc' },
-    });
-
-    // Get all badges
-    const allBadges = await this.prisma.badge.findMany({ orderBy: [{ category: 'asc' }, { requirement: 'asc' }] });
-
-    // Get user stats for progress
-    const [streak, completedCourses, quizAttempts, certificates, videosWatched, assignmentsSub, commentsCount, enrollments] = await Promise.all([
-      this.prisma.user.findUnique({ where: { id: userId }, select: { currentStreak: true } }),
-      this.prisma.enrollment.count({ where: { userId, progress: { gte: 100 } } }),
-      this.prisma.quizAttempt.count({ where: { studentId: userId } }),
-      this.prisma.certificate.count({ where: { userId } }),
-      this.prisma.videoProgress.count({ where: { userId, completed: true } }),
-      this.prisma.submission.count({ where: { studentId: userId } }),
-      this.prisma.comment.count({ where: { userId } }),
-      this.prisma.enrollment.count({ where: { userId } }),
+    const [userBadges, allBadges, stats] = await Promise.all([
+      this.achievementRepository.getUserBadges(userId),
+      this.achievementRepository.getAllBadges(),
+      this.achievementRepository.getUserStats(userId),
     ]);
 
     const earnedCodes = new Set(userBadges.map(ub => ub.badge.code));
@@ -100,19 +80,18 @@ export class AchievementsService {
     const badgesWithStatus = allBadges.map(badge => {
       const earned = earnedCodes.has(badge.code);
       const earnedAt = userBadges.find(ub => ub.badge.code === badge.code)?.earnedAt;
-      let progress = 0;
       let current = 0;
 
-      if (badge.category === 'streak') current = streak?.currentStreak || 0;
-      else if (badge.category === 'course') current = completedCourses;
-      else if (badge.category === 'quiz') current = quizAttempts;
-      else if (badge.category === 'certificate') current = certificates;
-      else if (badge.category === 'video') current = videosWatched;
-      else if (badge.category === 'assignment') current = assignmentsSub;
-      else if (badge.category === 'social') current = commentsCount;
-      else if (badge.category === 'enrollment') current = enrollments;
+      if (badge.category === 'streak') current = stats.streak;
+      else if (badge.category === 'course') current = stats.completedCourses;
+      else if (badge.category === 'quiz') current = stats.quizAttempts;
+      else if (badge.category === 'certificate') current = stats.certificates;
+      else if (badge.category === 'video') current = stats.videosWatched;
+      else if (badge.category === 'assignment') current = stats.assignmentsSub;
+      else if (badge.category === 'social') current = stats.commentsCount;
+      else if (badge.category === 'enrollment') current = stats.enrollments;
 
-      progress = Math.min(100, (current / badge.requirement) * 100);
+      const progress = Math.min(100, (current / badge.requirement) * 100);
 
       return { ...badge, earned, earnedAt, progress: Math.round(progress) };
     });
@@ -122,33 +101,17 @@ export class AchievementsService {
       stats: {
         total: allBadges.length,
         earned: userBadges.length,
-        streak: streak?.currentStreak || 0,
-        completedCourses,
-        quizAttempts,
-        certificates,
-        videosWatched,
-        assignmentsSub,
-        commentsCount,
-        enrollments,
+        ...stats,
       },
     };
   }
 
   async checkAndAwardBadges(userId: string) {
-    const [streak, completedCourses, quizAttempts, certificates, videosWatched, assignmentsSub, commentsCount, enrollments] = await Promise.all([
-      this.prisma.user.findUnique({ where: { id: userId }, select: { currentStreak: true } }),
-      this.prisma.enrollment.count({ where: { userId, progress: { gte: 100 } } }),
-      this.prisma.quizAttempt.count({ where: { studentId: userId } }),
-      this.prisma.certificate.count({ where: { userId } }),
-      this.prisma.videoProgress.count({ where: { userId, completed: true } }),
-      this.prisma.submission.count({ where: { studentId: userId } }),
-      this.prisma.comment.count({ where: { userId } }),
-      this.prisma.enrollment.count({ where: { userId } }),
+    const [stats, allBadges, existingIds] = await Promise.all([
+      this.achievementRepository.getUserStats(userId),
+      this.achievementRepository.getAllBadges(),
+      this.achievementRepository.getExistingBadgeIds(userId),
     ]);
-
-    const allBadges = await this.prisma.badge.findMany();
-    const existingBadges = await this.prisma.userBadge.findMany({ where: { userId }, select: { badgeId: true } });
-    const existingIds = new Set(existingBadges.map(b => b.badgeId));
 
     const newBadges: string[] = [];
 
@@ -156,17 +119,17 @@ export class AchievementsService {
       if (existingIds.has(badge.id)) continue;
 
       let current = 0;
-      if (badge.category === 'streak') current = streak?.currentStreak || 0;
-      else if (badge.category === 'course') current = completedCourses;
-      else if (badge.category === 'quiz') current = quizAttempts;
-      else if (badge.category === 'certificate') current = certificates;
-      else if (badge.category === 'video') current = videosWatched;
-      else if (badge.category === 'assignment') current = assignmentsSub;
-      else if (badge.category === 'social') current = commentsCount;
-      else if (badge.category === 'enrollment') current = enrollments;
+      if (badge.category === 'streak') current = stats.streak;
+      else if (badge.category === 'course') current = stats.completedCourses;
+      else if (badge.category === 'quiz') current = stats.quizAttempts;
+      else if (badge.category === 'certificate') current = stats.certificates;
+      else if (badge.category === 'video') current = stats.videosWatched;
+      else if (badge.category === 'assignment') current = stats.assignmentsSub;
+      else if (badge.category === 'social') current = stats.commentsCount;
+      else if (badge.category === 'enrollment') current = stats.enrollments;
 
       if (current >= badge.requirement) {
-        await this.prisma.userBadge.create({ data: { userId, badgeId: badge.id } });
+        await this.achievementRepository.awardBadge(userId, badge.id);
         newBadges.push(badge.code);
       }
     }
@@ -175,22 +138,7 @@ export class AchievementsService {
   }
 
   async getLeaderboard() {
-    // Get top students by badge count
-    const users = await this.prisma.user.findMany({
-      where: { role: 'student' },
-      select: {
-        id: true,
-        username: true,
-        firstName: true,
-        lastName: true,
-        currentStreak: true,
-        badges: {
-          include: { badge: true },
-          orderBy: { earnedAt: 'desc' },
-        },
-      },
-      orderBy: { currentStreak: 'desc' },
-    });
+    const users = await this.achievementRepository.getLeaderboardStudents();
 
     return users
       .map(u => ({
@@ -212,30 +160,13 @@ export class AchievementsService {
   }
 
   async getUserPublicProfile(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        username: true,
-        firstName: true,
-        lastName: true,
-        currentStreak: true,
-        createdAt: true,
-      },
-    });
-    if (!user) return null;
-
-    const userBadges = await this.prisma.userBadge.findMany({
-      where: { userId },
-      include: { badge: true },
-      orderBy: { earnedAt: 'desc' },
-    });
-
-    const [completedCourses, enrollments, certificates] = await Promise.all([
-      this.prisma.enrollment.count({ where: { userId, progress: { gte: 100 } } }),
-      this.prisma.enrollment.count({ where: { userId } }),
-      this.prisma.certificate.count({ where: { userId } }),
+    const [user, userBadges, counts] = await Promise.all([
+      this.achievementRepository.getUserPublicProfileData(userId),
+      this.achievementRepository.getUserBadges(userId),
+      this.achievementRepository.getPublicProfileCounts(userId),
     ]);
+
+    if (!user) return null;
 
     // Determine profile rank tier based on badge count
     const badgeCount = userBadges.length;
@@ -252,7 +183,7 @@ export class AchievementsService {
       streak: user.currentStreak,
       joinedAt: user.createdAt,
       profileTier,
-      stats: { badgeCount, completedCourses, enrollments, certificates },
+      stats: { badgeCount, ...counts },
       badges: userBadges.map(ub => ({
         code: ub.badge.code,
         name: ub.badge.name,

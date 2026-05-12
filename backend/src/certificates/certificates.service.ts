@@ -5,17 +5,19 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { CertificateRepository } from '../database/repositories';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CertificateRepository, CourseRepository, EnrollmentRepository } from '../database/repositories';
+import { AppEvents } from '../shared/events';
+import { CertificateGeneratedPayload } from '../shared/events';
 import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CertificatesService {
   constructor(
     private readonly certificateRepository: CertificateRepository,
-    private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly courseRepository: CourseRepository,
+    private readonly enrollmentRepository: EnrollmentRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findAll(userId: string) {
@@ -23,15 +25,13 @@ export class CertificatesService {
   }
 
   async generate(courseId: string, userId: string) {
-    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+    const course = await this.courseRepository.findById(courseId);
     if (!course) throw new NotFoundException('Course not found');
     if (course.status !== 'published') {
       throw new ForbiddenException('Certificates are only issued for published courses');
     }
 
-    const enrollment = await this.prisma.enrollment.findFirst({
-      where: { userId, courseId },
-    });
+    const enrollment = await this.enrollmentRepository.findByUserAndCourse(userId, courseId);
     if (!enrollment) throw new NotFoundException('Enrollment not found');
     if (enrollment.progress < 100) {
       throw new BadRequestException('You must complete 100% of the course to get a certificate');
@@ -46,11 +46,13 @@ export class CertificatesService {
       code: randomUUID(),
     });
 
-    this.notificationsService.notifyUser(userId, {
-      title: 'Certificate ready',
-      message: `Your certificate for "${course.title}" has been issued. View it under Dashboard → Certificates.`,
-      type: 'success',
-    });
+    // Emit event for notification + badge check
+    this.eventEmitter.emit(AppEvents.CERTIFICATE_GENERATED, {
+      certificateId: cert.id,
+      userId,
+      courseId,
+      courseTitle: course.title,
+    } as CertificateGeneratedPayload);
 
     return cert;
   }

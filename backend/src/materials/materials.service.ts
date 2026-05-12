@@ -1,24 +1,16 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { MaterialRepository } from '../database/repositories';
+import { MaterialRepository, LessonRepository } from '../database/repositories';
 import { CreateMaterialDto, UpdateMaterialDto } from './dto';
-import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class MaterialsService {
   constructor(
     private readonly materialRepository: MaterialRepository,
-    private readonly prisma: PrismaService,
+    private readonly lessonRepository: LessonRepository,
   ) {}
 
   private async getLessonWithCourse(lessonId: string) {
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id: lessonId },
-      include: {
-        section: {
-          include: { course: true },
-        },
-      },
-    });
+    const lesson = await this.lessonRepository.findByIdWithSection(lessonId);
 
     if (!lesson) {
       throw new NotFoundException('Lesson not found');
@@ -45,9 +37,7 @@ export class MaterialsService {
   }
 
   async findByLessonId(lessonId: string) {
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id: lessonId },
-    });
+    const lesson = await this.lessonRepository.findById(lessonId);
 
     if (!lesson) {
       throw new NotFoundException('Lesson not found');

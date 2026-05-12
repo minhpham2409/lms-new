@@ -36,6 +36,15 @@ export class SectionRepository extends BaseRepository<Section> {
     });
   }
 
+  async findByIdWithCourse(id: string) {
+    return this.model.findUnique({
+      where: { id },
+      include: {
+        course: true,
+      },
+    });
+  }
+
   async getNextOrder(courseId: string): Promise<number> {
     const lastSection = await this.model.findFirst({
       where: { courseId },

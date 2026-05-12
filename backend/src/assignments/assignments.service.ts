@@ -5,8 +5,15 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AssignmentRepository, SubmissionRepository } from '../database/repositories';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  AssignmentRepository,
+  SubmissionRepository,
+  LessonRepository,
+  EnrollmentRepository,
+  UserRepository,
+  ParentChildRepository,
+} from '../database/repositories';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
   CreateAssignmentDto,
@@ -20,7 +27,10 @@ export class AssignmentsService {
   constructor(
     private readonly assignmentRepository: AssignmentRepository,
     private readonly submissionRepository: SubmissionRepository,
-    private readonly prisma: PrismaService,
+    private readonly lessonRepository: LessonRepository,
+    private readonly enrollmentRepository: EnrollmentRepository,
+    private readonly userRepository: UserRepository,
+    private readonly parentChildRepository: ParentChildRepository,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -40,9 +50,7 @@ export class AssignmentsService {
       if (course.status !== 'published') {
         throw new ForbiddenException('This course is not available');
       }
-      const enr = await this.prisma.enrollment.findUnique({
-        where: { userId_courseId: { userId: user.id, courseId: course.id } },
-      });
+      const enr = await this.enrollmentRepository.findByUserAndCourse(user.id, course.id);
       if (!enr) {
         throw new ForbiddenException('You must be enrolled in this course to access assignments');
       }
@@ -79,10 +87,7 @@ export class AssignmentsService {
   }
 
   async findByLesson(lessonId: string, user: { id: string; role: string }) {
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id: lessonId },
-      include: { section: { include: { course: true } } },
-    });
+    const lesson = await this.lessonRepository.findByIdWithSection(lessonId);
     if (!lesson) throw new NotFoundException('Lesson not found');
     await this.assertLearnerOrStaffOnCourse(user, lesson.section.course);
     return this.assignmentRepository.findByLessonId(lessonId);
@@ -188,18 +193,12 @@ export class AssignmentsService {
 
     // Notify parent(s) of the student
     try {
-      const student = await this.prisma.user.findUnique({
-        where: { id: submission.studentId },
-        select: { firstName: true, lastName: true, username: true },
-      });
+      const student = await this.userRepository.findById(submission.studentId);
       const studentName = student?.firstName
         ? `${student.firstName} ${student.lastName || ''}`.trim()
         : student?.username || 'Con bạn';
 
-      const parentLinks = await this.prisma.parentChild.findMany({
-        where: { childId: submission.studentId, status: 'accepted' },
-        select: { parentId: true },
-      });
+      const parentLinks = await this.parentChildRepository.findParentLinks(submission.studentId);
       for (const link of parentLinks) {
         this.notificationsService.notifyUser(link.parentId, {
           title: '📊 Kết quả bài tập của con',
@@ -215,38 +214,6 @@ export class AssignmentsService {
   }
 
   async getAllSubmissionsForTeacher(teacherId: string) {
-    return this.prisma.submission.findMany({
-      where: {
-        assignment: {
-          lesson: {
-            section: {
-              course: { authorId: teacherId },
-            },
-          },
-        },
-      },
-      include: {
-        student: {
-          select: { id: true, username: true, firstName: true, lastName: true, email: true },
-        },
-        assignment: {
-          select: {
-            id: true, title: true, maxScore: true, description: true,
-            lesson: {
-              select: {
-                id: true, title: true,
-                section: {
-                  select: {
-                    id: true, title: true,
-                    course: { select: { id: true, title: true } },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.submissionRepository.findByTeacher(teacherId);
   }
 }

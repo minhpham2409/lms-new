@@ -1,20 +1,17 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { CommentRepository } from '../database/repositories';
-import { PrismaService } from '../prisma/prisma.service';
+import { CommentRepository, LessonRepository, EnrollmentRepository } from '../database/repositories';
 import { CreateCommentDto } from './dto';
 
 @Injectable()
 export class CommentsService {
   constructor(
     private readonly commentRepository: CommentRepository,
-    private readonly prisma: PrismaService,
+    private readonly lessonRepository: LessonRepository,
+    private readonly enrollmentRepository: EnrollmentRepository,
   ) {}
 
   private async getLessonWithCourse(lessonId: string) {
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id: lessonId },
-      include: { section: true },
-    });
+    const lesson = await this.lessonRepository.findByIdWithSection(lessonId);
     if (!lesson) throw new NotFoundException('Lesson not found');
     return lesson;
   }
@@ -28,9 +25,7 @@ export class CommentsService {
     }
 
     // Students must be enrolled
-    const enrollment = await this.prisma.enrollment.findFirst({
-      where: { userId, courseId: lesson.section.courseId },
-    });
+    const enrollment = await this.enrollmentRepository.findByUserAndCourse(userId, lesson.section.courseId);
     if (!enrollment) throw new ForbiddenException('You must be enrolled to comment');
     return lesson;
   }

@@ -3,10 +3,9 @@ import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PaymentRepository, OrderRepository } from '../database/repositories';
-import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule],
   controllers: [PaymentsController],
   providers: [PaymentsService, PaymentRepository, OrderRepository],
   exports: [PaymentsService],

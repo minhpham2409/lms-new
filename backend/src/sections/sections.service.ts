@@ -1,19 +1,16 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { SectionRepository } from '../database/repositories';
+import { SectionRepository, CourseRepository } from '../database/repositories';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto';
-import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class SectionsService {
   constructor(
     private readonly sectionRepository: SectionRepository,
-    private readonly prisma: PrismaService,
+    private readonly courseRepository: CourseRepository,
   ) {}
 
   async create(createSectionDto: CreateSectionDto, authorId: string) {
-    const course = await this.prisma.course.findUnique({
-      where: { id: createSectionDto.courseId },
-    });
+    const course = await this.courseRepository.findById(createSectionDto.courseId);
 
     if (!course) {
       throw new NotFoundException('Course not found');
@@ -51,9 +48,7 @@ export class SectionsService {
       throw new NotFoundException('Section not found');
     }
 
-    const course = await this.prisma.course.findUnique({
-      where: { id: section.courseId },
-    });
+    const course = await this.courseRepository.findById(section.courseId);
 
     if (course.authorId !== authorId) {
       throw new ForbiddenException('You can only update sections in your own courses');
@@ -68,9 +63,7 @@ export class SectionsService {
       throw new NotFoundException('Section not found');
     }
 
-    const course = await this.prisma.course.findUnique({
-      where: { id: section.courseId },
-    });
+    const course = await this.courseRepository.findById(section.courseId);
 
     if (course.authorId !== authorId) {
       throw new ForbiddenException('You can only delete sections from your own courses');
@@ -80,9 +73,7 @@ export class SectionsService {
   }
 
   async reorder(courseId: string, reorderDto: ReorderSectionsDto, authorId: string) {
-    const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
-    });
+    const course = await this.courseRepository.findById(courseId);
 
     if (!course) {
       throw new NotFoundException('Course not found');

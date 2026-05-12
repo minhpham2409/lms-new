@@ -3,20 +3,26 @@ import {
   NotFoundException,
   BadRequestException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentRepository, OrderRepository } from '../database/repositories';
-import { PrismaService } from '../prisma/prisma.service';
 import { CreateQrDto, WebhookDto } from './dto';
-import { NotificationsService } from '../notifications/notifications.service';
+import { AppEvents } from '../shared/events';
+import {
+  PaymentCompletedPayload,
+  PaymentFailedPayload,
+} from '../shared/events';
 import { randomUUID, createHmac } from 'crypto';
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly paymentRepository: PaymentRepository,
     private readonly orderRepository: OrderRepository,
-    private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /** Verify HMAC-SHA256 signature from bank webhook. */
@@ -81,6 +87,12 @@ export class PaymentsService {
     });
   }
 
+  /**
+   * Handle bank webhook: verify signature, then atomically complete
+   * payment + order + enrollments using prisma.$transaction.
+   * After commit, emit PAYMENT_COMPLETED event for async side-effects
+   * (notifications, invoice email via Bull Queue, badge checks, etc.)
+   */
   async handleWebhook(dto: WebhookDto) {
     // Validate HMAC signature from bank
     this.verifyWebhookSignature(dto);
@@ -89,46 +101,54 @@ export class PaymentsService {
     if (!payment) throw new NotFoundException('Transaction not found');
     if (payment.status === 'completed') return { message: 'Already processed' };
 
+    // ── Payment Failed ─────────────────────────────────────────────────────
     if (dto.status !== 'success') {
-      await this.paymentRepository.update(payment.id, { status: 'failed' });
+      await this.paymentRepository.failPaymentTransaction({
+        paymentId: payment.id,
+        orderId: payment.orderId,
+      });
+
+      this.eventEmitter.emit(AppEvents.PAYMENT_FAILED, {
+        paymentId: payment.id,
+        orderId: payment.orderId,
+        userId: '',
+        reason: `Bank returned status: ${dto.status}`,
+      } as PaymentFailedPayload);
+
       return { message: 'Payment failed' };
     }
 
-    await this.paymentRepository.update(payment.id, {
-      status: 'completed',
-      paidAt: new Date(),
-    });
-
+    // ── Payment Success: Atomic Transaction ────────────────────────────────
     const order = await this.orderRepository.findByIdWithDetails(payment.orderId);
-    await this.prisma.order.update({
-      where: { id: payment.orderId },
-      data: { status: 'paid' },
+    if (!order) throw new NotFoundException('Order not found');
+
+    const courseItems = order.items.map((item) => ({ courseId: item.courseId }));
+
+    // All-or-nothing: Payment ✓ → Order ✓ → Enrollments ✓
+    await this.paymentRepository.completePaymentTransaction({
+      paymentId: payment.id,
+      orderId: payment.orderId,
+      userId: order.userId,
+      courseItems,
     });
 
-    for (const item of order.items) {
-      const enrolled = await this.prisma.enrollment.findFirst({
-        where: { userId: order.userId, courseId: item.courseId },
-      });
-      if (!enrolled) {
-        await this.prisma.enrollment.create({
-          data: { userId: order.userId, courseId: item.courseId },
-        });
-      }
-    }
+    this.logger.log(
+      `[Transaction OK] Payment ${payment.id} → Order ${order.id} → ${courseItems.length} enrollments`,
+    );
 
+    // ── Emit Domain Event (async side-effects) ─────────────────────────────
     const titles = order.items
       .map((item) => item.course?.title)
       .filter((t): t is string => !!t);
-    const summary =
-      titles.length > 0
-        ? `Enrollment confirmed for: ${titles.join(', ')}. Open Dashboard → My courses.`
-        : 'Your payment was received and your courses are unlocked.';
 
-    this.notificationsService.notifyUser(order.userId, {
-      title: 'Payment successful',
-      message: summary,
-      type: 'success',
-    });
+    this.eventEmitter.emit(AppEvents.PAYMENT_COMPLETED, {
+      paymentId: payment.id,
+      orderId: order.id,
+      userId: order.userId,
+      amount: order.finalPrice,
+      courseIds: courseItems.map((c) => c.courseId),
+      courseTitles: titles,
+    } as PaymentCompletedPayload);
 
     return { message: 'Payment confirmed, enrollments created' };
   }

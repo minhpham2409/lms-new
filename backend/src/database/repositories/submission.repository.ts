@@ -34,4 +34,41 @@ export class SubmissionRepository extends BaseRepository<Submission> {
       include: { assignment: true },
     });
   }
+
+  /** All submissions for courses taught by this teacher */
+  findByTeacher(teacherId: string) {
+    return this.prisma.submission.findMany({
+      where: {
+        assignment: {
+          lesson: {
+            section: {
+              course: { authorId: teacherId },
+            },
+          },
+        },
+      },
+      include: {
+        student: {
+          select: { id: true, username: true, firstName: true, lastName: true, email: true },
+        },
+        assignment: {
+          select: {
+            id: true, title: true, maxScore: true, description: true,
+            lesson: {
+              select: {
+                id: true, title: true,
+                section: {
+                  select: {
+                    id: true, title: true,
+                    course: { select: { id: true, title: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

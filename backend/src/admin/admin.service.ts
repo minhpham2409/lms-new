@@ -5,18 +5,31 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { OnApplicationBootstrap } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  UserRepository,
+  CourseRepository,
+  OrderRepository,
+  LessonRepository,
+  SectionRepository,
+  AdminRepository,
+} from '../database/repositories';
 import { PasswordService } from '../auth/services/password.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
 import { CreateCourseDto } from '../courses/dto/create-course.dto';
 import { CreateLessonDto } from '../lessons/dto/create-lesson.dto';
+import { PaginationQueryDto } from '../shared/dto';
 
 @Injectable()
 export class AdminService implements OnApplicationBootstrap {
   constructor(
-    private prisma: PrismaService,
-    private passwordService: PasswordService,
+    private readonly userRepository: UserRepository,
+    private readonly courseRepository: CourseRepository,
+    private readonly orderRepository: OrderRepository,
+    private readonly lessonRepository: LessonRepository,
+    private readonly sectionRepository: SectionRepository,
+    private readonly adminRepository: AdminRepository,
+    private readonly passwordService: PasswordService,
   ) {}
 
   /** Run after DI is fully set up — safe for async logic */
@@ -25,26 +38,42 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   private async createSuperAdminIfNotExists() {
-    const adminExists = await this.prisma.user.findFirst({
-      where: { role: 'admin' },
-    });
+    const adminExists = await this.userRepository.findOne({ role: 'admin' });
 
     if (!adminExists) {
       const hashedPassword = await this.passwordService.hashPassword('Admin123!');
-      await this.prisma.user.create({
-        data: {
-          email: 'admin@lms.com',
-          password: hashedPassword,
-          role: 'admin',
-          firstName: 'Admin',
-          username: 'admin',
-        },
+      await this.userRepository.createUser({
+        email: 'admin@lms.com',
+        password: hashedPassword,
+        role: 'admin',
+        firstName: 'Admin',
+        username: 'admin',
       });
     }
   }
 
-  async getAllUsers() {
-    return this.prisma.user.findMany({
+  // ─── User Management (Paginated) ──────────────────────────────────────────
+
+  async getAllUsers(query?: PaginationQueryDto) {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const search = query?.search;
+
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { username: { contains: search } },
+        { email: { contains: search } },
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
+      ];
+    }
+
+    return this.userRepository.findPaginated({
+      page,
+      limit,
+      where,
+      orderBy: { createdAt: query?.sortOrder ?? 'desc' },
       select: {
         id: true,
         username: true,
@@ -52,6 +81,7 @@ export class AdminService implements OnApplicationBootstrap {
         firstName: true,
         lastName: true,
         role: true,
+        isActive: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -61,17 +91,17 @@ export class AdminService implements OnApplicationBootstrap {
   async createUser(createUserDto: CreateUserDto) {
     const { email, password, role, username } = createUserDto;
 
-    const userExists = await this.prisma.user.findFirst({
-      where: { OR: [{ email }, { username }] },
-    });
-
+    const userExists = await this.userRepository.findByUsernameOrEmail(username, email);
     if (userExists) {
       throw new BadRequestException('User with this email or username already exists');
     }
 
     const hashedPassword = await this.passwordService.hashPassword(password);
-    const user = await this.prisma.user.create({
-      data: { email, password: hashedPassword, role: role || 'student', username },
+    const user = await this.userRepository.createUser({
+      email,
+      password: hashedPassword,
+      role: role || 'student',
+      username,
     });
 
     const { password: _, ...result } = user;
@@ -79,7 +109,7 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   async updateUser(id: string, updateData: UpdateUserDto, requesterId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('User not found');
 
     // Only allow safe fields from UpdateUserDto
@@ -90,54 +120,64 @@ export class AdminService implements OnApplicationBootstrap {
     if (updateData.username !== undefined) safeData.username = updateData.username;
     if (updateData.role !== undefined) safeData.role = updateData.role;
 
-    return this.prisma.user.update({ where: { id }, data: safeData });
+    return this.userRepository.update(id, safeData);
   }
 
   async deleteUser(id: string, requesterId: string): Promise<void> {
     if (id === requesterId) {
       throw new ForbiddenException('Cannot delete your own admin account');
     }
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('User not found');
 
     // Check if this is the last admin
     if (user.role === 'admin') {
-      const adminCount = await this.prisma.user.count({ where: { role: 'admin' } });
+      const adminCount = await this.userRepository.count({ role: 'admin' });
       if (adminCount <= 1) {
         throw new ForbiddenException('Cannot delete the last admin account');
       }
     }
 
     // Soft delete — deactivate instead of hard delete to preserve data integrity
-    await this.prisma.user.update({
-      where: { id },
-      data: { isActive: false },
-    });
+    await this.userRepository.update(id, { isActive: false });
   }
 
   async toggleUserStatus(id: string, isActive: boolean) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('User not found');
-    return this.prisma.user.update({
-      where: { id },
-      data: { isActive },
-      select: { id: true, username: true, email: true, role: true, isActive: true },
-    });
+    return this.userRepository.update(id, { isActive });
   }
 
-  async getPendingCourses() {
-    return this.prisma.course.findMany({
+  // ─── Course Management (Paginated) ────────────────────────────────────────
+
+  async getPendingCourses(query?: PaginationQueryDto) {
+    return this.courseRepository.findPaginated({
+      page: query?.page ?? 1,
+      limit: query?.limit ?? 20,
       where: { status: { in: ['pending', 'draft'] } },
+      orderBy: { createdAt: 'desc' },
       include: {
         author: { select: { id: true, username: true, firstName: true } },
         _count: { select: { enrollments: true } },
       },
-      orderBy: { createdAt: 'desc' },
     });
   }
 
-  async getAllCourses() {
-    return this.prisma.course.findMany({
+  async getAllCourses(query?: PaginationQueryDto) {
+    const search = query?.search;
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { description: { contains: search } },
+      ];
+    }
+
+    return this.courseRepository.findPaginated({
+      page: query?.page ?? 1,
+      limit: query?.limit ?? 20,
+      where,
+      orderBy: { createdAt: query?.sortOrder ?? 'desc' },
       include: {
         author: {
           select: { id: true, username: true, email: true, firstName: true, lastName: true },
@@ -153,103 +193,66 @@ export class AdminService implements OnApplicationBootstrap {
     const authorId = dto.authorId;
     if (!authorId) throw new BadRequestException('authorId is required');
 
-    const author = await this.prisma.user.findUnique({ where: { id: authorId } });
+    const author = await this.userRepository.findById(authorId);
     if (!author) throw new NotFoundException('Author not found');
 
-    return this.prisma.course.create({
-      data: {
+    return this.courseRepository.createWithAuthor(
+      {
         title: dto.title,
         description: dto.description,
         price: dto.price || 0,
         thumbnail: dto.thumbnail,
-        authorId,
       },
-      include: {
-        author: {
-          select: { id: true, username: true, email: true, firstName: true, lastName: true },
-        },
-      },
-    });
+      authorId,
+    );
   }
 
   async updateCourse(id: string, updateData: any) {
-    const course = await this.prisma.course.findUnique({ where: { id } });
+    const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
 
     if (updateData.authorId) {
-      const author = await this.prisma.user.findUnique({ where: { id: updateData.authorId } });
+      const author = await this.userRepository.findById(updateData.authorId);
       if (!author) throw new NotFoundException('Author not found');
     }
 
-    return this.prisma.course.update({
-      where: { id },
-      data: updateData,
-      include: {
-        author: {
-          select: { id: true, username: true, email: true, firstName: true, lastName: true },
-        },
-      },
-    });
+    return this.courseRepository.update(id, updateData);
   }
 
   async deleteCourse(id: string): Promise<void> {
-    const course = await this.prisma.course.findUnique({ where: { id } });
+    const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
-    await this.prisma.course.delete({ where: { id } });
+    await this.courseRepository.delete(id);
   }
 
   async publishCourse(id: string) {
-    const course = await this.prisma.course.findUnique({ where: { id } });
+    const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
     if (course.status !== 'pending') {
       throw new BadRequestException(
         'Only courses pending review can be published',
       );
     }
-    return this.prisma.course.update({
-      where: { id },
-      data: { status: 'published' },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-    });
+    return this.courseRepository.update(id, { status: 'published' });
   }
 
   async rejectCourse(id: string) {
-    const course = await this.prisma.course.findUnique({ where: { id } });
+    const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
     if (course.status !== 'pending') {
       throw new BadRequestException(
         'Only courses pending review can be rejected',
       );
     }
-    return this.prisma.course.update({
-      where: { id },
-      data: { status: 'draft' },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-    });
+    return this.courseRepository.update(id, { status: 'draft' });
   }
 
-  async getAllOrders() {
-    return this.prisma.order.findMany({
+  // ─── Order Management (Paginated) ─────────────────────────────────────────
+
+  async getAllOrders(query?: PaginationQueryDto) {
+    return this.orderRepository.findPaginated({
+      page: query?.page ?? 1,
+      limit: query?.limit ?? 20,
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
@@ -265,8 +268,12 @@ export class AdminService implements OnApplicationBootstrap {
     });
   }
 
-  async getAllLessons() {
-    return this.prisma.lesson.findMany({
+  // ─── Lesson Management (Paginated) ────────────────────────────────────────
+
+  async getAllLessons(query?: PaginationQueryDto) {
+    return this.lessonRepository.findPaginated({
+      page: query?.page ?? 1,
+      limit: query?.limit ?? 20,
       include: {
         section: {
           include: {
@@ -278,103 +285,56 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   async createLesson(dto: CreateLessonDto) {
-    const section = await this.prisma.section.findUnique({ where: { id: dto.sectionId } });
+    const section = await this.sectionRepository.findById(dto.sectionId);
     if (!section) throw new NotFoundException('Section not found');
 
-    const maxOrder = await this.prisma.lesson.findFirst({
-      where: { sectionId: dto.sectionId },
-      orderBy: { order: 'desc' },
-      select: { order: true },
-    });
+    const nextOrder = await this.lessonRepository.getNextOrder(dto.sectionId);
 
-    return this.prisma.lesson.create({
-      data: {
-        title: dto.title,
-        content: dto.content,
-        videoUrl: dto.videoUrl,
-        duration: dto.duration,
-        order: maxOrder ? maxOrder.order + 1 : 1,
-        sectionId: dto.sectionId,
-      },
-      include: {
-        section: {
-          include: { course: { select: { id: true, title: true } } },
-        },
-      },
+    return this.lessonRepository.createWithOrder({
+      title: dto.title,
+      content: dto.content,
+      videoUrl: dto.videoUrl,
+      duration: dto.duration,
+      sectionId: dto.sectionId,
+      order: nextOrder,
     });
   }
 
   async updateLesson(id: string, updateData: any) {
-    const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+    const lesson = await this.lessonRepository.findById(id);
     if (!lesson) throw new NotFoundException('Lesson not found');
 
-    return this.prisma.lesson.update({
-      where: { id },
-      data: updateData,
-      include: {
-        section: {
-          include: { course: { select: { id: true, title: true } } },
-        },
-      },
-    });
+    return this.lessonRepository.updateWithIncludes(id, updateData);
   }
 
   async deleteLesson(id: string): Promise<void> {
-    const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+    const lesson = await this.lessonRepository.findById(id);
     if (!lesson) throw new NotFoundException('Lesson not found');
-    await this.prisma.lesson.delete({ where: { id } });
+    await this.lessonRepository.delete(id);
   }
 
+  // ─── Dashboard & Analytics ────────────────────────────────────────────────
+
   async getDashboardStats() {
-    const [
-      totalUsers,
-      totalCourses,
-      totalLessons,
-      totalEnrollments,
-      usersByRole,
-      coursesByStatus,
-      recentUsers,
-      recentCourses,
-      revenue,
-    ] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.course.count(),
-      this.prisma.lesson.count(),
-      this.prisma.enrollment.count(),
-      this.prisma.user.groupBy({ by: ['role'], _count: { id: true } }),
-      this.prisma.course.groupBy({ by: ['status'], _count: { id: true } }),
-      this.prisma.user.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-        select: { id: true, username: true, email: true, role: true, createdAt: true },
-      }),
-      this.prisma.course.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-        include: {
-          author: { select: { id: true, username: true } },
-          _count: { select: { enrollments: true } },
-        },
-      }),
-      this.prisma.order.aggregate({
-        where: { status: { in: ['paid', 'completed'] } },
-        _sum: { finalPrice: true },
-      }),
+    const [counts, recentUsers, recentCourses] = await Promise.all([
+      this.adminRepository.getDashboardCounts(),
+      this.adminRepository.getRecentUsers(),
+      this.adminRepository.getRecentCourses(),
     ]);
 
     const userRoleMap = Object.fromEntries(
-      usersByRole.map((r) => [r.role, r._count.id]),
+      counts.usersByRole.map((r) => [r.role, r._count.id]),
     );
     const courseStatusMap = Object.fromEntries(
-      coursesByStatus.map((r) => [r.status, r._count.id]),
+      counts.coursesByStatus.map((r) => [r.status, r._count.id]),
     );
 
     return {
-      users: totalUsers,
-      courses: totalCourses,
-      lessons: totalLessons,
-      enrollments: totalEnrollments,
-      revenue: revenue._sum.finalPrice ?? 0,
+      users: counts.totalUsers,
+      courses: counts.totalCourses,
+      lessons: counts.totalLessons,
+      enrollments: counts.totalEnrollments,
+      revenue: counts.revenue,
       usersByRole: {
         student: userRoleMap['student'] ?? 0,
         teacher: userRoleMap['teacher'] ?? 0,
@@ -393,53 +353,13 @@ export class AdminService implements OnApplicationBootstrap {
 
   /** Revenue stats by month (last 12 months) */
   async getStatsRevenue() {
-    const now = new Date();
-    const months: { month: string; revenue: number; orders: number }[] = [];
-
-    for (let i = 11; i >= 0; i--) {
-      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
-      const label = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
-
-      const [agg, count] = await Promise.all([
-        this.prisma.order.aggregate({
-          where: { status: { in: ['paid', 'completed'] }, createdAt: { gte: start, lte: end } },
-          _sum: { finalPrice: true },
-        }),
-        this.prisma.order.count({
-          where: { status: { in: ['paid', 'completed'] }, createdAt: { gte: start, lte: end } },
-        }),
-      ]);
-
-      months.push({ month: label, revenue: agg._sum.finalPrice ?? 0, orders: count });
-    }
-
+    const months = await this.adminRepository.getMonthlyRevenue();
     const totalRevenue = months.reduce((s, m) => s + m.revenue, 0);
     return { totalRevenue, months };
   }
 
   /** Course stats: enrollment count, average rating */
   async getStatsCourses() {
-    const courses = await this.prisma.course.findMany({
-      include: {
-        author: { select: { id: true, username: true, firstName: true } },
-        _count: { select: { enrollments: true, reviews: true } },
-        reviews: { select: { rating: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return courses.map(c => ({
-      id: c.id,
-      title: c.title,
-      status: c.status,
-      author: c.author,
-      enrollments: c._count.enrollments,
-      reviewCount: c._count.reviews,
-      avgRating: c.reviews.length > 0
-        ? +(c.reviews.reduce((s, r) => s + r.rating, 0) / c.reviews.length).toFixed(1)
-        : null,
-      createdAt: c.createdAt,
-    }));
+    return this.adminRepository.getCourseStats();
   }
 }

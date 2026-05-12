@@ -113,4 +113,56 @@ export class EnrollmentRepository extends BaseRepository<Enrollment> {
       where: { childId, status: 'accepted' },
     });
   }
+
+  /**
+   * ATOMIC TRANSACTION: Approve enrollment → mark orders as paid → mark payments as paid.
+   *
+   * All-or-nothing: if any step fails, the entire operation is rolled back.
+   * This prevents inconsistent states like:
+   * - Enrollment active but order still pending
+   * - Order marked paid but payment not updated
+   */
+  async approveEnrollmentTransaction(params: {
+    enrollmentId: string;
+    userId: string;
+    courseId: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Activate the enrollment
+      const updated = await tx.enrollment.update({
+        where: { id: params.enrollmentId },
+        data: { status: 'active' },
+        include: { course: true },
+      });
+
+      // 2. Find related pending/processing order items
+      const orderItems = await tx.orderItem.findMany({
+        where: {
+          courseId: params.courseId,
+          order: {
+            userId: params.userId,
+            status: { in: ['pending', 'processing'] },
+          },
+        },
+        select: { orderId: true },
+      });
+
+      // 3. Mark all related orders as paid
+      const orderIds = [...new Set(orderItems.map((item) => item.orderId))];
+      for (const orderId of orderIds) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: 'paid' },
+        });
+
+        // 4. Mark related payments as paid
+        await tx.payment.updateMany({
+          where: { orderId, status: { not: 'completed' } },
+          data: { status: 'completed', paidAt: new Date() },
+        });
+      }
+
+      return updated;
+    });
+  }
 }

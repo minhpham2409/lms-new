@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { UserRepository, StudentDashboardRepository } from '../database/repositories';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AchievementsService } from '../achievements/achievements.service';
@@ -16,13 +16,14 @@ const STREAK_REWARDS = [
 @Injectable()
 export class UsersService {
   constructor(
-    private prisma: PrismaService,
-    private notificationsService: NotificationsService,
-    private achievementsService: AchievementsService,
+    private readonly userRepository: UserRepository,
+    private readonly dashboardRepository: StudentDashboardRepository,
+    private readonly notificationsService: NotificationsService,
+    private readonly achievementsService: AchievementsService,
   ) {}
 
   async findAll() {
-    return this.prisma.user.findMany({
+    return this.userRepository.findMany({
       select: {
         id: true,
         username: true,
@@ -35,157 +36,53 @@ export class UsersService {
   }
 
   async findPublicTeachers() {
-    const teachers = await this.prisma.user.findMany({
-      where: { role: 'teacher' },
-      select: {
-        id: true,
-        username: true,
-        firstName: true,
-        lastName: true,
-        email: true, // We can optionally return email, but maybe limit what is public
-        // Fetch course count
-        _count: {
-          select: {
-            courses: true
-          }
-        }
-      },
-    });
-
-    return teachers;
+    return this.userRepository.findPublicTeachers();
   }
 
   async findPublicTeacherById(id: string) {
-    return this.prisma.user.findUnique({
-      where: { id, role: 'teacher' },
-      select: {
-        id: true,
-        username: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        bio: true,
-        createdAt: true,
-        courses: {
-          where: { status: 'published' },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            price: true,
-            thumbnail: true,
-            _count: {
-              select: { enrollments: true }
-            },
-            sections: {
-              select: {
-                _count: {
-                  select: { lessons: true }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
+    return this.userRepository.findPublicTeacherById(id);
   }
 
   async findOne(id: string) {
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-      },
-    });
+    return this.userRepository.findById(id);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    return this.prisma.user.update({
-      where: { id },
-      data: updateUserDto,
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-      },
-    });
+    return this.userRepository.update(id, updateUserDto);
   }
 
   async remove(id: string) {
-    return this.prisma.user.delete({
-      where: { id },
-    });
+    return this.userRepository.delete(id);
   }
 
   async getStudentDashboard(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { currentStreak: true, lastActivityDate: true },
-    });
+    const user = await this.dashboardRepository.getUserStreak(userId);
 
     // Gather activities from multiple real sources
     const activities: Array<{ text: string; time: Date; type: string }> = [];
 
-    // 1. Completed lessons (VideoProgress)
-    const recentVideos = await this.prisma.videoProgress.findMany({
-      where: { userId, completed: true },
-      include: { lesson: { select: { title: true } } },
-      orderBy: { updatedAt: 'desc' },
-      take: 3,
-    });
+    const [recentVideos, recentQuizzes, recentSubmissions, recentEnrollments, recentCerts] =
+      await Promise.all([
+        this.dashboardRepository.getRecentCompletedVideos(userId),
+        this.dashboardRepository.getRecentQuizAttempts(userId),
+        this.dashboardRepository.getRecentSubmissions(userId),
+        this.dashboardRepository.getRecentEnrollments(userId),
+        this.dashboardRepository.getRecentCertificates(userId),
+      ]);
+
     for (const v of recentVideos) {
       activities.push({ text: `Hoàn thành bài: ${v.lesson.title}`, time: v.updatedAt, type: 'lesson' });
     }
-
-    // 2. Quiz attempts
-    const recentQuizzes = await this.prisma.quizAttempt.findMany({
-      where: { studentId: userId },
-      include: { quiz: { include: { assignment: { select: { title: true } } } } },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
-    });
     for (const q of recentQuizzes) {
       const name = q.quiz?.assignment?.title || 'Quiz';
       activities.push({ text: `Đạt ${q.score}/${q.maxScore} — ${name}`, time: q.createdAt, type: 'quiz' });
     }
-
-    // 3. Assignment submissions
-    const recentSubmissions = await this.prisma.submission.findMany({
-      where: { studentId: userId },
-      include: { assignment: { select: { title: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
-    });
     for (const s of recentSubmissions) {
       activities.push({ text: `Nộp bài: ${s.assignment.title}`, time: s.createdAt, type: 'submission' });
     }
-
-    // 4. Enrollments
-    const recentEnrollments = await this.prisma.enrollment.findMany({
-      where: { userId },
-      include: { course: { select: { title: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 2,
-    });
     for (const e of recentEnrollments) {
       activities.push({ text: `Đăng ký khóa: ${e.course.title}`, time: e.createdAt, type: 'enrollment' });
     }
-
-    // 5. Certificates
-    const recentCerts = await this.prisma.certificate.findMany({
-      where: { userId },
-      include: { course: { select: { title: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 2,
-    });
     for (const c of recentCerts) {
       activities.push({ text: `Nhận chứng chỉ: ${c.course.title}`, time: c.createdAt, type: 'certificate' });
     }
@@ -209,7 +106,7 @@ export class UsersService {
   }
 
   async checkInStreak(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.dashboardRepository.getUserFull(userId);
     if (!user) return null;
 
     const now = new Date();
@@ -227,10 +124,7 @@ export class UsersService {
       if (diffDays === 0) {
         // Already checked in today — still return reward info
         const nextReward = STREAK_REWARDS.find(r => r.days > newStreak) || null;
-        const activeCoupon = await this.prisma.coupon.findFirst({
-          where: { userId, type: 'streak', isActive: true },
-          orderBy: { discount: 'desc' },
-        });
+        const activeCoupon = await this.dashboardRepository.findActiveStreakCoupon(userId);
         return { streak: newStreak, rewarded: false, reward: null, nextReward, activeCoupon };
       } else if (diffDays === 1) {
         newStreak += 1;
@@ -239,9 +133,9 @@ export class UsersService {
       }
     }
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { currentStreak: newStreak, lastActivityDate: now },
+    await this.dashboardRepository.updateStreak(userId, {
+      currentStreak: newStreak,
+      lastActivityDate: now,
     });
 
     let reward = null;
@@ -249,25 +143,20 @@ export class UsersService {
 
     if (milestone) {
       // Deactivate ALL previous streak coupons for this user (single active coupon rule)
-      await this.prisma.coupon.updateMany({
-        where: { userId, type: 'streak', isActive: true },
-        data: { isActive: false },
-      });
+      await this.dashboardRepository.deactivateStreakCoupons(userId);
 
       const code = `STREAK${milestone.days}-${userId.substring(0, 4).toUpperCase()}${Math.floor(Math.random() * 9000 + 1000)}`;
       const expiry = new Date();
       expiry.setDate(expiry.getDate() + 30);
 
-      await this.prisma.coupon.create({
-        data: {
-          code,
-          discount: milestone.discount,
-          maxUses: 1,
-          expiresAt: expiry,
-          isActive: true,
-          type: 'streak',
-          userId,
-        },
+      await this.dashboardRepository.createStreakCoupon({
+        code,
+        discount: milestone.discount,
+        maxUses: 1,
+        expiresAt: expiry,
+        isActive: true,
+        type: 'streak',
+        userId,
       });
 
       this.notificationsService.notifyUser(userId, {
@@ -280,10 +169,7 @@ export class UsersService {
     }
 
     const nextReward = STREAK_REWARDS.find(r => r.days > newStreak) || null;
-    const activeCoupon = await this.prisma.coupon.findFirst({
-      where: { userId, type: 'streak', isActive: true },
-      orderBy: { discount: 'desc' },
-    });
+    const activeCoupon = await this.dashboardRepository.findActiveStreakCoupon(userId);
 
     // Auto-award badges based on new stats
     try { await this.achievementsService.checkAndAwardBadges(userId); } catch {}
@@ -298,19 +184,7 @@ export class UsersService {
   }
 
   async getMyStreakCoupon(userId: string) {
-    const coupon = await this.prisma.coupon.findFirst({
-      where: {
-        userId,
-        type: 'streak',
-        isActive: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
-      },
-      orderBy: { discount: 'desc' },
-    });
-
+    const coupon = await this.dashboardRepository.findActiveStreakCoupon(userId);
     if (!coupon) return null;
 
     // Check if already fully used
@@ -321,4 +195,3 @@ export class UsersService {
     return coupon;
   }
 }
-

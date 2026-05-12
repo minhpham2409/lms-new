@@ -5,8 +5,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { QuizRepository, AssignmentRepository } from '../database/repositories';
+import { QuizRepository, AssignmentRepository, EnrollmentRepository } from '../database/repositories';
 import { CreateQuizDto, CreateQuestionDto, SubmitQuizDto } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -15,7 +14,7 @@ export class QuizzesService {
   constructor(
     private readonly quizRepository: QuizRepository,
     private readonly assignmentRepository: AssignmentRepository,
-    private readonly prisma: PrismaService,
+    private readonly enrollmentRepository: EnrollmentRepository,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -35,9 +34,7 @@ export class QuizzesService {
       if (course.status !== 'published') {
         throw new ForbiddenException('This course is not available');
       }
-      const enr = await this.prisma.enrollment.findUnique({
-        where: { userId_courseId: { userId: user.id, courseId: course.id } },
-      });
+      const enr = await this.enrollmentRepository.findByUserAndCourse(user.id, course.id);
       if (!enr) {
         throw new ForbiddenException('You must be enrolled in this course to access quizzes');
       }

@@ -8,6 +8,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -16,6 +17,7 @@ import { CreateCourseDto } from '../courses/dto/create-course.dto';
 import { UpdateCourseDto } from '../courses/dto/update-course.dto';
 import { CreateLessonDto } from '../lessons/dto/create-lesson.dto';
 import { UpdateLessonDto } from '../lessons/dto/update-lesson.dto';
+import { PaginationQueryDto } from '../shared/dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -33,8 +35,8 @@ export class AdminController {
   }
 
   @Get('users')
-  getAllUsers() {
-    return this.adminService.getAllUsers();
+  getAllUsers(@Query() query: PaginationQueryDto) {
+    return this.adminService.getAllUsers(query);
   }
 
   @Post('users')
@@ -62,13 +64,13 @@ export class AdminController {
   }
 
   @Get('orders')
-  getAllOrders() {
-    return this.adminService.getAllOrders();
+  getAllOrders(@Query() query: PaginationQueryDto) {
+    return this.adminService.getAllOrders(query);
   }
 
   @Get('courses')
-  getAllCourses() {
-    return this.adminService.getAllCourses();
+  getAllCourses(@Query() query: PaginationQueryDto) {
+    return this.adminService.getAllCourses(query);
   }
 
   @Post('courses')
@@ -87,8 +89,8 @@ export class AdminController {
   }
 
   @Get('courses/pending')
-  getPendingCourses() {
-    return this.adminService.getPendingCourses();
+  getPendingCourses(@Query() query: PaginationQueryDto) {
+    return this.adminService.getPendingCourses(query);
   }
 
   @Post('courses/:id/approve')
@@ -117,8 +119,8 @@ export class AdminController {
   }
 
   @Get('lessons')
-  getAllLessons() {
-    return this.adminService.getAllLessons();
+  getAllLessons(@Query() query: PaginationQueryDto) {
+    return this.adminService.getAllLessons(query);
   }
 
   @Post('lessons')

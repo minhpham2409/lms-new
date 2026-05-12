@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { MonthlyRaceRepository } from '../database/repositories';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const XP_VALUES = {
@@ -15,8 +15,8 @@ const XP_VALUES = {
 @Injectable()
 export class MonthlyRaceService {
   constructor(
-    private prisma: PrismaService,
-    private notificationsService: NotificationsService,
+    private readonly raceRepository: MonthlyRaceRepository,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private getMonthRange(month: number, year: number) {
@@ -36,48 +36,17 @@ export class MonthlyRaceService {
       coursesCompleted,
       certificatesEarned,
       watchTimeData,
+      activityDates,
     ] = await Promise.all([
-      this.prisma.videoProgress.count({
-        where: { userId, completed: true, updatedAt: { gte: start, lt: end } },
-      }),
-      this.prisma.quizAttempt.count({
-        where: { studentId: userId, createdAt: { gte: start, lt: end } },
-      }),
-      this.prisma.submission.count({
-        where: { studentId: userId, createdAt: { gte: start, lt: end } },
-      }),
-      this.prisma.userBadge.count({
-        where: { userId, earnedAt: { gte: start, lt: end } },
-      }),
-      this.prisma.enrollment.count({
-        where: { userId, progress: { gte: 100 }, updatedAt: { gte: start, lt: end } },
-      }),
-      this.prisma.certificate.count({
-        where: { userId, createdAt: { gte: start, lt: end } },
-      }),
-      this.prisma.videoProgress.aggregate({
-        where: { userId, updatedAt: { gte: start, lt: end } },
-        _sum: { watchTime: true },
-      }),
+      this.raceRepository.countCompletedVideos(userId, start, end),
+      this.raceRepository.countQuizAttempts(userId, start, end),
+      this.raceRepository.countSubmissions(userId, start, end),
+      this.raceRepository.countBadgesEarned(userId, start, end),
+      this.raceRepository.countCoursesCompleted(userId, start, end),
+      this.raceRepository.countCertificates(userId, start, end),
+      this.raceRepository.aggregateWatchTime(userId, start, end),
+      this.raceRepository.getActivityDates(userId, start, end),
     ]);
-
-    const activities = await this.prisma.videoProgress.findMany({
-      where: { userId, updatedAt: { gte: start, lt: end } },
-      select: { updatedAt: true },
-    });
-    const activityDates = new Set(
-      activities.map(a => a.updatedAt.toISOString().slice(0, 10)),
-    );
-    const quizDates = await this.prisma.quizAttempt.findMany({
-      where: { studentId: userId, createdAt: { gte: start, lt: end } },
-      select: { createdAt: true },
-    });
-    quizDates.forEach(q => activityDates.add(q.createdAt.toISOString().slice(0, 10)));
-    const subDates = await this.prisma.submission.findMany({
-      where: { studentId: userId, createdAt: { gte: start, lt: end } },
-      select: { createdAt: true },
-    });
-    subDates.forEach(s => activityDates.add(s.createdAt.toISOString().slice(0, 10)));
 
     const checkInDays = activityDates.size;
     const watchMinutes = Math.round((watchTimeData._sum.watchTime || 0) / 60);
@@ -112,10 +81,7 @@ export class MonthlyRaceService {
   }
 
   async getMonthlyLeaderboard(month: number, year: number) {
-    const students = await this.prisma.user.findMany({
-      where: { role: 'student' },
-      select: { id: true, username: true, firstName: true, lastName: true, currentStreak: true },
-    });
+    const students = await this.raceRepository.getAllStudents();
 
     const results = await Promise.all(
       students.map(async (student) => {
@@ -138,9 +104,7 @@ export class MonthlyRaceService {
   }
 
   async finalizeMonth(month: number, year: number) {
-    const existing = await this.prisma.monthlyWinner.findFirst({
-      where: { month, year },
-    });
+    const existing = await this.raceRepository.findMonthlyWinner(month, year);
     if (existing) {
       return { message: `Tháng ${month}/${year} đã được tổng kết rồi.`, winners: [] };
     }
@@ -164,28 +128,24 @@ export class MonthlyRaceService {
 
       const code = `MONTHLY${month}${year}-TOP${reward.rank}-${entry.userId.substring(0, 4).toUpperCase()}${Math.floor(Math.random() * 9000 + 1000)}`;
 
-      await this.prisma.coupon.create({
-        data: {
-          code,
-          discount: reward.discount,
-          maxUses: 1,
-          isActive: true,
-          type: 'streak',
-          userId: entry.userId,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        },
+      await this.raceRepository.createCoupon({
+        code,
+        discount: reward.discount,
+        maxUses: 1,
+        isActive: true,
+        type: 'streak',
+        userId: entry.userId,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       });
 
-      await this.prisma.monthlyWinner.create({
-        data: {
-          userId: entry.userId,
-          month,
-          year,
-          rank: reward.rank,
-          xp: entry.xp,
-          discount: reward.discount,
-          couponCode: code,
-        },
+      await this.raceRepository.createMonthlyWinner({
+        userId: entry.userId,
+        month,
+        year,
+        rank: reward.rank,
+        xp: entry.xp,
+        discount: reward.discount,
+        couponCode: code,
       });
 
       this.notificationsService.notifyUser(entry.userId, {
@@ -201,13 +161,7 @@ export class MonthlyRaceService {
   }
 
   async getHistory(limit = 12) {
-    const winners = await this.prisma.monthlyWinner.findMany({
-      orderBy: [{ year: 'desc' }, { month: 'desc' }, { rank: 'asc' }],
-      take: limit * 3,
-      include: {
-        user: { select: { id: true, username: true, firstName: true, lastName: true } },
-      },
-    });
+    const winners = await this.raceRepository.getWinnerHistory(limit * 3);
 
     const grouped: Record<string, any[]> = {};
     for (const w of winners) {

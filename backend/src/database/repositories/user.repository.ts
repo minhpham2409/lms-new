@@ -110,4 +110,47 @@ export class UserRepository extends BaseRepository<User> {
       },
     });
   }
+
+  async findPublicTeachers() {
+    return this.model.findMany({
+      where: { role: 'teacher' },
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        _count: { select: { courses: true } },
+      },
+    });
+  }
+
+  async findPublicTeacherById(id: string) {
+    return this.model.findUnique({
+      where: { id, role: 'teacher' },
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        bio: true,
+        createdAt: true,
+        courses: {
+          where: { status: 'published' },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            price: true,
+            thumbnail: true,
+            _count: { select: { enrollments: true } },
+            sections: {
+              select: { _count: { select: { lessons: true } } },
+            },
+          },
+        },
+      },
+    });
+  }
 }

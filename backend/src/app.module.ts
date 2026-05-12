@@ -33,7 +33,9 @@ import { ParentsModule } from './parents/parents.module';
 import { UploadModule } from './upload/upload.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { MonthlyRaceModule } from './monthly-race/monthly-race.module';
-import { QueueNames } from './shared/queues';
+import { QueueNames, QueueEventBridge } from './shared/queues';
+import { EmailProcessor } from './shared/queues/processors/email.processor';
+import { CertificateProcessor } from './shared/queues/processors/certificate.processor';
 
 @Module({
   imports: [
@@ -135,6 +137,13 @@ import { QueueNames } from './shared/queues';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    // ─── Bull Queue Processors ─────────────────────────────────────────────
+    // Registered globally so they process jobs from any module.
+    EmailProcessor,
+    CertificateProcessor,
+    // ─── Event → Queue Bridge ──────────────────────────────────────────────
+    // Listens to domain events and dispatches heavy jobs into Bull queues.
+    QueueEventBridge,
   ],
 })
 export class AppModule {}

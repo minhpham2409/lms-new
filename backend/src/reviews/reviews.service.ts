@@ -1,19 +1,16 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
-import { ReviewRepository } from '../database/repositories';
-import { PrismaService } from '../prisma/prisma.service';
+import { ReviewRepository, EnrollmentRepository } from '../database/repositories';
 import { CreateReviewDto, UpdateReviewDto } from './dto';
 
 @Injectable()
 export class ReviewsService {
   constructor(
     private readonly reviewRepository: ReviewRepository,
-    private readonly prisma: PrismaService,
+    private readonly enrollmentRepository: EnrollmentRepository,
   ) {}
 
   async create(dto: CreateReviewDto, userId: string) {
-    const enrollment = await this.prisma.enrollment.findFirst({
-      where: { userId, courseId: dto.courseId },
-    });
+    const enrollment = await this.enrollmentRepository.findByUserAndCourse(userId, dto.courseId);
     if (!enrollment) throw new ForbiddenException('You must be enrolled to review this course');
 
     const existing = await this.reviewRepository.findByUserAndCourse(userId, dto.courseId);

@@ -41,4 +41,12 @@ export class ParentChildRepository extends BaseRepository<ParentChild> {
       },
     });
   }
+
+  /** Find accepted parent links for a child (to notify parents) */
+  findParentLinks(childId: string) {
+    return this.prisma.parentChild.findMany({
+      where: { childId, status: 'accepted' },
+      select: { parentId: true },
+    });
+  }
 }
