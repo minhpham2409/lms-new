@@ -1,4 +1,4 @@
-export * from './jwt-auth.guard';
-export * from './optional-jwt-auth.guard';
-export * from './local-auth.guard';
-export * from './roles.guard';
+/**
+ * @deprecated Import from '../../shared/guards' instead.
+ */
+export * from '../../shared/guards';

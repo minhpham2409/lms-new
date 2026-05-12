@@ -2,9 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import { ResponseInterceptor } from './shared/interceptors';
+import { HttpExceptionFilter } from './shared/filters';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // ─── Security: HTTP Headers ─────────────────────────────────────────────────
+  app.use(helmet());
 
   // Global prefix — matches README: /api/v1
   app.setGlobalPrefix('api/v1');
@@ -19,11 +25,16 @@ async function bootstrap() {
     exposedHeaders: ['Authorization'],
   });
 
+  // ─── Global Pipes ───────────────────────────────────────────────────────────
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     transform: true,
     forbidNonWhitelisted: true,
   }));
+
+  // ─── Global Interceptors & Filters ──────────────────────────────────────────
+  app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('LMS API')
@@ -42,4 +53,3 @@ async function bootstrap() {
   console.log(`Swagger docs: http://localhost:${port}/api/docs`);
 }
 bootstrap();
-

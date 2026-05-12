@@ -16,3 +16,5 @@ export * from './comment.repository';
 export * from './notification.repository';
 export * from './certificate.repository';
 export * from './parent-child.repository';
+export * from './enrollment.repository';
+export * from './progress.repository';

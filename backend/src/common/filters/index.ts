@@ -1,1 +1,4 @@
-export * from './http-exception.filter';
+/**
+ * @deprecated Import from '../../shared/filters' instead.
+ */
+export * from '../../shared/filters';

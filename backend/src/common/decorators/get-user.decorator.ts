@@ -1,8 +1,4 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-
-export const GetUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
-    return request.user;
-  },
-);
+/**
+ * @deprecated Import from '../../shared/decorators/get-user.decorator' instead.
+ */
+export { GetUser } from '../../shared/decorators/get-user.decorator';

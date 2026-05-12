@@ -1,4 +1,4 @@
-import { SetMetadata } from '@nestjs/common';
-
-export const ROLES_KEY = 'roles';
-export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+/**
+ * @deprecated Import from '../../shared/decorators/roles.decorator' instead.
+ */
+export { ROLES_KEY, Roles } from '../../shared/decorators/roles.decorator';

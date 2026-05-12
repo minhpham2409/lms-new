@@ -1,0 +1,39 @@
+/**
+ * Bull Queue constants for background job processing.
+ *
+ * Naming convention: `<domain>-queue` (lowercase, hyphen-separated)
+ *
+ * These queues use Redis via @nestjs/bull for heavy async tasks
+ * that should NOT block the API response (email, PDF, etc.).
+ */
+export const QueueNames = {
+  /** Email sending queue (invoice emails, welcome emails, password resets) */
+  EMAIL: 'email-queue',
+
+  /** Certificate PDF rendering queue */
+  CERTIFICATE: 'certificate-queue',
+
+  /** Notification delivery queue (batched, non-critical) */
+  NOTIFICATION: 'notification-queue',
+} as const;
+
+export type QueueName = (typeof QueueNames)[keyof typeof QueueNames];
+
+/**
+ * Job names within each queue (for routing to specific handlers)
+ */
+export const JobNames = {
+  // Email queue jobs
+  SEND_PAYMENT_INVOICE: 'send-payment-invoice',
+  SEND_WELCOME_EMAIL: 'send-welcome-email',
+  SEND_PASSWORD_RESET: 'send-password-reset',
+  SEND_ENROLLMENT_CONFIRMATION: 'send-enrollment-confirmation',
+
+  // Certificate queue jobs
+  RENDER_CERTIFICATE_PDF: 'render-certificate-pdf',
+
+  // Notification queue jobs
+  SEND_BULK_NOTIFICATION: 'send-bulk-notification',
+} as const;
+
+export type JobName = (typeof JobNames)[keyof typeof JobNames];

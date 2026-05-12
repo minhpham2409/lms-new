@@ -4,8 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { CartRepository, CouponRepository } from '../database/repositories';
-import { PrismaService } from '../prisma/prisma.service';
+import { CartRepository, CouponRepository, CourseRepository, EnrollmentRepository } from '../database/repositories';
 import { AddToCartDto, ApplyCouponDto } from './dto';
 
 @Injectable()
@@ -13,7 +12,8 @@ export class CartService {
   constructor(
     private readonly cartRepository: CartRepository,
     private readonly couponRepository: CouponRepository,
-    private readonly prisma: PrismaService,
+    private readonly courseRepository: CourseRepository,
+    private readonly enrollmentRepository: EnrollmentRepository,
   ) {}
 
   async getCart(userId: string) {
@@ -23,15 +23,13 @@ export class CartService {
   }
 
   async addItem(dto: AddToCartDto, userId: string) {
-    const course = await this.prisma.course.findUnique({ where: { id: dto.courseId } });
+    const course = await this.courseRepository.findById(dto.courseId);
     if (!course) throw new NotFoundException('Course not found');
     if (course.status !== 'published') {
       throw new BadRequestException('This course is not available for purchase');
     }
 
-    const enrolled = await this.prisma.enrollment.findFirst({
-      where: { userId, courseId: dto.courseId },
-    });
+    const enrolled = await this.enrollmentRepository.findByUserAndCourse(userId, dto.courseId);
     if (enrolled) throw new ConflictException('You are already enrolled in this course');
 
     const existing = await this.cartRepository.findByUserAndCourse(userId, dto.courseId);

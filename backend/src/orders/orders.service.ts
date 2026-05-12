@@ -3,8 +3,10 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { OrderRepository, CartRepository, CouponRepository } from '../database/repositories';
-import { PrismaService } from '../prisma/prisma.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OrderRepository, CartRepository, CouponRepository, EnrollmentRepository } from '../database/repositories';
+import { AppEvents } from '../shared/events';
+import { OrderCreatedPayload } from '../shared/events';
 import { CreateOrderDto } from './dto';
 
 @Injectable()
@@ -13,7 +15,8 @@ export class OrdersService {
     private readonly orderRepository: OrderRepository,
     private readonly cartRepository: CartRepository,
     private readonly couponRepository: CouponRepository,
-    private readonly prisma: PrismaService,
+    private readonly enrollmentRepository: EnrollmentRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(dto: CreateOrderDto, userId: string) {
@@ -23,9 +26,7 @@ export class OrdersService {
     // Filter out courses user is already enrolled in (race condition guard)
     const availableItems: typeof cartItems = [];
     for (const item of cartItems) {
-      const enrolled = await this.prisma.enrollment.findFirst({
-        where: { userId, courseId: item.courseId },
-      });
+      const enrolled = await this.enrollmentRepository.findByUserAndCourse(userId, item.courseId);
       if (!enrolled) availableItems.push(item);
     }
 
@@ -64,6 +65,15 @@ export class OrdersService {
     });
 
     await this.cartRepository.clearCart(userId);
+
+    // Emit order created event
+    this.eventEmitter.emit(AppEvents.ORDER_CREATED, {
+      orderId: order.id,
+      userId,
+      totalPrice,
+      finalPrice,
+      courseIds: availableItems.map(item => item.courseId),
+    } as OrderCreatedPayload);
 
     return order;
   }

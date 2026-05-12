@@ -6,13 +6,11 @@ import {
 import { CourseRepository } from '../database/repositories';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CoursesService {
   constructor(
     private readonly courseRepository: CourseRepository,
-    private readonly prisma: PrismaService,
   ) {}
 
   async create(dto: CreateCourseDto, authorId: string) {
@@ -92,36 +90,8 @@ export class CoursesService {
   }
 
   async getTeacherStats(authorId: string) {
-    const [courses, enrollments, reviews, revenue, recentEnrollments] = await Promise.all([
-      this.prisma.course.findMany({
-        where: { authorId },
-        include: { _count: { select: { enrollments: true } } },
-      }),
-      this.prisma.enrollment.findMany({
-        where: { course: { authorId } },
-        select: { userId: true, createdAt: true },
-      }),
-      this.prisma.review.findMany({
-        where: { course: { authorId } },
-        select: { rating: true },
-      }),
-      this.prisma.orderItem.findMany({
-        where: {
-          order: { status: { in: ['paid', 'completed'] } },
-          course: { authorId },
-        },
-        select: { price: true, order: { select: { createdAt: true } } },
-      }),
-      this.prisma.enrollment.findMany({
-        where: { course: { authorId } },
-        include: {
-          user: { select: { id: true, username: true } },
-          course: { select: { id: true, title: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-      }),
-    ]);
+    const [courses, enrollments, reviews, revenue, recentEnrollments] =
+      await this.courseRepository.getTeacherStatsData(authorId);
 
     const totalStudents = new Set(enrollments.map((e) => e.userId)).size;
     const avgRating = reviews.length

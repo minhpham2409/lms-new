@@ -1,2 +1,4 @@
-export * from './get-user.decorator';
-export * from './roles.decorator';
+/**
+ * @deprecated Import from '../../shared/decorators' instead.
+ */
+export * from '../../shared/decorators';

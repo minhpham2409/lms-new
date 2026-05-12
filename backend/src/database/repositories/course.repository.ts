@@ -84,6 +84,40 @@ export class CourseRepository extends BaseRepository<Course> {
     });
   }
 
+  /** Data queries for teacher dashboard stats */
+  async getTeacherStatsData(authorId: string) {
+    return Promise.all([
+      this.prisma.course.findMany({
+        where: { authorId },
+        include: { _count: { select: { enrollments: true } } },
+      }),
+      this.prisma.enrollment.findMany({
+        where: { course: { authorId } },
+        select: { userId: true, createdAt: true },
+      }),
+      this.prisma.review.findMany({
+        where: { course: { authorId } },
+        select: { rating: true },
+      }),
+      this.prisma.orderItem.findMany({
+        where: {
+          order: { status: { in: ['paid', 'completed'] } },
+          course: { authorId },
+        },
+        select: { price: true, order: { select: { createdAt: true } } },
+      }),
+      this.prisma.enrollment.findMany({
+        where: { course: { authorId } },
+        include: {
+          user: { select: { id: true, username: true } },
+          course: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+  }
+
   search(q: string, publishedOnly = true) {
     return this.prisma.course.findMany({
       where: {
