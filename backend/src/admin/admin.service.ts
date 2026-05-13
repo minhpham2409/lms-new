@@ -34,22 +34,38 @@ export class AdminService implements OnApplicationBootstrap {
 
   /** Run after DI is fully set up — safe for async logic */
   async onApplicationBootstrap() {
-    await this.createSuperAdminIfNotExists();
+    await this.bootstrapAdminFromEnv();
   }
 
-  private async createSuperAdminIfNotExists() {
-    const adminExists = await this.userRepository.findOne({ role: 'admin' });
+  /**
+   * Bootstrap a super-admin from environment variables.
+   * Requires BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_USERNAME,
+   * and BOOTSTRAP_ADMIN_PASSWORD to be set.
+   * Does nothing if any variable is missing (safe for production).
+   * Does nothing if an admin already exists.
+   */
+  private async bootstrapAdminFromEnv() {
+    const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
+    const username = process.env.BOOTSTRAP_ADMIN_USERNAME;
+    const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
 
-    if (!adminExists) {
-      const hashedPassword = await this.passwordService.hashPassword('Admin123!');
-      await this.userRepository.createUser({
-        email: 'admin@lms.com',
-        password: hashedPassword,
-        role: 'admin',
-        firstName: 'Admin',
-        username: 'admin',
-      });
+    if (!email || !username || !password) {
+      return; // No env vars set — skip silently
     }
+
+    const adminExists = await this.userRepository.findOne({ role: 'admin' });
+    if (adminExists) return; // Already bootstrapped
+
+    const hashedPassword = await this.passwordService.hashPassword(password);
+    await this.userRepository.createUser({
+      email,
+      password: hashedPassword,
+      role: 'admin',
+      username,
+    });
+
+    // NOTE: Never log the password
+    console.log(`[Bootstrap] Admin user '${username}' created from env vars.`);
   }
 
   // ─── User Management (Paginated) ──────────────────────────────────────────

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth/auth-state';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,7 +11,7 @@ import { commentsApi } from '@/lib/api-service';
 import type { Comment } from '@/types';
 
 export function LessonComments({ lessonId }: { lessonId: string }) {
-  const { data: session, status } = useSession();
+  const { isLoggedIn } = useAuth();
   const [items, setItems] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -20,7 +20,7 @@ export function LessonComments({ lessonId }: { lessonId: string }) {
   const [replyText, setReplyText] = useState('');
 
   const load = () => {
-    if (status !== 'authenticated' || !session?.accessToken) {
+    if (!isLoggedIn) {
       setLoading(false);
       return;
     }
@@ -34,7 +34,7 @@ export function LessonComments({ lessonId }: { lessonId: string }) {
   useEffect(() => {
     setLoading(true);
     load();
-  }, [lessonId, status, session?.accessToken]);
+  }, [lessonId, isLoggedIn]);
 
   const submit = async () => {
     if (!text.trim()) return;
@@ -67,7 +67,7 @@ export function LessonComments({ lessonId }: { lessonId: string }) {
     }
   };
 
-  if (status === 'unauthenticated') {
+  if (!isLoggedIn) {
     return (
       <Card>
         <CardHeader>

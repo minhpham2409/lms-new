@@ -2,14 +2,16 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/components/auth/auth-state';
+import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Home, BookOpen, ShoppingCart, Bell, LogOut, Settings, LogIn } from 'lucide-react';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { data: session } = useSession();
+  const { user, isLoggedIn, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
@@ -45,13 +47,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
-              {session ? (
+              {isLoggedIn ? (
                 <>
                   <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">
-                    {session.user?.name}
+                    {user?.firstName ?? user?.username}
                   </span>
                   <button
-                    onClick={() => signOut()}
+                    onClick={() => { logout(); router.push('/'); }}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
                     <LogOut className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -59,7 +61,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </>
               ) : (
                 <Link
-                  href="/auth/signin"
+                  href="/auth/login"
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                 >
                   <div className="flex items-center gap-2">

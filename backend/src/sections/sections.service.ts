@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { SectionRepository, CourseRepository } from '../database/repositories';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto';
+import { RequestUser } from '../shared/helpers/course-content-access.helper';
 
 @Injectable()
 export class SectionsService {
@@ -30,15 +31,40 @@ export class SectionsService {
     });
   }
 
-  async findByCourseId(courseId: string) {
+  /**
+   * List sections by course. 
+   * - Admin and course author: always allowed.
+   * - Published course: section titles returned to anyone.
+   * - Draft/pending course: only teacher-author or admin.
+   */
+  async findByCourseId(courseId: string, user: RequestUser) {
+    const course = await this.courseRepository.findById(courseId);
+    if (!course) throw new NotFoundException('Course not found');
+
+    const isAdmin = user?.role === 'admin';
+    const isAuthor = user?.role === 'teacher' && course.authorId === user.id;
+
+    if (course.status !== 'published' && !isAdmin && !isAuthor) {
+      throw new ForbiddenException('Course is not available');
+    }
+
     return this.sectionRepository.findByCourseId(courseId);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: RequestUser) {
     const section = await this.sectionRepository.findByIdWithLessons(id);
     if (!section) {
       throw new NotFoundException('Section not found');
     }
+
+    const course = await this.courseRepository.findById(section.courseId);
+    const isAdmin = user?.role === 'admin';
+    const isAuthor = user?.role === 'teacher' && course?.authorId === user.id;
+
+    if (course?.status !== 'published' && !isAdmin && !isAuthor) {
+      throw new ForbiddenException('Course is not available');
+    }
+
     return section;
   }
 

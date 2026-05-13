@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth/auth-state';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,18 +44,18 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
   const [addingToCart, setAddingToCart] = useState(false);
   const [inCart, setInCart] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-  const { data: session } = useSession();
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!session) return;
+    if (!isLoggedIn) return;
     enrollmentsApi.checkStatus(course.id)
       .then((s) => setIsEnrolled(s.enrolled))
       .catch(() => {});
     cartApi.get()
       .then((items) => setInCart(items.some((i) => i.courseId === course.id)))
       .catch(() => {});
-  }, [session, course.id]);
+  }, [isLoggedIn, course.id]);
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => {
@@ -66,8 +66,8 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
   };
 
   const handleEnroll = async () => {
-    if (!session) {
-      router.push(`/auth/signin?callbackUrl=/courses/${course.id}`);
+    if (!isLoggedIn) {
+      router.push(`/auth/login?callbackUrl=/courses/${course.id}`);
       return;
     }
     try {
@@ -89,8 +89,8 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
   };
 
   const handleAddToCart = async () => {
-    if (!session) {
-      router.push(`/auth/signin?callbackUrl=/courses/${course.id}`);
+    if (!isLoggedIn) {
+      router.push(`/auth/login?callbackUrl=/courses/${course.id}`);
       return;
     }
     if (inCart) {
@@ -321,10 +321,10 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
             ) : (
               <>
                 <CardHeader>
-                  {course.price != null && course.price > 0 ? (
+                  {course.price != null && Number(course.price) > 0 ? (
                     <div className="flex items-center gap-2 mb-1">
                       <DollarSign className="h-5 w-5 text-green-600" />
-                      <span className="text-3xl font-bold">{course.price.toLocaleString('vi-VN')}đ</span>
+                      <span className="text-3xl font-bold">{Number(course.price).toLocaleString('vi-VN')}đ</span>
                     </div>
                   ) : (
                     <div className="text-2xl font-bold text-green-600 mb-1">Free</div>
@@ -363,7 +363,7 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
-                  {course.price != null && course.price > 0 ? (
+                  {course.price != null && Number(course.price) > 0 ? (
                     <Button className="w-full" onClick={handleAddToCart} disabled={addingToCart}>
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       {addingToCart ? 'Adding...' : inCart ? 'Go to Cart' : 'Add to Cart'}

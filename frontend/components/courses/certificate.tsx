@@ -1,17 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth/auth-state';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Download, Award, ArrowLeft, CheckCircle } from 'lucide-react';
-import { 
-  fetchCourseById, 
-  getCourseVideosProgress
-} from '@/lib/api';
+import { coursesApi, progressApi } from '@/lib/api-service';
 
 interface Course {
   id: string;
@@ -28,7 +25,7 @@ interface CertificateProps {
 }
 
 export default function Certificate({ courseId }: CertificateProps) {
-  const { data: session } = useSession();
+  const { user, isLoggedIn } = useAuth();
   const router = useRouter();
   const certificateRef = useRef<HTMLDivElement>(null);
   
@@ -42,20 +39,16 @@ export default function Certificate({ courseId }: CertificateProps) {
     try {
       setIsLoading(true);
       
-      const courseData = await fetchCourseById(courseId);
+      const courseData = await coursesApi.getById(courseId) as Course;
       setCourse(courseData);
       
-      // Get video progress data
-      const progressData = await getCourseVideosProgress(courseId, session!.accessToken);
-      console.log('Progress data:', progressData);
-      
-      // Calculate overall progress
+      // Get progress from progress API
       let overallProgress = 0;
-      if (Array.isArray(progressData) && progressData.length > 0) {
-        const completedLessons = progressData.filter(p => p.completed).length;
-        overallProgress = (completedLessons / progressData.length) * 100;
-      } else if (progressData && typeof progressData === 'object' && 'overallProgress' in progressData) {
-        overallProgress = progressData.overallProgress;
+      try {
+        const progressData = await progressApi.getCourse(courseId);
+        overallProgress = progressData.overallProgress ?? 0;
+      } catch {
+        overallProgress = 0;
       }
       
       setProgress(overallProgress);
@@ -77,16 +70,16 @@ export default function Certificate({ courseId }: CertificateProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [courseId, session, router]);
+  }, [courseId, isLoggedIn, router]);
 
   useEffect(() => {
-    if (!session) {
-      router.push('/auth/signin');
+    if (!isLoggedIn) {
+      router.push('/auth/login');
       return;
     }
     
     loadCertificateData();
-  }, [session, courseId, router, loadCertificateData]);
+  }, [isLoggedIn, courseId, router, loadCertificateData]);
 
   const generateCertificate = async () => {
     if (!certificateRef.current) return;
@@ -221,7 +214,7 @@ export default function Certificate({ courseId }: CertificateProps) {
                   <div class="icon">🏆</div>
                   <h1 class="title">Certificate of Completion</h1>
                   <p class="text">This certifies that</p>
-                  <p class="name">${session?.user?.name || 'Student'}</p>
+                  <p class="name">${user?.firstName ?? user?.username ?? 'Student'}</p>
                   <p class="text">has successfully completed</p>
                   <p class="course">${course?.title}</p>
                   <div class="details">
@@ -356,7 +349,7 @@ export default function Certificate({ courseId }: CertificateProps) {
                 <div className="text-lg" style={{ color: '#1e40af' }}>
                   <p className="mb-2">This certifies that</p>
                   <p className="text-2xl font-bold mb-4" style={{ color: '#1e3a8a' }}>
-                    {session?.user?.name || 'Student'}
+                    {user?.firstName ?? user?.username ?? 'Student'}
                   </p>
                   <p className="mb-2">has successfully completed</p>
                   <p className="text-2xl font-bold mb-6" style={{ color: '#1e3a8a' }}>

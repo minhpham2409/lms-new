@@ -170,13 +170,18 @@ export class PaymentsService {
     const courseItems = order.items.map((item) => ({ courseId: item.courseId }));
 
     // All-or-nothing: Payment ✓ → Order ✓ → Coupon increment ✓ → Enrollments ✓
-    await this.paymentRepository.completePaymentTransaction({
+    const result = await this.paymentRepository.completePaymentTransaction({
       paymentId: payment.id,
       orderId: payment.orderId,
       userId: order.userId,
       courseItems,
       couponId: order.couponId ?? undefined,
     });
+
+    // Duplicate webhook that arrived after we already processed — safe
+    if (result?.alreadyProcessed) {
+      return { message: 'Already processed' };
+    }
 
     this.logger.log(
       `[Transaction OK] Payment ${payment.id} → Order ${order.id} → ${courseItems.length} enrollments`,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth/auth-state';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
-  const { data: session } = useSession();
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -43,7 +43,7 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
   const [lessonAssignments, setLessonAssignments] = useState<Assignment[]>([]);
 
   const loadData = useCallback(async () => {
-    if (!session) return;
+    if (!isLoggedIn) return;
     try {
       setIsLoading(true);
       const status = await enrollmentsApi.checkStatus(courseId);
@@ -53,13 +53,12 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
         return;
       }
 
-      const [courseData, progressData] = await Promise.all([
+      const [courseData] = await Promise.all([
         coursesApi.getById(courseId),
-        progressApi.getCourse(courseId).catch(() => ({ overallProgress: 0, completedLessons: 0, totalLessons: 0, courseId })),
       ]);
 
-      setOverallProgress(progressData.overallProgress ?? 0);
-
+      // Calculate progress from completed lessons
+      let completedLessonsCount = 0;
       const flatLessons: LessonWithProgress[] = [];
       for (const section of (courseData.sections ?? [])) {
         for (const lesson of (section.lessons ?? [])) {
@@ -68,6 +67,7 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
             const lp = await progressApi.getLesson(lesson.id);
             lessonProgress = { completed: lp.completed, watchTime: lp.watchTime };
           } catch {}
+          if (lessonProgress.completed) completedLessonsCount++;
           flatLessons.push({ ...lesson, ...lessonProgress });
         }
       }
@@ -75,6 +75,10 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
       setCourse(courseData);
       setAllLessons(flatLessons);
       setExpandedSections(new Set((courseData.sections ?? []).map((s) => s.id)));
+      // Derive overall progress from actual lesson data
+      const total = flatLessons.length;
+      const pct = total > 0 ? Math.round((completedLessonsCount / total) * 100) : 0;
+      setOverallProgress(pct);
 
       const cur = flatLessons.find((l) => l.id === lessonId);
       setCurrentLesson(cur ?? flatLessons[0] ?? null);
@@ -89,15 +93,15 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [courseId, lessonId, session, router]);
+  }, [courseId, lessonId, isLoggedIn, router]);
 
   useEffect(() => {
-    if (!session) {
-      router.push('/auth/signin');
+    if (!isLoggedIn) {
+      router.push('/auth/login');
       return;
     }
     loadData();
-  }, [session, loadData, router]);
+  }, [isLoggedIn, loadData, router]);
 
   const markAsCompleted = async () => {
     if (!currentLesson) return;

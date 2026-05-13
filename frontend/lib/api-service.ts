@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { getSession } from 'next-auth/react';
 import type {
   Course, Section, Lesson, Enrollment, VideoProgress,
   Assignment, Submission, Quiz, QuizAttempt, Question,
@@ -18,10 +17,12 @@ const api = axios.create({
   timeout: 30000,
 });
 
-api.interceptors.request.use(async (config) => {
-  const session = await getSession();
-  if (session?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.accessToken}`;
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -30,11 +31,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      window.location.href = '/auth/signin';
+      window.location.href = '/auth/login';
     }
     return Promise.reject(error);
   }
 );
+
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 

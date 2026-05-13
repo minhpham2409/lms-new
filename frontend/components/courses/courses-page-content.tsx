@@ -25,7 +25,7 @@ import {
 import { BookOpen, User, Users, Search, Star } from 'lucide-react';
 import { truncateText } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth/auth-state';
 
 export default function CoursesPageContent() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -36,7 +36,8 @@ export default function CoursesPageContent() {
   const [sortBy, setSortBy] = useState('popular');
   const [levelFilter, setLevelFilter] = useState('all');
   const router = useRouter();
-  const { data: session } = useSession();
+  const { user, isLoggedIn } = useAuth();
+  const role = user?.role;
 
   useEffect(() => {
     coursesApi.getAll()
@@ -49,7 +50,7 @@ export default function CoursesPageContent() {
   }, []);
 
   useEffect(() => {
-    if (session?.user?.role === 'student' && session?.accessToken) {
+    if (role === 'student' && isLoggedIn) {
       enrollmentsApi
         .getMyCourses()
         .then((list) => setEnrolledIds(new Set(list.map((e) => e.courseId))))
@@ -57,11 +58,11 @@ export default function CoursesPageContent() {
     } else {
       setEnrolledIds(new Set());
     }
-  }, [session?.user?.role, session?.accessToken]);
+  }, [role, isLoggedIn]);
 
   useEffect(() => {
     let result = [...courses];
-    if (session?.user?.role === 'student' && enrolledIds.size > 0) {
+    if (role === 'student' && enrolledIds.size > 0) {
       result = result.filter((c) => !enrolledIds.has(c.id));
     }
     if (search) {
@@ -83,10 +84,10 @@ export default function CoursesPageContent() {
     } else if (sortBy === 'alphabetical') {
       result.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortBy === 'price-low') {
-      result.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+      result.sort((a, b) => (Number(a.price) ?? 0) - (Number(b.price) ?? 0));
     }
     setFiltered(result);
-  }, [courses, search, sortBy, levelFilter, session?.user?.role, enrolledIds]);
+  }, [courses, search, sortBy, levelFilter, role, enrolledIds]);
 
   const getLessonCount = (course: Course) =>
     course.sections?.reduce((acc, s) => acc + (s.lessons?.length ?? 0), 0) ?? 0;
@@ -99,7 +100,7 @@ export default function CoursesPageContent() {
           <p className="text-muted-foreground text-lg">
             Browse our comprehensive catalog and start your learning journey
           </p>
-          {session?.user?.role === 'student' && enrolledIds.size > 0 && (
+          {role === 'student' && enrolledIds.size > 0 && (
             <p className="text-sm text-muted-foreground mt-3">
               Courses you&apos;re already enrolled in are listed under{' '}
               <button
@@ -201,7 +202,7 @@ export default function CoursesPageContent() {
                     )}
                     {course.price != null && (
                       <div className="absolute bottom-3 right-3 bg-white/95 text-primary font-bold px-2.5 py-1 rounded-full text-sm">
-                        {course.price > 0 ? `${course.price.toLocaleString('vi-VN')}đ` : 'Free'}
+                        {Number(course.price) > 0 ? `${Number(course.price).toLocaleString('vi-VN')}đ` : 'Free'}
                       </div>
                     )}
                   </div>
@@ -243,7 +244,7 @@ export default function CoursesPageContent() {
                         router.push(`/courses/${course.id}`);
                       }}
                     >
-                      {session ? 'View Course' : 'Learn More'}
+                      {isLoggedIn ? 'View Course' : 'Learn More'}
                     </Button>
                   </CardFooter>
                 </Card>

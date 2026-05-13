@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/components/auth/auth-state';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PanelLeft, Home, type LucideIcon } from 'lucide-react';
@@ -36,24 +36,24 @@ export function ManagementShell({
   const [open, setOpen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { user, isLoggedIn, loading, logout } = useAuth();
 
   useEffect(() => {
-    if (status === 'unauthenticated') router.push('/auth/signin');
-  }, [status, router]);
+    if (!loading && !isLoggedIn) router.push('/auth/login');
+  }, [loading, isLoggedIn, router]);
 
   useEffect(() => {
-    if (status !== 'authenticated' || !session?.user?.role) return;
-    const role = session.user.role;
+    if (loading || !isLoggedIn || !user?.role) return;
+    const role = user.role;
     if (role === requiredRole) return;
     if (role === 'admin') router.replace('/admin');
     else if (role === 'student') router.replace('/dashboard');
     else if (role === 'teacher') router.replace('/teacher');
     else if (role === 'parent') router.replace('/parent');
     else router.replace('/dashboard');
-  }, [status, session, requiredRole, router]);
+  }, [loading, isLoggedIn, user, requiredRole, router]);
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100">
         <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
@@ -61,7 +61,7 @@ export function ManagementShell({
     );
   }
 
-  if (!session?.user || session.user.role !== requiredRole) {
+  if (!user || user.role !== requiredRole) {
     return null;
   }
 
@@ -94,12 +94,12 @@ export function ManagementShell({
             </Link>
           </Button>
           <span className="hidden max-w-[140px] truncate text-sm text-gray-600 md:inline">
-            {session.user.name ?? session.user.email}
+            {user.firstName ?? user.username ?? user.email}
           </span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+            onClick={() => { logout(); router.push('/auth/login'); }}
           >
             Sign out
           </Button>

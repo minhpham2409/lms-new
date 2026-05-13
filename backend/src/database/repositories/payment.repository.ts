@@ -37,24 +37,36 @@ export class PaymentRepository extends BaseRepository<Payment> {
     couponId?: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Mark payment as completed
-      await tx.payment.update({
-        where: { id: params.paymentId },
+      // 1. Conditional update: only proceed if payment is STILL pending.
+      //    If another webhook beat us, this will update 0 rows.
+      const paymentUpdate = await tx.payment.updateMany({
+        where: { id: params.paymentId, status: 'pending' },
         data: { status: 'completed', paidAt: new Date() },
       });
 
-      // 2. Mark order as paid
-      await tx.order.update({
-        where: { id: params.orderId },
+      if (paymentUpdate.count === 0) {
+        // Already processed by another concurrent request — safe no-op
+        return { alreadyProcessed: true };
+      }
+
+      // 2. Conditional update: only mark order paid if still pending
+      await tx.order.updateMany({
+        where: { id: params.orderId, status: 'pending' },
         data: { status: 'paid' },
       });
 
-      // 3. Increment coupon usedCount (only on successful payment, not at order creation)
+      // 3. Increment coupon usedCount with maxUses guard (prevents over-use in race)
       if (params.couponId) {
-        await tx.coupon.update({
+        const coupon = await tx.coupon.findUnique({
           where: { id: params.couponId },
-          data: { usedCount: { increment: 1 } },
+          select: { usedCount: true, maxUses: true },
         });
+        if (coupon && (!coupon.maxUses || coupon.usedCount < coupon.maxUses)) {
+          await tx.coupon.update({
+            where: { id: params.couponId },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
       }
 
       // 4. Create enrollments for each course (idempotent upsert)
@@ -77,6 +89,8 @@ export class PaymentRepository extends BaseRepository<Payment> {
           },
         });
       }
+
+      return { alreadyProcessed: false };
     });
   }
 

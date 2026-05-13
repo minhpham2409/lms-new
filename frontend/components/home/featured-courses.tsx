@@ -82,8 +82,8 @@ export function FeaturedCourses({
                     </Badge>
                   )}
                   <div className="absolute bottom-3 right-3 bg-white/95 text-primary font-bold px-2.5 py-1 rounded-full text-sm">
-                    {course.price != null && course.price > 0
-                      ? `${course.price.toLocaleString('vi-VN')}đ`
+                    {course.price != null && Number(course.price) > 0
+                      ? `${Number(course.price).toLocaleString('vi-VN')}đ`
                       : 'Free'}
                   </div>
                 </div>

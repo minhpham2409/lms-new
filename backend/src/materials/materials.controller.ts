@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { CreateMaterialDto, UpdateMaterialDto } from './dto';
@@ -28,22 +29,38 @@ export class MaterialsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add material to lesson' })
   @ApiResponse({ status: 201, description: 'Material created' })
-  create(@Body() dto: CreateMaterialDto, @GetUser() user: any) {
+  create(@Body() dto: CreateMaterialDto, @GetUser() user: { id: string }) {
     return this.materialsService.create(dto, user.id);
   }
 
+  /**
+   * GET /materials?lessonId=... — requires JWT + enrollment.
+   */
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get materials by lesson' })
   @ApiResponse({ status: 200, description: 'Materials retrieved' })
-  findByLesson(@Query('lessonId') lessonId: string) {
-    return this.materialsService.findByLessonId(lessonId);
+  findByLesson(
+    @Query('lessonId') lessonId: string,
+    @GetUser() user: { id: string; role: string },
+  ) {
+    return this.materialsService.findByLessonId(lessonId, user);
   }
 
+  /**
+   * GET /materials/:id — requires JWT + enrollment.
+   */
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get material by id' })
   @ApiResponse({ status: 200, description: 'Material retrieved' })
-  findOne(@Param('id') id: string) {
-    return this.materialsService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @GetUser() user: { id: string; role: string },
+  ) {
+    return this.materialsService.findOne(id, user);
   }
 
   @Patch(':id')
@@ -55,7 +72,7 @@ export class MaterialsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateMaterialDto,
-    @GetUser() user: any,
+    @GetUser() user: { id: string },
   ) {
     return this.materialsService.update(id, dto, user.id);
   }
@@ -66,7 +83,7 @@ export class MaterialsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete material' })
   @ApiResponse({ status: 200, description: 'Material deleted' })
-  remove(@Param('id') id: string, @GetUser() user: any) {
+  remove(@Param('id') id: string, @GetUser() user: { id: string }) {
     return this.materialsService.remove(id, user.id);
   }
 }

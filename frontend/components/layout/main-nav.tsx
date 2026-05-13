@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useSession, signOut } from "next-auth/react";
+import { useAuth } from "@/components/auth/auth-state";
 import {
   BookOpen,
   User,
@@ -22,13 +22,14 @@ import { notificationsApi, cartApi } from "@/lib/api-service";
 
 export function MainNav() {
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const router = useRouter();
+  const { user, isLoggedIn, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
+    if (!isLoggedIn) return;
     const loadNotifications = () => {
       notificationsApi
         .getAll()
@@ -50,20 +51,25 @@ export function MainNav() {
       window.removeEventListener("focus", onRefresh);
       window.removeEventListener("lms-notifications-changed", onRefresh);
     };
-  }, [status, session?.accessToken]);
+  }, [isLoggedIn]);
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
 
-  const role = session?.user?.role;
+  const role = user?.role;
 
   const navItems = [
-    ...(status !== "authenticated" || role === "student"
+    ...(!isLoggedIn || role === "student"
       ? [{ name: "Courses", path: "/courses", icon: BookOpen }]
       : []),
-    ...(session ? [{ name: "Dashboard", path: "/dashboard", icon: LayoutDashboard }] : []),
+    ...(isLoggedIn ? [{ name: "Dashboard", path: "/dashboard", icon: LayoutDashboard }] : []),
     ...(role === "teacher" ? [{ name: "My Courses", path: "/teacher", icon: GraduationCap }] : []),
     ...(role === "parent" ? [{ name: "My Children", path: "/parent", icon: Users }] : []),
   ];
+
+  const handleLogout = () => {
+    logout();
+    router.push("/");
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -92,7 +98,7 @@ export function MainNav() {
         </div>
 
         <div className="hidden md:flex items-center gap-2">
-          {status === "authenticated" ? (
+          {isLoggedIn ? (
             <>
               <Button variant="ghost" size="icon" asChild className="relative">
                 <Link href="/cart">
@@ -122,7 +128,7 @@ export function MainNav() {
                   <span className="sr-only">Profile</span>
                 </Link>
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/" })}>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-1.5" />
                 Sign out
               </Button>
@@ -130,10 +136,10 @@ export function MainNav() {
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link href="/auth/signin">Sign in</Link>
+                <Link href="/auth/login">Sign in</Link>
               </Button>
               <Button asChild>
-                <Link href="/auth/signup">Sign up</Link>
+                <Link href="/auth/register">Sign up</Link>
               </Button>
             </>
           )}
@@ -167,7 +173,7 @@ export function MainNav() {
                   {item.name}
                 </Link>
               ))}
-              {status === "authenticated" && (
+              {isLoggedIn && (
                 <>
                   <Link
                     href="/cart"
@@ -189,24 +195,24 @@ export function MainNav() {
               )}
             </nav>
             <div className="flex flex-col gap-2 pt-2 border-t">
-              {status === "authenticated" ? (
+              {isLoggedIn ? (
                 <>
                   <Button variant="outline" asChild>
                     <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
                       <User className="mr-2 h-4 w-4" /> Profile
                     </Link>
                   </Button>
-                  <Button variant="default" onClick={() => signOut({ callbackUrl: "/" })}>
+                  <Button variant="default" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" /> Sign out
                   </Button>
                 </>
               ) : (
                 <>
                   <Button variant="outline" asChild>
-                    <Link href="/auth/signin" onClick={() => setMobileMenuOpen(false)}>Sign in</Link>
+                    <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>Sign in</Link>
                   </Button>
                   <Button asChild>
-                    <Link href="/auth/signup" onClick={() => setMobileMenuOpen(false)}>Sign up</Link>
+                    <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>Sign up</Link>
                   </Button>
                 </>
               )}

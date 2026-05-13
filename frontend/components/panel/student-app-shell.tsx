@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth/auth-state';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -29,8 +29,9 @@ function dashboardHref(role: string | undefined) {
 export function StudentAppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   const pathname = usePathname();
-  const { data: session, status } = useSession();
-  const role = session?.user?.role;
+  const router = useRouter();
+  const { user, isLoggedIn, logout } = useAuth();
+  const role = user?.role;
 
   const dash = dashboardHref(role);
   const DashIcon =
@@ -55,22 +56,22 @@ export function StudentAppShell({ children }: { children: React.ReactNode }) {
               ? 'Admin'
               : 'Dashboard',
       icon: DashIcon,
-      show: status === 'authenticated',
+      show: isLoggedIn,
     },
     {
       href: '/courses',
       label: 'Courses',
       icon: BookOpen,
-      show: status !== 'authenticated' || role === 'student',
+      show: !isLoggedIn || role === 'student',
     },
     {
       href: '/cart',
       label: 'Cart',
       icon: ShoppingCart,
-      show: status === 'authenticated' && role === 'student',
+      show: isLoggedIn && role === 'student',
     },
-    { href: '/notifications', label: 'Notifications', icon: Bell, show: status === 'authenticated' },
-    { href: '/profile', label: 'Profile', icon: User, show: status === 'authenticated' },
+    { href: '/notifications', label: 'Notifications', icon: Bell, show: isLoggedIn },
+    { href: '/profile', label: 'Profile', icon: User, show: isLoggedIn },
   ];
 
   return (
@@ -95,18 +96,18 @@ export function StudentAppShell({ children }: { children: React.ReactNode }) {
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {status === 'authenticated' ? (
+          {isLoggedIn ? (
             <>
               <span className="hidden max-w-[120px] truncate text-sm text-gray-600 md:inline">
-                {session?.user?.name ?? session?.user?.email}
+                {user?.firstName ?? user?.username ?? user?.email}
               </span>
-              <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: '/' })}>
+              <Button variant="outline" size="sm" onClick={() => { logout(); router.push('/'); }}>
                 Sign out
               </Button>
             </>
           ) : (
             <Button asChild size="sm">
-              <Link href="/auth/signin">Sign in</Link>
+              <Link href="/auth/login">Sign in</Link>
             </Button>
           )}
         </div>

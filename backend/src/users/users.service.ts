@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserRepository, StudentDashboardRepository } from '../database/repositories';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AchievementsService } from '../achievements/achievements.service';
 
@@ -49,6 +50,15 @@ export class UsersService {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     return this.userRepository.update(id, updateUserDto);
+  }
+
+  /**
+   * Safe self-update: strips dangerous fields (role, isActive, password).
+   * Users cannot elevate privileges through this endpoint.
+   */
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const { firstName, lastName, bio, avatarUrl } = dto;
+    return this.userRepository.update(userId, { firstName, lastName, bio, avatarUrl });
   }
 
   async remove(id: string) {

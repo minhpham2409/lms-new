@@ -196,7 +196,7 @@ export default function LessonPage() {
 
   async function fetchData() {
     setLoading(true);
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     try {
       const [lessonR, courseR] = await Promise.all([
         fetch(`${API}/lessons/${lessonId}`, { headers }),
@@ -235,7 +235,7 @@ export default function LessonPage() {
         const d = await res.json();
         setHasAssignment(d.hasAssignment);
         setAssignmentSubmitted(d.submitted === true);
-        if (d.submitted) setSubmittedIds(new Set([lessonId]));
+        if (d.submitted) setSubmittedIds(new Set([String(lessonId)]));
         // Keep the higher value between local and server
         const serverPct = d.watchedPercentage || 0;
         setWatchedPercentage(prev => Math.max(prev, serverPct));

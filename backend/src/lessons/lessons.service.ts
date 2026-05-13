@@ -1,13 +1,15 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { LessonRepository, SectionRepository } from '../database/repositories';
+import { LessonRepository, SectionRepository, EnrollmentRepository } from '../database/repositories';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { RequestUser } from '../shared/helpers/course-content-access.helper';
 
 @Injectable()
 export class LessonsService {
   constructor(
     private readonly lessonRepository: LessonRepository,
     private readonly sectionRepository: SectionRepository,
+    private readonly enrollmentRepository: EnrollmentRepository,
   ) {}
 
   private async getSectionWithCourse(sectionId: string) {
@@ -34,19 +36,60 @@ export class LessonsService {
     });
   }
 
-  async findAll(sectionId?: string) {
+  /**
+   * List lessons by section — returns titles only to unauthenticated users on published courses.
+   */
+  async findAll(sectionId?: string, user?: RequestUser) {
     if (sectionId) {
+      const section = await this.sectionRepository.findByIdWithCourse(sectionId);
+      if (section) {
+        const course = section.course;
+        const isAdmin = user?.role === 'admin';
+        const isAuthor = user?.role === 'teacher' && course.authorId === user.id;
+
+        if (course.status !== 'published' && !isAdmin && !isAuthor) {
+          throw new ForbiddenException('Course is not available');
+        }
+      }
+
       return this.lessonRepository.findMany({
         where: { sectionId },
         orderBy: { order: 'asc' },
       });
     }
+
+    // No sectionId — admin only bulk list
+    if (user?.role !== 'admin') {
+      throw new ForbiddenException('Specify a sectionId or authenticate as admin');
+    }
+
     return this.lessonRepository.findMany({ orderBy: { order: 'asc' } });
   }
 
-  async findOne(id: string) {
-    const lesson = await this.lessonRepository.findById(id);
+  /**
+   * Get single lesson — requires JWT.
+   * - Admin: always allowed
+   * - Teacher who authored the course: allowed
+   * - Student: must be actively enrolled
+   */
+  async findOne(id: string, user: { id: string; role: string }) {
+    const lesson = await this.lessonRepository.findByIdWithSection(id);
     if (!lesson) throw new NotFoundException('Lesson not found');
+
+    const course = lesson.section?.course;
+    if (!course) throw new NotFoundException('Course not found');
+
+    const isAdmin = user.role === 'admin';
+    const isAuthor = user.role === 'teacher' && course.authorId === user.id;
+
+    if (!isAdmin && !isAuthor) {
+      // Must be enrolled
+      const enrollment = await this.enrollmentRepository.findByUserAndCourse(user.id, course.id);
+      if (!enrollment || enrollment.status !== 'active') {
+        throw new ForbiddenException('You must be enrolled in this course to access lessons');
+      }
+    }
+
     return lesson;
   }
 
