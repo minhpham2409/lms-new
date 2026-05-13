@@ -17,7 +17,7 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from "recharts";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 const courseColors = ["#7c3aed", "#3b82f6", "#f59e0b", "#10b981", "#ec4899", "#0891b2"];
 
 type Tab = "overview" | "courses" | "students" | "analytics" | "reviews" | "settings";

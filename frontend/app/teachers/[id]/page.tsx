@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/auth-state";
 import { Users, BookOpen, Star, Loader2, ArrowLeft, Mail, Calendar, GraduationCap, Video, Edit2, Save, X, Phone, MapPin, Award, Clock, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 interface Course {
   id: string;

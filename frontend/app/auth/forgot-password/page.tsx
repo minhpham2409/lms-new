@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/footer";
 import { Mail, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");

@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/auth-state";
 import { CheckCircle2, XCircle, Clock, Award, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 export default function QuizPage() {
   const { id } = useParams();

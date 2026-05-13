@@ -20,20 +20,22 @@ export default function LoginPage() {
     setError("");
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1"}/auth/login`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/auth/login`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: form.email, password: form.password }),
+          body: JSON.stringify({ email: form.email, password: form.password }),
         }
       );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Đăng nhập thất bại");
-      login(data.access_token, data.refresh_token);
+      const raw = await res.json();
+      if (!res.ok) throw new Error(raw.message || "Đăng nhập thất bại");
+      // Backend wraps response in { success, data }
+      const result = raw.data || raw;
+      login(result.access_token, result.refresh_token);
       
       // Redirect based on user role from JWT
       try {
-        const payload = JSON.parse(atob(data.access_token.split(".")[1]));
+        const payload = JSON.parse(atob(result.access_token.split(".")[1]));
         const role = payload.role;
         if (role === "admin") {
           router.push("/admin");

@@ -2,28 +2,30 @@ import { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        username: { label: 'Username', type: 'text' },
+        email: { label: 'Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          throw new Error('Username and password are required');
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email and password are required');
         }
 
         try {
           const response = await axios.post(`${API_URL}/auth/login`, {
-            username: credentials.username,
+            email: credentials.email,
             password: credentials.password,
           });
 
-          const data = response.data;
+          const raw = response.data;
+          // Backend wraps response in { success, data }
+          const data = raw.data || raw;
 
           if (data && data.access_token) {
             return {

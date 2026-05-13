@@ -14,7 +14,7 @@ import { Step2Sections } from "./step-2";
 import { Step3Lessons } from "./step-3";
 import { Step4Review } from "./step-4";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 const steps = [
   { label: "Thông tin cơ bản", icon: BookOpen },

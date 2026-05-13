@@ -6,7 +6,7 @@ import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import { Package, ChevronRight, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 const statusMap: Record<string, { label: string; color: string; icon: any }> = {
   completed: { label: "Hoàn thành", color: "#10b981", icon: CheckCircle2 },

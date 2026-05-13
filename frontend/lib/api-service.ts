@@ -10,7 +10,7 @@ import type {
   ParentChildDashboard,
 } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -48,7 +48,7 @@ export const authApi = {
   updateProfile: (data: Partial<User>) =>
     api.put('/auth/profile', data).then(r => r.data),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
-    api.put('/auth/change-password', data).then(r => r.data),
+    api.patch('/auth/change-password', { oldPassword: data.currentPassword, newPassword: data.newPassword }).then(r => r.data),
 };
 
 // ─── Courses ─────────────────────────────────────────────────────────────────
@@ -270,9 +270,9 @@ export const certificatesApi = {
   getMine: (): Promise<Certificate[]> =>
     api.get('/certificates').then(r => r.data),
   generate: (courseId: string): Promise<Certificate> =>
-    api.post('/certificates', { courseId }).then(r => r.data),
+    api.post('/certificates/generate', { courseId }).then(r => r.data),
   verify: (code: string): Promise<Certificate> =>
-    api.get(`/certificates/verify/${code}`).then(r => r.data),
+    api.get(`/certificates/${code}`).then(r => r.data),
 };
 
 // ─── Parents ──────────────────────────────────────────────────────────────────
@@ -359,7 +359,7 @@ export const adminApi = {
   createCourse: (data: CreateCourseData & { authorId?: string }): Promise<Course> =>
     api.post('/admin/courses', data).then(r => r.data),
   updateCourse: (id: string, data: UpdateCourseData): Promise<Course> =>
-    api.put(`/admin/courses/${id}`, data).then(r => r.data),
+    api.patch(`/admin/courses/${id}`, data).then(r => r.data),
   deleteCourse: (id: string) =>
     api.delete(`/admin/courses/${id}`).then(r => r.data),
   publishCourse: (id: string) =>

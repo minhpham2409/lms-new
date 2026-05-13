@@ -3,7 +3,7 @@ import { useState, useRef, useCallback } from "react";
 import { Play, Plus, Trash2, Upload, FileText, Image as ImageIcon, Video, ChevronDown, ChevronUp, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 function UploadButton({
   lesId, type, token, onUploaded, uploading, setUploading, accept, label, color, successText
@@ -215,7 +215,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                           {les.assignmentImageUrl ? (
                             <div className="space-y-1.5">
                               <img
-                                src={les.assignmentImageUrl.startsWith("http") ? les.assignmentImageUrl : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace("/api/v1", "")}${les.assignmentImageUrl}`}
+                                src={les.assignmentImageUrl.startsWith("http") ? les.assignmentImageUrl : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace("/api/v1", "")}${les.assignmentImageUrl}`}
                                 alt="Đề bài" className="w-full rounded-lg object-cover" style={{ maxHeight: 80, border: "1px solid var(--border)" }}
                               />
                               <button type="button" onClick={() => updateLesson(sec.id, les.id, { assignmentImageUrl: "" })}
