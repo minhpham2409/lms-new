@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -49,9 +49,9 @@ export class UserRepository extends BaseRepository<User> {
     password: string;
     firstName?: string;
     lastName?: string;
-    role?: string;
+    role?: UserRole | string;
   }): Promise<User> {
-    return this.model.create({ data });
+    return this.model.create({ data: { ...data, role: (data.role as UserRole) ?? UserRole.student } });
   }
 
   async updatePassword(userId: string, hashedPassword: string): Promise<User> {

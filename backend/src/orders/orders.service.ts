@@ -34,7 +34,7 @@ export class OrdersService {
       throw new BadRequestException('You are already enrolled in all courses in your cart');
     }
 
-    const totalPrice = availableItems.reduce((sum, item) => sum + item.course.price, 0);
+    const totalPrice = availableItems.reduce((sum, item) => sum + Number(item.course.price), 0);
     let finalPrice = totalPrice;
     let couponId: string | undefined;
 
@@ -47,24 +47,32 @@ export class OrdersService {
       if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
         throw new BadRequestException('Coupon usage limit reached');
       }
-      // Streak coupons are personal — only the owner can use them
-      if (coupon.type === 'streak' && coupon.userId && coupon.userId !== userId) {
+      // Personal (streak) coupons: only the owner can use them
+      if ((coupon.type === 'streak') && coupon.userId && coupon.userId !== userId) {
         throw new BadRequestException('Mã giảm giá này không thuộc về bạn');
+      }
+      // Platform promotions: check allowPlatformPromotions on each course
+      if (coupon.type === 'platform') {
+        const blocked = availableItems.some(item => !(item.course as any).allowPlatformPromotions);
+        if (blocked) {
+          throw new BadRequestException('Some courses in your cart do not accept platform promotions');
+        }
       }
       finalPrice = totalPrice * (1 - coupon.discount / 100);
       couponId = coupon.id;
-      await this.couponRepository.incrementUsed(coupon.id);
+      // NOTE: coupon.usedCount is NOT incremented here.
+      // It will be incremented atomically in the payment transaction to prevent
+      // coupon usage when payment fails or is abandoned.
     }
 
-    const order = await this.orderRepository.createWithItems({
+    // Transaction: create order + items + clear cart atomically
+    const order = await this.orderRepository.createOrderTransaction({
       userId,
       couponId,
       totalPrice,
       finalPrice,
-      items: availableItems.map(item => ({ courseId: item.courseId, price: item.course.price })),
+      items: availableItems.map(item => ({ courseId: item.courseId, price: Number(item.course.price) })),
     });
-
-    await this.cartRepository.clearCart(userId);
 
     // Emit order created event
     this.eventEmitter.emit(AppEvents.ORDER_CREATED, {

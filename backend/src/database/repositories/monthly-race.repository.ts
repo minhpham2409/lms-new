@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UserRole, CouponType } from '@prisma/client';
 
 /**
  * Repository for monthly race XP calculation and leaderboard queries.
@@ -86,7 +87,7 @@ export class MonthlyRaceRepository {
   /** Get all students for leaderboard */
   getAllStudents() {
     return this.prisma.user.findMany({
-      where: { role: 'student' },
+      where: { role: UserRole.student },
       select: { id: true, username: true, firstName: true, lastName: true, currentStreak: true },
     });
   }
@@ -106,7 +107,12 @@ export class MonthlyRaceRepository {
     userId: string;
     expiresAt: Date;
   }) {
-    return this.prisma.coupon.create({ data });
+    return this.prisma.coupon.create({
+      data: {
+        ...data,
+        type: (data.type as CouponType) ?? CouponType.streak,
+      },
+    });
   }
 
   /** Create monthly winner record */

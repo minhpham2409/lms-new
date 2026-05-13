@@ -84,7 +84,7 @@ export const sectionsApi = {
   create: (courseId: string, data: CreateSectionData): Promise<Section> =>
     api.post(`/sections`, { ...data, courseId }).then(r => r.data),
   update: (id: string, data: Partial<CreateSectionData>): Promise<Section> =>
-    api.put(`/sections/${id}`, data).then(r => r.data),
+    api.patch(`/sections/${id}`, data).then(r => r.data),
   delete: (id: string) =>
     api.delete(`/sections/${id}`).then(r => r.data),
   reorder: (courseId: string, sections: { id: string; order: number }[]) =>
@@ -99,7 +99,7 @@ export const lessonsApi = {
   create: (data: CreateLessonData): Promise<Lesson> =>
     api.post('/lessons', data).then(r => r.data),
   update: (id: string, data: UpdateLessonData): Promise<Lesson> =>
-    api.put(`/lessons/${id}`, data).then(r => r.data),
+    api.patch(`/lessons/${id}`, data).then(r => r.data),
   delete: (id: string) =>
     api.delete(`/lessons/${id}`).then(r => r.data),
   getById: (id: string): Promise<Lesson> =>
@@ -126,7 +126,7 @@ export const progressApi = {
     api.get(`/progress/video/${courseId}`).then(r => r.data),
   getLesson: (lessonId: string): Promise<VideoProgress> =>
     api.get(`/progress/video/lesson/${lessonId}`).then(r => r.data),
-  updateVideo: (data: { lessonId: string; watchTime?: number; completed?: boolean }) =>
+  updateVideo: (data: { lessonId: string; watchTime?: number; watchedPercentage?: number; completed?: boolean }) =>
     api.put('/progress/video', data).then(r => r.data),
 };
 

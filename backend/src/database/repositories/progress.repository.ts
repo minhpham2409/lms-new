@@ -113,4 +113,11 @@ export class ProgressRepository {
       where: { studentId: userId, assignment: { lessonId } },
     });
   }
+
+  findSubmissionForAssignment(userId: string, assignmentId: string) {
+    return this.prisma.submission.findFirst({
+      where: { studentId: userId, assignmentId },
+      select: { id: true, status: true, score: true },
+    });
+  }
 }

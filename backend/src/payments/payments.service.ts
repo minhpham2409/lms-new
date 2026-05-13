@@ -25,17 +25,28 @@ export class PaymentsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  /** Verify HMAC-SHA256 signature from bank webhook. */
+  /**
+   * Verify HMAC-SHA256 signature from bank webhook.
+   * MANDATORY in production — skipping is only allowed in development.
+   */
   private verifyWebhookSignature(dto: WebhookDto): void {
     const webhookSecret = process.env.WEBHOOK_SECRET;
-    // If no secret configured, skip verification (dev mode)
-    if (!webhookSecret) return;
+
+    // ── Production MUST have a secret ────────────────────────────────────
+    if (!webhookSecret) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new UnauthorizedException(
+          'WEBHOOK_SECRET is required in production',
+        );
+      }
+      this.logger.warn('[DEV] Skipping webhook signature verification — WEBHOOK_SECRET not set');
+      return;
+    }
 
     if (!dto.signature) {
       throw new UnauthorizedException('Missing webhook signature');
     }
 
-    // Canonical string: txnRef|amount|status
     const payload = `${dto.txnRef}|${dto.amount}|${dto.status}`;
     const expected = createHmac('sha256', webhookSecret)
       .update(payload)
@@ -69,7 +80,8 @@ export class PaymentsService {
     }
 
     const txnRef = randomUUID();
-    const qrData = `VIETQR|${txnRef}|${order.finalPrice}|LMS Payment ${order.id}`;
+    const finalPrice = Number(order.finalPrice);
+    const qrData = `VIETQR|${txnRef}|${finalPrice}|LMS Payment ${order.id}`;
 
     if (existing) {
       return this.paymentRepository.update(existing.id, {
@@ -88,18 +100,54 @@ export class PaymentsService {
   }
 
   /**
-   * Handle bank webhook: verify signature, then atomically complete
-   * payment + order + enrollments using prisma.$transaction.
-   * After commit, emit PAYMENT_COMPLETED event for async side-effects
-   * (notifications, invoice email via Bull Queue, badge checks, etc.)
+   * Handle bank webhook — full validation pipeline:
+   * 1. Verify HMAC signature
+   * 2. Find payment by txnRef
+   * 3. Idempotency check (already completed → return early)
+   * 4. Verify payment is pending
+   * 5. Verify order exists and is pending
+   * 6. Verify amount matches
+   * 7. If status != success → fail atomically
+   * 8. If success → complete atomically (payment + order + coupon + enrollments)
    */
   async handleWebhook(dto: WebhookDto) {
-    // Validate HMAC signature from bank
+    // 1. Validate HMAC signature
     this.verifyWebhookSignature(dto);
 
+    // 2. Find payment
     const payment = await this.paymentRepository.findByTxnRef(dto.txnRef);
     if (!payment) throw new NotFoundException('Transaction not found');
-    if (payment.status === 'completed') return { message: 'Already processed' };
+
+    // 3. Idempotency: already processed
+    if (payment.status === 'completed') {
+      return { message: 'Already processed' };
+    }
+
+    // 4. Payment must be pending
+    if (payment.status !== 'pending') {
+      throw new BadRequestException(`Payment is in '${payment.status}' state, cannot process`);
+    }
+
+    // 5. Order must exist and be pending
+    const order = await this.orderRepository.findByIdWithDetails(payment.orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'pending') {
+      throw new BadRequestException(`Order is in '${order.status}' state, cannot process`);
+    }
+
+    // 6. Amount verification — dto.amount must match payment.amount
+    const paymentAmount = Number(payment.amount);
+    const dtoAmount = Number(dto.amount);
+    if (Math.abs(paymentAmount - dtoAmount) > 0.01) {
+      this.logger.error(
+        `[AMOUNT MISMATCH] Payment ${payment.id}: expected ${paymentAmount}, got ${dtoAmount}`,
+      );
+      await this.paymentRepository.failPaymentTransaction({
+        paymentId: payment.id,
+        orderId: payment.orderId,
+      });
+      return { message: 'Amount mismatch — payment rejected' };
+    }
 
     // ── Payment Failed ─────────────────────────────────────────────────────
     if (dto.status !== 'success') {
@@ -111,7 +159,7 @@ export class PaymentsService {
       this.eventEmitter.emit(AppEvents.PAYMENT_FAILED, {
         paymentId: payment.id,
         orderId: payment.orderId,
-        userId: '',
+        userId: order.userId,
         reason: `Bank returned status: ${dto.status}`,
       } as PaymentFailedPayload);
 
@@ -119,17 +167,15 @@ export class PaymentsService {
     }
 
     // ── Payment Success: Atomic Transaction ────────────────────────────────
-    const order = await this.orderRepository.findByIdWithDetails(payment.orderId);
-    if (!order) throw new NotFoundException('Order not found');
-
     const courseItems = order.items.map((item) => ({ courseId: item.courseId }));
 
-    // All-or-nothing: Payment ✓ → Order ✓ → Enrollments ✓
+    // All-or-nothing: Payment ✓ → Order ✓ → Coupon increment ✓ → Enrollments ✓
     await this.paymentRepository.completePaymentTransaction({
       paymentId: payment.id,
       orderId: payment.orderId,
       userId: order.userId,
       courseItems,
+      couponId: order.couponId ?? undefined,
     });
 
     this.logger.log(
@@ -145,7 +191,7 @@ export class PaymentsService {
       paymentId: payment.id,
       orderId: order.id,
       userId: order.userId,
-      amount: order.finalPrice,
+      amount: Number(order.finalPrice),
       courseIds: courseItems.map((c) => c.courseId),
       courseTitles: titles,
     } as PaymentCompletedPayload);

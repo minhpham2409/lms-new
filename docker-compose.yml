@@ -1,6 +1,38 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lms-postgres
+    environment:
+      POSTGRES_USER: lms
+      POSTGRES_PASSWORD: lms_password
+      POSTGRES_DB: lms_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lms -d lms_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: lms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -8,15 +40,21 @@ services:
     image: lms-backend:latest
     container_name: lms-backend
     ports:
-      - "3001:3001"
+      - "4000:4000"
     environment:
-      - DATABASE_URL=file:./dev.db
-      - JWT_SECRET=super_secret_jwt_key_here
+      - DATABASE_URL=postgresql://lms:lms_password@postgres:5432/lms_db?schema=public
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
       - FRONTEND_URL=http://localhost:3000
-      - PORT=3001
-    volumes:
-      - ./backend/prisma/dev.db:/app/prisma/dev.db
-      - ./backend/uploads:/app/uploads
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=4000
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
@@ -28,7 +66,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

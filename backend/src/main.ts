@@ -1,12 +1,53 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
-import { ResponseInterceptor } from './shared/interceptors';
 import { HttpExceptionFilter } from './shared/filters';
 
+/**
+ * Validate critical environment variables on startup.
+ * Throws immediately if production is missing required config.
+ */
+function validateEnvironment() {
+  const logger = new Logger('Bootstrap');
+  const isProd = process.env.NODE_ENV === 'production';
+
+  const required: { key: string; prodOnly?: boolean }[] = [
+    { key: 'DATABASE_URL' },
+    { key: 'JWT_SECRET' },
+    { key: 'FRONTEND_URL' },
+    { key: 'WEBHOOK_SECRET', prodOnly: true },
+  ];
+
+  const missing: string[] = [];
+  for (const { key, prodOnly } of required) {
+    if (!process.env[key]) {
+      if (prodOnly && !isProd) {
+        logger.warn(`[Config] ${key} is not set — required in production`);
+      } else if (!prodOnly) {
+        // Non-prod-only vars: warn in dev, fail in prod
+        if (isProd) {
+          missing.push(key);
+        } else {
+          logger.warn(`[Config] ${key} is not set`);
+        }
+      } else {
+        missing.push(key);
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[FATAL] Missing required environment variables: ${missing.join(', ')}`,
+    );
+  }
+}
+
 async function bootstrap() {
+  validateEnvironment();
+
   const app = await NestFactory.create(AppModule);
 
   // ─── Security: HTTP Headers ─────────────────────────────────────────────────
@@ -32,9 +73,8 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
   }));
 
-  // ─── Global Interceptors & Filters ──────────────────────────────────────────
-  // app.useGlobalInterceptors(new ResponseInterceptor());
-  // app.useGlobalFilters(new HttpExceptionFilter());
+  // ─── Global Exception Filter ────────────────────────────────────────────────
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('LMS API')

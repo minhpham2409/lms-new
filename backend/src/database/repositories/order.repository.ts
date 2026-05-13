@@ -58,4 +58,37 @@ export class OrderRepository extends BaseRepository<Order> {
       },
     });
   }
+
+  /**
+   * ATOMIC: Create order + items + clear cart in a single transaction.
+   * Prevents partial state (e.g., order created but cart not cleared).
+   */
+  createOrderTransaction(data: {
+    userId: string;
+    couponId?: string;
+    totalPrice: number;
+    finalPrice: number;
+    items: { courseId: string; price: number }[];
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          userId: data.userId,
+          couponId: data.couponId,
+          totalPrice: data.totalPrice,
+          finalPrice: data.finalPrice,
+          items: { create: data.items },
+        },
+        include: {
+          items: { include: { course: { select: { id: true, title: true } } } },
+          coupon: { select: { code: true, discount: true } },
+        },
+      });
+
+      // Clear cart atomically with order creation
+      await tx.cartItem.deleteMany({ where: { userId: data.userId } });
+
+      return order;
+    });
+  }
 }

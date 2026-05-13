@@ -3,10 +3,15 @@ import {
   UnauthorizedException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UserRepository, RefreshTokenRepository } from '../database/repositories';
 import { JwtTokenService, PasswordService, TokenManagerService } from './services';
 import { DateUtil } from '../shared/utils';
+import { createHash, randomBytes } from 'crypto';
+
+/** Roles allowed for public self-registration. */
+const ALLOWED_REGISTER_ROLES = ['student', 'parent'];
 
 @Injectable()
 export class AuthService {
@@ -22,12 +27,8 @@ export class AuthService {
    * Validate user credentials for login
    */
   async validateUser(username: string, password: string): Promise<any> {
-    // Support login by username OR email
     const user = await this.userRepository.findByUsernameOrEmail(username, username);
-
-    if (!user) {
-      return null;
-    }
+    if (!user) return null;
 
     if (!user.isActive) {
       throw new UnauthorizedException('Account is deactivated');
@@ -39,7 +40,7 @@ export class AuthService {
     );
 
     if (isPasswordValid) {
-      const { password, ...result } = user;
+      const { password: _, ...result } = user;
       return result;
     }
 
@@ -53,7 +54,6 @@ export class AuthService {
     const payload = this.jwtTokenService.createPayload(user);
     const tokens = this.jwtTokenService.generateTokenPair(payload);
 
-    // Save refresh token to database
     await this.tokenManagerService.saveRefreshToken(
       user.id,
       tokens.refresh_token,
@@ -73,7 +73,9 @@ export class AuthService {
   }
 
   /**
-   * Register new user
+   * Register new user.
+   * Public registration only allows 'student' or 'parent' roles.
+   * Defaults to 'student' if role is invalid or not provided.
    */
   async register(userData: {
     username: string;
@@ -83,7 +85,11 @@ export class AuthService {
     lastName?: string;
     role?: string;
   }) {
-    // Check if user already exists
+    // ── Security: Block self-registration as teacher/admin ─────────────────
+    const safeRole = userData.role && ALLOWED_REGISTER_ROLES.includes(userData.role)
+      ? userData.role
+      : 'student';
+
     const existingUser = await this.userRepository.findByUsernameOrEmail(
       userData.username,
       userData.email,
@@ -93,41 +99,59 @@ export class AuthService {
       throw new ConflictException('Username or email already exists');
     }
 
-    // Hash password
     const hashedPassword = await this.passwordService.hashPassword(
       userData.password,
     );
 
-    // Create new user
     const newUser = await this.userRepository.createUser({
       ...userData,
+      role: safeRole,
       password: hashedPassword,
     });
 
-    const { password, ...result } = newUser;
+    const { password: _, ...result } = newUser;
     return result;
   }
 
   /**
-   * Refresh access token
+   * Refresh access token with rotation.
+   * Old refresh token is revoked, new pair is issued.
    */
   async refreshToken(refreshToken: string) {
-    // Validate refresh token
-    await this.tokenManagerService.getRefreshToken(refreshToken);
+    // 1. Validate the refresh token exists in DB
+    const storedToken = await this.tokenManagerService.getRefreshToken(refreshToken);
+    if (!storedToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
-    // Verify JWT token
+    // 2. Verify JWT integrity
     const payload = this.jwtTokenService.verifyToken(refreshToken);
 
-    // Generate new access token
-    const newAccessToken = this.jwtTokenService.generateAccessToken({
+    // 3. Revoke old refresh token (rotation)
+    await this.tokenManagerService.revokeRefreshToken(refreshToken);
+
+    // 4. Generate new token pair
+    const newPayload = {
       sub: payload.sub,
       username: payload.username,
       email: payload.email,
       role: payload.role,
-    });
+    };
+
+    const newAccessToken = this.jwtTokenService.generateAccessToken(newPayload);
+    const newRefreshToken = this.jwtTokenService.generateRefreshToken
+      ? this.jwtTokenService.generateRefreshToken(newPayload)
+      : this.jwtTokenService.generateTokenPair(newPayload).refresh_token;
+
+    // 5. Save new refresh token
+    await this.tokenManagerService.saveRefreshToken(
+      payload.sub,
+      newRefreshToken,
+    );
 
     return {
       access_token: newAccessToken,
+      refresh_token: newRefreshToken,
     };
   }
 
@@ -178,31 +202,36 @@ export class AuthService {
   }
 
   /**
-   * Request password reset
+   * Request password reset.
+   * NEVER returns the reset token in the response.
+   * In production, the token should be sent via email.
    */
   async forgotPassword(email: string) {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      // Don't reveal if email exists
+      // Don't reveal if email exists — constant response
       return { message: 'If the email exists, a reset link has been sent' };
     }
 
-    // Generate reset token
-    const resetToken = this.jwtTokenService.generateResetToken({
-      sub: user.id,
-      email: user.email,
-    });
+    // Generate a random reset token and hash it before storing
+    const rawToken = randomBytes(32).toString('hex');
+    const hashedToken = createHash('sha256').update(rawToken).digest('hex');
 
     const resetTokenExpiry = DateUtil.addHours(new Date(), 1);
 
-    await this.userRepository.setResetToken(user.id, resetToken, resetTokenExpiry);
+    await this.userRepository.setResetToken(user.id, hashedToken, resetTokenExpiry);
 
-    // TODO: Send email with reset link
-    // For now, return the token (in production, send via email)
+    // TODO: Send email with reset link containing rawToken
+    // e.g. `${FRONTEND_URL}/auth/reset-password?token=${rawToken}`
+    // In dev mode, log it for debugging:
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[DEV] Reset token for ${email}: ${rawToken}`);
+    }
+
     return {
       message: 'If the email exists, a reset link has been sent',
-      resetToken, // Remove this in production
+      // Token is NOT returned in the response
     };
   }
 
@@ -211,17 +240,16 @@ export class AuthService {
    */
   async resetPassword(token: string, newPassword: string) {
     try {
-      const payload = this.jwtTokenService.verifyToken(token);
+      // Hash the incoming raw token to compare with stored hash
+      const hashedToken = createHash('sha256').update(token).digest('hex');
 
-      const user = await this.userRepository.findByResetToken(token);
+      const user = await this.userRepository.findByResetToken(hashedToken);
 
       if (!user) {
         throw new BadRequestException('Invalid or expired reset token');
       }
 
-      const hashedPassword = await this.passwordService.hashPassword(
-        newPassword,
-      );
+      const hashedPassword = await this.passwordService.hashPassword(newPassword);
 
       await this.userRepository.updatePassword(user.id, hashedPassword);
       await this.userRepository.clearResetToken(user.id);
@@ -240,11 +268,7 @@ export class AuthService {
    */
   async getProfile(userId: string) {
     const user = await this.userRepository.getUserProfile(userId);
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
+    if (!user) throw new UnauthorizedException('User not found');
     return user;
   }
 
@@ -259,19 +283,14 @@ export class AuthService {
       email?: string;
     },
   ) {
-    // Check if email is already taken
     if (updateData.email) {
-      const existingUser = await this.userRepository.findByEmail(
-        updateData.email,
-      );
-
+      const existingUser = await this.userRepository.findByEmail(updateData.email);
       if (existingUser && existingUser.id !== userId) {
         throw new BadRequestException('Email already in use');
       }
     }
 
     const updatedUser = await this.userRepository.update(userId, updateData);
-
     return await this.userRepository.getUserProfile(updatedUser.id);
   }
 

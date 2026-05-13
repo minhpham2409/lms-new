@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BaseRepository } from './base.repository';
-import { Enrollment } from '@prisma/client';
+import { Enrollment, EnrollmentStatus, OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class EnrollmentRepository extends BaseRepository<Enrollment> {
@@ -19,7 +19,7 @@ export class EnrollmentRepository extends BaseRepository<Enrollment> {
     });
   }
 
-  createEnrollment(userId: string, courseId: string, options?: { status?: string; progress?: number }) {
+  createEnrollment(userId: string, courseId: string, options?: { status?: EnrollmentStatus; progress?: number }) {
     return this.prisma.enrollment.create({
       data: {
         userId,
@@ -74,7 +74,7 @@ export class EnrollmentRepository extends BaseRepository<Enrollment> {
     });
   }
 
-  updateStatus(id: string, status: string) {
+  updateStatus(id: string, status: EnrollmentStatus) {
     return this.prisma.enrollment.update({
       where: { id },
       data: { status },
@@ -100,7 +100,7 @@ export class EnrollmentRepository extends BaseRepository<Enrollment> {
         courseId,
         order: {
           userId,
-          status: { in: ['pending', 'processing'] },
+          status: OrderStatus.pending,
         },
       },
       include: { order: true },
@@ -131,7 +131,7 @@ export class EnrollmentRepository extends BaseRepository<Enrollment> {
       // 1. Activate the enrollment
       const updated = await tx.enrollment.update({
         where: { id: params.enrollmentId },
-        data: { status: 'active' },
+        data: { status: EnrollmentStatus.active },
         include: { course: true },
       });
 
@@ -141,7 +141,7 @@ export class EnrollmentRepository extends BaseRepository<Enrollment> {
           courseId: params.courseId,
           order: {
             userId: params.userId,
-            status: { in: ['pending', 'processing'] },
+            status: OrderStatus.pending,
           },
         },
         select: { orderId: true },
@@ -157,8 +157,8 @@ export class EnrollmentRepository extends BaseRepository<Enrollment> {
 
         // 4. Mark related payments as paid
         await tx.payment.updateMany({
-          where: { orderId, status: { not: 'completed' } },
-          data: { status: 'completed', paidAt: new Date() },
+          where: { orderId, status: { not: PaymentStatus.completed } },
+          data: { status: PaymentStatus.completed, paidAt: new Date() },
         });
       }
 

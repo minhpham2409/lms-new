@@ -18,7 +18,7 @@ export class CartService {
 
   async getCart(userId: string) {
     const items = await this.cartRepository.findByUser(userId);
-    const total = items.reduce((sum, item) => sum + item.course.price, 0);
+    const total = items.reduce((sum, item) => sum + Number(item.course.price), 0);
     return { items, total };
   }
 
@@ -68,7 +68,7 @@ export class CartService {
         throw new BadRequestException('Giỏ hàng chứa khóa học không áp dụng mã giảm giá của hệ thống.');
       }
     }
-    const total = items.reduce((sum, item) => sum + item.course.price, 0);
+    const total = items.reduce((sum, item) => sum + Number(item.course.price), 0);
     const finalTotal = total * (1 - coupon.discount / 100);
 
     return {

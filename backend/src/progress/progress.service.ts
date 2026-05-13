@@ -9,6 +9,9 @@ import {
 } from '../shared/events';
 import { UpdateVideoProgressDto } from './dto/update-video-progress.dto';
 
+/** Minimum watched percentage to auto-mark lesson as completed. */
+const COMPLETION_THRESHOLD = 90;
+
 @Injectable()
 export class ProgressService {
   constructor(
@@ -32,28 +35,43 @@ export class ProgressService {
     };
   }
 
-  async updateProgress(userId: string, courseId: string, progress: number) {
+  /**
+   * Update course progress — derived from server-side lesson completion data only.
+   * Client cannot arbitrarily set progress percentage.
+   */
+  async recalculateCourseProgress(userId: string, courseId: string) {
     const enrollment = await this.progressRepo.findEnrollment(userId, courseId);
     if (!enrollment) throw new NotFoundException('Enrollment not found');
 
-    const updated = await this.progressRepo.updateEnrollmentProgress(enrollment.id, progress);
+    const totalLessons = await this.progressRepo.countLessonsByCourse(courseId);
+    const completedLessons = await this.progressRepo.countCompletedLessons(userId, courseId);
+    const newProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
-    // Emit progress updated event
+    const updated = await this.progressRepo.updateEnrollmentProgress(enrollment.id, newProgress);
+
     this.eventEmitter.emit(AppEvents.PROGRESS_UPDATED, {
       userId,
       courseId,
-      progress,
+      progress: newProgress,
     } as ProgressUpdatedPayload);
 
-    if (progress >= 100) {
+    if (newProgress >= 100) {
       this.eventEmitter.emit(AppEvents.COURSE_COMPLETED, {
         userId,
         courseId,
-        courseTitle: '', // minimal payload — listener can enrich if needed
+        courseTitle: '',
       } as CourseCompletedPayload);
     }
 
     return updated;
+  }
+
+  /**
+   * Legacy endpoint — now delegates to recalculateCourseProgress.
+   * Client-sent progress value is IGNORED; progress is always derived server-side.
+   */
+  async updateProgress(userId: string, courseId: string, _progress: number) {
+    return this.recalculateCourseProgress(userId, courseId);
   }
 
   async getCoursesProgress(userId: string) {
@@ -89,6 +107,11 @@ export class ProgressService {
     return progress || { watchTime: 0, completed: false, watchedPercentage: 0 };
   }
 
+  /**
+   * Update video progress for a lesson.
+   * Server decides completion — client's `completed` flag is overridden
+   * by server-side threshold check (watchedPercentage >= 90%).
+   */
   async updateVideoProgress(userId: string, dto: UpdateVideoProgressDto) {
     const lesson = await this.progressRepo.findLessonWithDetails(dto.lessonId);
     if (!lesson) throw new NotFoundException('Lesson not found');
@@ -99,16 +122,24 @@ export class ProgressService {
     const enrollment = await this.progressRepo.findEnrollment(userId, courseId);
     if (!enrollment) throw new NotFoundException('Enrollment not found for this course');
 
+    // ── Server-side completion decision ──────────────────────────────────
+    // Clamp percentage to [0, 100] (DTO already validates, but be safe)
+    const pct = Math.min(100, Math.max(0, dto.watchedPercentage ?? 0));
+    const watchTime = Math.max(0, dto.watchTime ?? 0);
+
+    // Server decides: completed only if watched >= COMPLETION_THRESHOLD%
+    const serverCompleted = pct >= COMPLETION_THRESHOLD;
+
     const result = await this.progressRepo.upsertVideoProgress({
       userId,
       lessonId: dto.lessonId,
-      watchTime: dto.watchTime,
-      completed: dto.completed,
-      watchedPercentage: dto.watchedPercentage,
+      watchTime,
+      completed: serverCompleted,
+      watchedPercentage: pct,
     });
 
     // Auto-update enrollment progress when video is completed
-    if (dto.completed) {
+    if (serverCompleted) {
       const totalLessons = await this.progressRepo.countLessonsByCourse(courseId);
       const completedLessons = await this.progressRepo.countCompletedLessons(userId, courseId);
       const newProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
@@ -139,6 +170,10 @@ export class ProgressService {
     return result;
   }
 
+  /**
+   * Check if a lesson can be marked as completed.
+   * Video must be watched to threshold, and assignments (if any) must be graded.
+   */
   async canCompleteLesson(userId: string, lessonId: string) {
     const lesson = await this.progressRepo.findLessonWithAssignments(lessonId);
     if (!lesson) throw new NotFoundException('Lesson not found');
@@ -148,8 +183,20 @@ export class ProgressService {
 
     let assignmentsCompleted = true;
     if (lesson.assignments && lesson.assignments.length > 0) {
-      const submission = await this.progressRepo.findSubmissionForLesson(userId, lessonId);
-      assignmentsCompleted = !!submission;
+      // For essay assignments: submission must exist and be graded with passing score
+      // For quiz assignments: attempt must exist
+      for (const assignment of lesson.assignments) {
+        const submission = await this.progressRepo.findSubmissionForAssignment(userId, assignment.id);
+        if (!submission) {
+          assignmentsCompleted = false;
+          break;
+        }
+        // If submission is graded, check score against minScore
+        if (submission.status === 'pending') {
+          assignmentsCompleted = false;
+          break;
+        }
+      }
     }
 
     return { canComplete: videoCompleted && assignmentsCompleted, videoCompleted, assignmentsCompleted };

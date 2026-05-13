@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { OrderStatus } from '@prisma/client';
 
 /**
  * Admin-specific repository for dashboard stats and aggregate queries.
@@ -27,7 +28,7 @@ export class AdminRepository {
       this.prisma.user.groupBy({ by: ['role'], _count: { id: true } }),
       this.prisma.course.groupBy({ by: ['status'], _count: { id: true } }),
       this.prisma.order.aggregate({
-        where: { status: { in: ['paid', 'completed'] } },
+        where: { status: OrderStatus.paid },
         _sum: { finalPrice: true },
       }),
     ]);
@@ -39,7 +40,7 @@ export class AdminRepository {
       totalEnrollments,
       usersByRole,
       coursesByStatus,
-      revenue: revenue._sum.finalPrice ?? 0,
+      revenue: Number(revenue._sum.finalPrice ?? 0),
     };
   }
 
@@ -76,15 +77,15 @@ export class AdminRepository {
 
       const [agg, count] = await Promise.all([
         this.prisma.order.aggregate({
-          where: { status: { in: ['paid', 'completed'] }, createdAt: { gte: start, lte: end } },
+          where: { status: OrderStatus.paid, createdAt: { gte: start, lte: end } },
           _sum: { finalPrice: true },
         }),
         this.prisma.order.count({
-          where: { status: { in: ['paid', 'completed'] }, createdAt: { gte: start, lte: end } },
+          where: { status: OrderStatus.paid, createdAt: { gte: start, lte: end } },
         }),
       ]);
 
-      months.push({ month: label, revenue: agg._sum.finalPrice ?? 0, orders: count });
+      months.push({ month: label, revenue: Number(agg._sum.finalPrice ?? 0), orders: count });
     }
 
     return months;

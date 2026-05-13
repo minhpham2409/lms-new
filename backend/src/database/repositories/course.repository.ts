@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BaseRepository } from './base.repository';
-import { Course } from '@prisma/client';
+import { Course, CourseStatus, OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class CourseRepository extends BaseRepository<Course> {
@@ -13,7 +13,7 @@ export class CourseRepository extends BaseRepository<Course> {
     return this.prisma.course;
   }
 
-  findAllWithCounts(where?: { status?: string }) {
+  findAllWithCounts(where?: { status?: CourseStatus }) {
     return this.prisma.course.findMany({
       where: where ?? {},
       include: {
@@ -101,10 +101,10 @@ export class CourseRepository extends BaseRepository<Course> {
       }),
       this.prisma.orderItem.findMany({
         where: {
-          order: { status: { in: ['paid', 'completed'] } },
+          order: { status: OrderStatus.paid },
           course: { authorId },
         },
-        select: { price: true, order: { select: { createdAt: true } } },
+        include: { order: { select: { createdAt: true } } },
       }),
       this.prisma.enrollment.findMany({
         where: { course: { authorId } },
@@ -121,7 +121,7 @@ export class CourseRepository extends BaseRepository<Course> {
   search(q: string, publishedOnly = true) {
     return this.prisma.course.findMany({
       where: {
-        ...(publishedOnly ? { status: 'published' } : {}),
+        ...(publishedOnly ? { status: CourseStatus.published } : {}),
         OR: [
           { title: { contains: q } },
           { description: { contains: q } },

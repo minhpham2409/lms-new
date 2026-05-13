@@ -4,7 +4,7 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-  role: string;
+  role: 'student' | 'teacher' | 'parent' | 'admin';
   isActive: boolean;
   avatarUrl?: string;
   bio?: string;
@@ -43,10 +43,10 @@ export interface Course {
   id: string;
   title: string;
   description: string;
-  price?: number;
+  price?: number | string;
   imageUrl?: string;
   level?: string;
-  status?: string;
+  status?: 'draft' | 'pending' | 'published' | 'rejected';
   authorId?: string;
   isPublished?: boolean;
   author: {
@@ -102,7 +102,7 @@ export interface Submission {
   fileUrl?: string;
   score?: number;
   feedback?: string;
-  status: 'submitted' | 'graded';
+  status: 'pending' | 'graded' | 'passed' | 'failed';
   gradedAt?: string;
   student?: User;
 }
@@ -155,9 +155,9 @@ export interface Order {
   userId: string;
   user?: User;
   couponId?: string;
-  totalPrice: number;
-  finalPrice: number;
-  status: string;
+  totalPrice: number | string;
+  finalPrice: number | string;
+  status: 'pending' | 'paid' | 'failed' | 'cancelled';
   createdAt: string;
   items: OrderItem[];
   payment?: Payment;
@@ -168,15 +168,15 @@ export interface OrderItem {
   id: string;
   orderId: string;
   courseId: string;
-  price: number;
+  price: number | string;
   course?: Course;
 }
 
 export interface Payment {
   id: string;
   orderId: string;
-  amount: number;
-  status: string;
+  amount: number | string;
+  status: 'pending' | 'completed' | 'failed';
   qrData?: string;
   txnRef?: string;
   paidAt?: string;

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CouponType } from '@prisma/client';
 
 /**
  * Repository for student-facing dashboard and streak queries.
@@ -85,7 +86,7 @@ export class StudentDashboardRepository {
     return this.prisma.coupon.findFirst({
       where: {
         userId,
-        type: 'streak',
+        type: CouponType.streak,
         isActive: true,
         OR: [
           { expiresAt: null },
@@ -99,7 +100,7 @@ export class StudentDashboardRepository {
   /** Deactivate all streak coupons for a user */
   deactivateStreakCoupons(userId: string) {
     return this.prisma.coupon.updateMany({
-      where: { userId, type: 'streak', isActive: true },
+      where: { userId, type: CouponType.streak, isActive: true },
       data: { isActive: false },
     });
   }
@@ -114,6 +115,11 @@ export class StudentDashboardRepository {
     type: string;
     userId: string;
   }) {
-    return this.prisma.coupon.create({ data });
+    return this.prisma.coupon.create({
+      data: {
+        ...data,
+        type: (data.type as CouponType) ?? CouponType.streak,
+      },
+    });
   }
 }

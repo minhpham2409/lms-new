@@ -34,6 +34,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
     orderId: string;
     userId: string;
     courseItems: { courseId: string }[];
+    couponId?: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
       // 1. Mark payment as completed
@@ -48,7 +49,15 @@ export class PaymentRepository extends BaseRepository<Payment> {
         data: { status: 'paid' },
       });
 
-      // 3. Create enrollments for each course (idempotent upsert)
+      // 3. Increment coupon usedCount (only on successful payment, not at order creation)
+      if (params.couponId) {
+        await tx.coupon.update({
+          where: { id: params.couponId },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+
+      // 4. Create enrollments for each course (idempotent upsert)
       for (const item of params.courseItems) {
         await tx.enrollment.upsert({
           where: {

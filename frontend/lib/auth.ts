@@ -2,7 +2,19 @@ import { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+/**
+ * NEXTAUTH_SECRET: mandatory in production.
+ * Falls back to dev-only placeholder in development.
+ */
+const secret = process.env.NEXTAUTH_SECRET;
+if (process.env.NODE_ENV === 'production' && !secret) {
+  throw new Error(
+    '[FATAL] NEXTAUTH_SECRET is required in production. ' +
+      'Generate one with: openssl rand -base64 32',
+  );
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -18,6 +30,7 @@ export const authOptions: AuthOptions = {
         }
 
         try {
+          // Backend login accepts both `email` and `username` via the same field
           const response = await axios.post(`${API_URL}/auth/login`, {
             email: credentials.email,
             password: credentials.password,
@@ -82,14 +95,13 @@ export const authOptions: AuthOptions = {
     },
   },
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/auth/login',
     error: '/auth/error',
   },
   session: {
     strategy: 'jwt',
     maxAge: 24 * 60 * 60, // 1 day
   },
-  secret:
-    process.env.NEXTAUTH_SECRET || 'your-secret-here-replace-in-production',
+  secret: secret || 'dev-only-fallback-DO-NOT-USE-IN-PRODUCTION',
   debug: process.env.NODE_ENV === 'development',
 };

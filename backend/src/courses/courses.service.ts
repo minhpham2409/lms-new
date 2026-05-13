@@ -97,7 +97,7 @@ export class CoursesService {
     const avgRating = reviews.length
       ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
       : 0;
-    const totalRevenue = revenue.reduce((sum, item) => sum + item.price, 0);
+    const totalRevenue = revenue.reduce((sum, item) => sum + Number(item.price), 0);
     const publishedCourses = courses.filter((c) => c.status === 'published').length;
     const draftCourses = courses.filter((c) => c.status === 'draft').length;
 
@@ -117,7 +117,7 @@ export class CoursesService {
       const d = new Date(item.order.createdAt);
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const month = monthlyData.find(m => m.yearMonth === ym);
-      if (month) month.revenue += item.price;
+      if (month) month.revenue += Number(item.price);
     });
 
     enrollments.forEach(item => {
