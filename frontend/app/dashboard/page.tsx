@@ -93,14 +93,13 @@ export default function DashboardPage() {
       // Dashboard data
       fetch(`${API}/users/me/dashboard`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
-        .then(raw => { if (raw) { const d = raw.data || raw; setDashboard(prev => ({ ...prev, ...d, activities: d.activities || [] })); } })
+        .then(d => { if (d) setDashboard(d); })
         .catch(() => {});
 
       // Auto check-in streak
       fetch(`${API}/users/me/streak/check-in`, { method: "POST", headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
-        .then((raw) => {
-          const d = raw?.data || raw;
+        .then((d: CheckInResult | null) => {
           if (d) {
             setDashboard(prev => ({ ...prev, streak: d.streak, nextReward: d.nextReward }));
             if (d.activeCoupon) setStreakCoupon(d.activeCoupon);
@@ -114,7 +113,7 @@ export default function DashboardPage() {
       // Fetch achievements/badges
       fetch(`${API}/achievements/me`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
-        .then(raw => { const d = raw?.data || raw; if (d?.badges) setAchievements(d.badges); })
+        .then(d => { if (d?.badges) setAchievements(d.badges); })
         .catch(() => {});
     }
   }, [token, user]);
@@ -122,7 +121,7 @@ export default function DashboardPage() {
   async function fetchEnrolledCourses() {
     try {
       const res = await fetch(`${API}/enrollments/my-courses`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const raw = await res.json(); const data = raw.data || raw; setEnrolledCourses(Array.isArray(data) ? data : []); }
+      if (res.ok) { const data = await res.json(); setEnrolledCourses(Array.isArray(data) ? data : []); }
     } catch { console.error("Failed to fetch enrolled courses"); }
     finally { setCoursesLoading(false); }
   }
@@ -130,7 +129,7 @@ export default function DashboardPage() {
   async function fetchParentRequests() {
     try {
       const res = await fetch(`${API}/parents/link-requests/incoming`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const raw = await res.json(); const data = raw.data || raw; setParentRequests(Array.isArray(data) ? data : []); }
+      if (res.ok) { const data = await res.json(); setParentRequests(Array.isArray(data) ? data : []); }
     } catch {}
   }
 

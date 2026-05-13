@@ -23,9 +23,7 @@ export const authOptions: AuthOptions = {
             password: credentials.password,
           });
 
-          const raw = response.data;
-          // Backend wraps response in { success, data }
-          const data = raw.data || raw;
+          const data = response.data;
 
           if (data && data.access_token) {
             return {

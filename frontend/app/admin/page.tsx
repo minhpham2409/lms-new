@@ -68,12 +68,12 @@ export default function AdminPage() {
         fetch(`${API}/admin/stats/courses`, { headers }).then(r => r.ok ? r.json() : []),
       ]);
       setStats(statsR);
-      setUsers(Array.isArray(usersR) ? usersR : []);
-      setCourses(Array.isArray(coursesR) ? coursesR : []);
-      setOrders(Array.isArray(ordersR) ? ordersR : []);
-      setCoupons(Array.isArray(couponsR) ? couponsR : []);
+      setUsers(Array.isArray(usersR) ? usersR : Array.isArray(usersR?.data) ? usersR.data : []);
+      setCourses(Array.isArray(coursesR) ? coursesR : Array.isArray(coursesR?.data) ? coursesR.data : []);
+      setOrders(Array.isArray(ordersR) ? ordersR : Array.isArray(ordersR?.data) ? ordersR.data : []);
+      setCoupons(Array.isArray(couponsR) ? couponsR : Array.isArray(couponsR?.data) ? couponsR.data : []);
       setRevenueData(revR);
-      setCourseStats(Array.isArray(csR) ? csR : []);
+      setCourseStats(Array.isArray(csR) ? csR : Array.isArray(csR?.data) ? csR.data : []);
     } catch {} finally { setDataLoading(false); }
   }
 

@@ -27,15 +27,13 @@ export default function LoginPage() {
           body: JSON.stringify({ email: form.email, password: form.password }),
         }
       );
-      const raw = await res.json();
-      if (!res.ok) throw new Error(raw.message || "Đăng nhập thất bại");
-      // Backend wraps response in { success, data }
-      const result = raw.data || raw;
-      login(result.access_token, result.refresh_token);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Đăng nhập thất bại");
+      login(data.access_token, data.refresh_token);
       
       // Redirect based on user role from JWT
       try {
-        const payload = JSON.parse(atob(result.access_token.split(".")[1]));
+        const payload = JSON.parse(atob(data.access_token.split(".")[1]));
         const role = payload.role;
         if (role === "admin") {
           router.push("/admin");

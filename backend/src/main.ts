@@ -33,8 +33,8 @@ async function bootstrap() {
   }));
 
   // ─── Global Interceptors & Filters ──────────────────────────────────────────
-  app.useGlobalInterceptors(new ResponseInterceptor());
-  app.useGlobalFilters(new HttpExceptionFilter());
+  // app.useGlobalInterceptors(new ResponseInterceptor());
+  // app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('LMS API')
