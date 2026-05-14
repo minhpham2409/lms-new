@@ -6,7 +6,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CertificateRepository, CourseRepository, EnrollmentRepository } from '../database/repositories';
+import { CertificateRepository, CourseRepository, EnrollmentRepository, UserRepository } from '../database/repositories';
+import { StorageService } from '../storage/storage.service';
 import { AppEvents } from '../shared/events';
 import { CertificateGeneratedPayload } from '../shared/events';
 import { randomUUID } from 'crypto';
@@ -17,11 +18,19 @@ export class CertificatesService {
     private readonly certificateRepository: CertificateRepository,
     private readonly courseRepository: CourseRepository,
     private readonly enrollmentRepository: EnrollmentRepository,
+    private readonly userRepository: UserRepository,
+    private readonly storageService: StorageService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findAll(userId: string) {
-    return this.certificateRepository.findByUser(userId);
+    const certs = await this.certificateRepository.findByUser(userId);
+    return Promise.all(
+      certs.map(async (cert) => ({
+        ...cert,
+        pdfUrl: await this.storageService.getSignedReadUrl(`certificates/${cert.id}.pdf`),
+      }))
+    );
   }
 
   async generate(courseId: string, userId: string) {
@@ -36,6 +45,8 @@ export class CertificatesService {
     if (enrollment.progress < 100) {
       throw new BadRequestException('You must complete 100% of the course to get a certificate');
     }
+
+    const user = await this.userRepository.findById(userId);
 
     const existing = await this.certificateRepository.findByUserAndCourse(userId, courseId);
     if (existing) throw new ConflictException('Certificate already issued for this course');
@@ -52,6 +63,7 @@ export class CertificatesService {
       userId,
       courseId,
       courseTitle: course.title,
+      userName: user ? `${user.firstName} ${user.lastName}` : 'Student',
     } as CertificateGeneratedPayload);
 
     return cert;
@@ -66,6 +78,7 @@ export class CertificatesService {
     return {
       ...certificate,
       course: { id: certificate.course.id, title: certificate.course.title },
+      pdfUrl: await this.storageService.getSignedReadUrl(`certificates/${certificate.id}.pdf`),
     };
   }
 }

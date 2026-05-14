@@ -82,6 +82,7 @@ export interface CertificateGeneratedPayload {
   userId: string;
   courseId: string;
   courseTitle: string;
+  userName?: string;
 }
 
 export interface CommentCreatedPayload {

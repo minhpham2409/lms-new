@@ -80,8 +80,6 @@ export class UploadService {
   }
 
   getFileUrl(filename: string, type: 'videos' | 'images' | 'files' = 'videos'): string {
-    // TODO: In production, serve files through signed URLs or a CDN with
-    // authentication checks instead of direct public access via /uploads.
     return `/uploads/${type}/${filename}`;
   }
 

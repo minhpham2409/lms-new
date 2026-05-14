@@ -80,6 +80,9 @@ services:
       - S3_FORCE_PATH_STYLE=true
       - S3_USE_SSL=false
       - S3_SIGNED_URL_EXPIRES=3600
+    volumes:
+      - uploads_data:/app/uploads
+      - hls_tmp:/app/tmp/hls
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,3 +125,5 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+  uploads_data:
+  hls_tmp:

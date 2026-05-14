@@ -147,10 +147,7 @@ export class StorageService implements OnModuleInit {
    */
   getPublicUrl(key: string): string {
     const baseUrl = process.env.API_URL || 'http://localhost:4000/api/v1';
-    
-    // Strip "videos/" prefix if it exists so we can route cleanly
-    const mediaPath = key.startsWith('videos/') ? key.substring(7) : key;
-    return `${baseUrl}/media/videos/${mediaPath}`;
+    return `${baseUrl}/media/${key}`;
   }
 
   /**
