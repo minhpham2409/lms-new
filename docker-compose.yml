@@ -22,7 +22,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: lms-redis
-    command: redis-server --appendonly yes
+    # Tối ưu Redis: Lưu ra đĩa (AOF) + Giới hạn RAM 256MB + Xóa cache cũ giữ lại Queue Jobs
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy volatile-lru
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
