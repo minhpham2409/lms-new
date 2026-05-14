@@ -64,8 +64,9 @@ export class AuthController {
     // Set refresh token as HttpOnly cookie
     res.cookie(REFRESH_COOKIE_NAME, result.refresh_token, REFRESH_COOKIE_OPTIONS);
 
-    // Return access token + user info (refresh token also in body for backward compat)
-    return result;
+    // Return access token + user info (removed refresh token from body for security)
+    const { refresh_token, ...responsePayload } = result;
+    return responsePayload;
   }
 
   @Post('refresh')
@@ -91,7 +92,9 @@ export class AuthController {
     // Rotate cookie
     res.cookie(REFRESH_COOKIE_NAME, result.refresh_token, REFRESH_COOKIE_OPTIONS);
 
-    return result;
+    // Return access token (removed refresh token from body for security)
+    const { refresh_token: _ignored, ...responsePayload } = result;
+    return responsePayload;
   }
 
   @UseGuards(JwtAuthGuard)

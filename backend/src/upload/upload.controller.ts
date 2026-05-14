@@ -97,36 +97,32 @@ export class UploadController {
           mimetype: file.mimetype,
         };
       } catch (error) {
-        // Fallback: if ffmpeg is not available, upload to S3 directly
-        const fileId = randomUUID();
-        const ext = extname(file.originalname).toLowerCase();
-        const key = `videos/original/${fileId}${ext}`;
-        const buffer = readFileSync(file.path);
-        await this.storageService.putObject({
-          key,
-          body: buffer,
-          contentType: getContentType(file.originalname),
-        });
-        return {
-          url: this.storageService.getPublicUrl(key),
-          storageKey: key,
-          format: 'direct',
-          filename: file.filename,
-          originalName: file.originalname,
-          size: file.size,
-          mimetype: file.mimetype,
-        };
+        // Fail hard if HLS conversion fails
+        throw new require('@nestjs/common').InternalServerErrorException(
+          `HLS conversion failed: ${(error as Error).message}`
+        );
       }
     }
 
-    // Legacy: local upload path (no HLS)
+    // Direct Upload to S3/MinIO (when hls=false)
+    const fileId = randomUUID();
+    const ext = extname(file.originalname).toLowerCase();
+    const key = `videos/original/${fileId}${ext}`;
+    const buffer = readFileSync(file.path);
+    await this.storageService.putObject({
+      key,
+      body: buffer,
+      contentType: getContentType(file.originalname),
+    });
+    
     return {
-      url: this.uploadService.getFileUrl(file.filename, 'videos'),
+      url: this.storageService.getPublicUrl(key),
+      storageKey: key,
       filename: file.filename,
       originalName: file.originalname,
       size: file.size,
       mimetype: file.mimetype,
-      format: 'local',
+      format: 'direct',
     };
   }
 

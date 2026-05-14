@@ -23,19 +23,9 @@ let _accessToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
   _accessToken = token;
-  // Keep localStorage in sync for backward compat (e.g. auth-state reads on reload)
-  if (typeof window !== 'undefined') {
-    if (token) localStorage.setItem('accessToken', token);
-    else localStorage.removeItem('accessToken');
-  }
 }
 
 export function getAccessToken(): string | null {
-  if (_accessToken) return _accessToken;
-  // Hydrate from localStorage on first call (page reload)
-  if (typeof window !== 'undefined') {
-    _accessToken = localStorage.getItem('accessToken');
-  }
   return _accessToken;
 }
 
@@ -97,7 +87,6 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         // Refresh failed — clear state and redirect to login
         setAccessToken(null);
-        localStorage.removeItem('refreshToken');
         window.location.href = '/auth/login';
         return Promise.reject(refreshError);
       } finally {
@@ -123,6 +112,8 @@ export const authApi = {
     api.put('/auth/profile', data).then(r => r.data),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.patch('/auth/change-password', { oldPassword: data.currentPassword, newPassword: data.newPassword }).then(r => r.data),
+  refreshToken: () =>
+    api.post('/auth/refresh').then(r => r.data),
 };
 
 // ─── Courses ─────────────────────────────────────────────────────────────────

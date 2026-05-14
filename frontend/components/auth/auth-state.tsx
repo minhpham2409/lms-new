@@ -40,26 +40,35 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Hydrate from localStorage on mount (access token still persisted for SSR compat)
-    const saved = getAccessToken();
-    if (saved) {
-      const decoded = decodeJwt(saved);
-      if (decoded && decoded.exp * 1000 > Date.now()) {
-        setToken(saved);
-        setUser({
-          id: decoded.sub,
-          username: decoded.username,
-          email: decoded.email,
-          role: decoded.role,
-          firstName: decoded.firstName,
-          lastName: decoded.lastName,
-        });
-      } else {
+    // Attempt to hydrate token silently using the httpOnly cookie on mount
+    const hydrate = async () => {
+      try {
+        const { authApi } = await import('@/lib/api-service');
+        const data = await authApi.refreshToken();
+        if (data && data.access_token) {
+          const decoded = decodeJwt(data.access_token);
+          if (decoded && decoded.exp * 1000 > Date.now()) {
+            setAccessToken(data.access_token);
+            setToken(data.access_token);
+            setUser({
+              id: decoded.sub,
+              username: decoded.username,
+              email: decoded.email,
+              role: decoded.role,
+              firstName: decoded.firstName,
+              lastName: decoded.lastName,
+            });
+          }
+        }
+      } catch (err) {
+        // If refresh fails, it means no valid cookie, user is logged out
         setAccessToken(null);
-        localStorage.removeItem("refreshToken");
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+    
+    hydrate();
   }, []);
 
   const login = useCallback((accessToken: string, _refreshToken?: string) => {
