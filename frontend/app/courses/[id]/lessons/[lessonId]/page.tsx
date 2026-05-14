@@ -342,7 +342,7 @@ export default function LessonPage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
-      {/* Top bar */}
+      {/* ─── Premium Top Bar ─────────────────────────────────────────── */}
       <div className="h-14 flex items-center justify-between px-4 glass-strong sticky top-0 z-40" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center gap-3">
           <Link href={`/courses/${id}`} className="flex items-center gap-1 text-sm hover:text-[#a78bfa] transition-colors" style={{ color: "var(--foreground-muted)" }}>
@@ -351,19 +351,23 @@ export default function LessonPage() {
           <div className="w-px h-5" style={{ background: "var(--border)" }} />
           <span className="text-sm font-medium truncate max-w-xs">{course?.title || ""}</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="text-xs font-medium" style={{ color: "var(--foreground-muted)" }}>Bài {currentIdx + 1}/{allLessons.length}</span>
           <div className="w-24 progress-bar">
             <div className="progress-fill" style={{ width: `${allLessons.length ? ((currentIdx + 1) / allLessons.length) * 100 : 0}%` }} />
           </div>
+          <button onClick={() => setTheaterMode(!theaterMode)} className="p-2 rounded-lg transition-colors btn-ghost" title={theaterMode ? "Thu nhỏ" : "Mở rộng"}>
+            {theaterMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg transition-colors btn-ghost">
             <List className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden relative">
-        <div className="flex-1 overflow-y-auto" style={{ maxWidth: sidebarOpen ? 'calc(100% - 320px)' : '100%' }}>
+      {/* ─── Main Content Grid (70-30) ───────────────────────────────── */}
+      <div className={`flex flex-1 overflow-hidden relative ${theaterMode ? 'flex-col' : ''}`}>
+        <div className="flex-1 overflow-y-auto" style={{ maxWidth: !theaterMode && sidebarOpen ? 'calc(100% - 340px)' : '100%', transition: 'max-width 0.3s ease' }}>
           {/* Video player */}
           {lesson?.videoUrl ? (
             (() => {
@@ -479,10 +483,9 @@ export default function LessonPage() {
             </div>
           )}
 
-          {/* Lesson info */}
+          {/* ─── Lesson Info with Smart Tabs ─────────────────────────── */}
           <div className="max-w-4xl mx-auto px-6 py-8 page-enter">
-            {/* Lesson header */}
-            <div className="mb-8">
+            <div className="mb-6">
               {lesson?.section?.title && (
                 <div className="section-tag mb-3 text-xs">
                   <BookOpen className="w-3.5 h-3.5" /> {lesson.section.title}
@@ -501,21 +504,40 @@ export default function LessonPage() {
               </div>
             </div>
 
-            <div className="gradient-line mb-8" />
+            {/* ─── Tabs ────────────────────────────────────────────────── */}
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="w-full justify-start gap-1 bg-transparent border-b rounded-none px-0 h-auto pb-0" style={{ borderColor: "var(--border)" }}>
+                <TabsTrigger value="overview" className="rounded-t-lg rounded-b-none data-[state=active]:bg-[rgba(124,58,237,0.1)] data-[state=active]:text-[#a78bfa] data-[state=active]:shadow-none px-4 py-2.5 text-sm gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5" /> Tổng quan
+                </TabsTrigger>
+                <TabsTrigger value="resources" className="rounded-t-lg rounded-b-none data-[state=active]:bg-[rgba(59,130,246,0.1)] data-[state=active]:text-[#3b82f6] data-[state=active]:shadow-none px-4 py-2.5 text-sm gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> Tài liệu {materials.length > 0 && `(${materials.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="assignments" className="rounded-t-lg rounded-b-none data-[state=active]:bg-[rgba(245,158,11,0.1)] data-[state=active]:text-[#f59e0b] data-[state=active]:shadow-none px-4 py-2.5 text-sm gap-1.5">
+                  <PenTool className="w-3.5 h-3.5" /> Bài tập {assignments.length > 0 && `(${assignments.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="discussion" className="rounded-t-lg rounded-b-none data-[state=active]:bg-[rgba(124,58,237,0.1)] data-[state=active]:text-[#a78bfa] data-[state=active]:shadow-none px-4 py-2.5 text-sm gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5" /> Hỏi đáp ({comments.length})
+                </TabsTrigger>
+              </TabsList>
 
-            {lesson?.content && (
-              <div className="card-base card-spotlight mb-8">
-                <h3 className="font-bold text-base mb-4 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" style={{ color: "#7c3aed" }} /> Nội dung bài học
-                </h3>
-                <div className="text-base leading-relaxed whitespace-pre-line" style={{ color: "var(--foreground)" }}>
-                  {lesson.content}
-                </div>
-              </div>
-            )}
+              {/* ── Tab: Overview ──────────────────────────────────────── */}
+              <TabsContent value="overview" className="mt-6">
+                {lesson?.content && (
+                  <div className="card-base card-spotlight mb-6">
+                    <h3 className="font-bold text-base mb-4 flex items-center gap-2">
+                      <BookOpen className="w-5 h-5" style={{ color: "#7c3aed" }} /> Nội dung bài học
+                    </h3>
+                    <div className="text-base leading-relaxed whitespace-pre-line" style={{ color: "var(--foreground)" }}>
+                      {lesson.content}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
 
-            {/* Materials */}
-            {materials.length > 0 && (
+              {/* ── Tab: Resources ─────────────────────────────────────── */}
+              <TabsContent value="resources" className="mt-6">
+            {materials.length > 0 ? (
               <div className="card-base mb-8">
                 <h3 className="font-bold text-base mb-4 flex items-center gap-2">📎 Tài liệu ({materials.length})</h3>
                 <div className="space-y-2">
@@ -536,11 +558,17 @@ export default function LessonPage() {
                   })}
                 </div>
               </div>
+            ) : (
+              <div className="text-center py-12" style={{ color: "var(--foreground-muted)" }}>
+                <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Bài học này chưa có tài liệu đính kèm</p>
+              </div>
             )}
+              </TabsContent>
 
-
-            {/* Assignments */}
-            {assignments.length > 0 && (
+              {/* ── Tab: Assignments ───────────────────────────────────── */}
+              <TabsContent value="assignments" className="mt-6">
+            {assignments.length > 0 ? (
               <div className="card-base mb-8">
                 <h3 className="font-bold text-base mb-4 flex items-center gap-2">📝 Bài tập ({assignments.length})</h3>
                 <div className="space-y-3">
@@ -628,70 +656,18 @@ export default function LessonPage() {
                   ))}
                 </div>
               </div>
+            ) : (
+              <div className="text-center py-12" style={{ color: "var(--foreground-muted)" }}>
+                <PenTool className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Bài học này chưa có bài tập</p>
+              </div>
             )}
+              </TabsContent>
 
-            {/* Navigation */}
-            {/* Progress checklist */}
-            <div className="card-base mb-8">
-              <h3 className="font-bold text-base mb-4 flex items-center gap-2">📊 Tiến độ bài học</h3>
-              <div className="space-y-2">
-                {lesson?.videoUrl && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: watchedPercentage >= 90 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: watchedPercentage >= 90 ? '#10b981' : 'var(--border)', color: '#fff' }}>
-                      {watchedPercentage >= 90 ? '✓' : ''}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-medium">Xem video ({watchedPercentage}% / 90%)</p>
-                      <div className="w-full h-1.5 rounded-full mt-1" style={{ background: 'var(--border)' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, watchedPercentage)}%`, background: watchedPercentage >= 90 ? '#10b981' : '#f59e0b' }} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {hasAssignment && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: assignmentSubmitted ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: assignmentSubmitted ? '#10b981' : 'var(--border)', color: '#fff' }}>
-                      {assignmentSubmitted ? '✓' : ''}
-                    </div>
-                    <p className="text-xs font-medium">{assignmentSubmitted ? 'Đã nộp bài tập ✓' : 'Chưa nộp bài tập'}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            {!canComplete && (
-              <div className="mb-4 p-3 rounded-xl flex items-center gap-2 text-sm" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", color: "#f59e0b" }}>
-                ⚠️ {watchedPercentage < 90 && hasAssignment && !assignmentSubmitted
-                  ? `Cần xem 90% video (${watchedPercentage}%) và nộp bài tập`
-                  : watchedPercentage < 90
-                    ? `Cần xem ít nhất 90% video (hiện tại: ${watchedPercentage}%)`
-                    : 'Cần nộp bài tập'
-                } trước khi hoàn thành
-              </div>
-            )}
-            <div className="flex items-center justify-between mb-10">
-              {prevLesson ? (
-                <Link href={`/courses/${id}/lessons/${prevLesson.id}`} className="btn-secondary text-sm">
-                  <ChevronLeft className="w-4 h-4" /> Bài trước
-                </Link>
-              ) : <div />}
-              <button
-                onClick={markComplete}
-                disabled={!canComplete}
-                className="btn-primary text-sm"
-                style={!canComplete ? { opacity: 0.5, cursor: "not-allowed" } : {}}
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                {!canComplete ? "🔒 Chưa đủ điều kiện" : "Hoàn thành & tiếp tục"}
-              </button>
-              {nextLesson ? (
-                <Link href={`/courses/${id}/lessons/${nextLesson.id}`} className="btn-secondary text-sm">
-                  Bài tiếp <ChevronRight className="w-4 h-4" />
-                </Link>
-              ) : <div />}
-            </div>
+              {/* ── Tab: Discussion ────────────────────────────────────── */}
+              <TabsContent value="discussion" className="mt-6">
 
             {/* Comments */}
-            <div className="divider mb-6" />
             <h3 className="font-bold mb-4 flex items-center gap-2">
               <MessageCircle className="w-4 h-4" style={{ color: "#7c3aed" }} /> Thảo luận ({comments.length})
             </h3>
@@ -749,11 +725,72 @@ export default function LessonPage() {
                 </div>
               ))}
             </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* ─── Progress & Navigation (outside tabs) ──────────────── */}
+            <div className="card-base mb-8 mt-8">
+              <h3 className="font-bold text-base mb-4 flex items-center gap-2">📊 Tiến độ bài học</h3>
+              <div className="space-y-2">
+                {lesson?.videoUrl && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: watchedPercentage >= 90 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: watchedPercentage >= 90 ? '#10b981' : 'var(--border)', color: '#fff' }}>
+                      {watchedPercentage >= 90 ? '✓' : ''}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium">Xem video ({watchedPercentage}% / 90%)</p>
+                      <div className="w-full h-1.5 rounded-full mt-1" style={{ background: 'var(--border)' }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, watchedPercentage)}%`, background: watchedPercentage >= 90 ? '#10b981' : '#f59e0b' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {hasAssignment && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: assignmentSubmitted ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: assignmentSubmitted ? '#10b981' : 'var(--border)', color: '#fff' }}>
+                      {assignmentSubmitted ? '✓' : ''}
+                    </div>
+                    <p className="text-xs font-medium">{assignmentSubmitted ? 'Đã nộp bài tập ✓' : 'Chưa nộp bài tập'}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            {!canComplete && (
+              <div className="mb-4 p-3 rounded-xl flex items-center gap-2 text-sm" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", color: "#f59e0b" }}>
+                ⚠️ {watchedPercentage < 90 && hasAssignment && !assignmentSubmitted
+                  ? `Cần xem 90% video (${watchedPercentage}%) và nộp bài tập`
+                  : watchedPercentage < 90
+                    ? `Cần xem ít nhất 90% video (hiện tại: ${watchedPercentage}%)`
+                    : 'Cần nộp bài tập'
+                } trước khi hoàn thành
+              </div>
+            )}
+            <div className="flex items-center justify-between mb-10">
+              {prevLesson ? (
+                <Link href={`/courses/${id}/lessons/${prevLesson.id}`} className="btn-secondary text-sm">
+                  <ChevronLeft className="w-4 h-4" /> Bài trước
+                </Link>
+              ) : <div />}
+              <button
+                onClick={markComplete}
+                disabled={!canComplete}
+                className="btn-primary text-sm"
+                style={!canComplete ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {!canComplete ? "🔒 Chưa đủ điều kiện" : "Hoàn thành & tiếp tục"}
+              </button>
+              {nextLesson ? (
+                <Link href={`/courses/${id}/lessons/${nextLesson.id}`} className="btn-secondary text-sm">
+                  Bài tiếp <ChevronRight className="w-4 h-4" />
+                </Link>
+              ) : <div />}
+            </div>
           </div>
         </div>
 
-        {/* Sidebar - always visible on desktop */}
-        <div className="border-l overflow-y-auto flex-shrink-0 hidden md:block" style={{ width: sidebarOpen ? '320px' : '0px', background: "var(--card)", borderColor: "var(--border)", transition: 'width 0.3s' }}>
+        {/* ─── Sidebar Playlist (30%) ────────────────────────────────── */}
+        <div className="border-l overflow-y-auto flex-shrink-0 hidden md:block" style={{ width: sidebarOpen && !theaterMode ? '340px' : '0px', background: "var(--card)", borderColor: "var(--border)", transition: 'width 0.3s ease' }}>
           {sidebarOpen && (
             <>
               <div className="flex items-center justify-between p-4" style={{ borderBottom: "1px solid var(--border)" }}>
