@@ -39,9 +39,9 @@ export default function TeacherCourseEditPage() {
   const [_editVideoFile, setEditVideoFile] = useState<File | null>(null);
   const editVideoRef = useRef<HTMLInputElement>(null);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (token && id) fetchCourse();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, id]);
 
   async function fetchCourse() {

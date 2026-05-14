@@ -5,7 +5,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import {
   GraduationCap, BookOpen, Users, Award, Play, ArrowRight, Zap, Star,
-  Shield, BarChart3, Clock, CheckCircle2, ChevronRight, Sparkles,
+  Shield, BarChart3, CheckCircle2, ChevronRight, Sparkles,
   Target, TrendingUp, Brain, Laptop,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";

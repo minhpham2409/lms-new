@@ -70,7 +70,7 @@ export default function Certificate({ courseId }: CertificateProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [courseId, isLoggedIn, router]);
+  }, [courseId, router]);
 
   useEffect(() => {
     if (!isLoggedIn) {

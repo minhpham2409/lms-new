@@ -34,6 +34,7 @@ export function LessonComments({ lessonId }: { lessonId: string }) {
   useEffect(() => {
     setLoading(true);
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId, isLoggedIn]);
 
   const submit = async () => {

@@ -1,6 +1,6 @@
 import { CheckCircle2, Play, FileText, Image as ImageIcon } from "lucide-react";
 
-export function Step4Review({ title, description, category, level, price, sections }: any) {
+export function Step4Review({ title, category, level, price, sections }: any) {
   const totalLessons = sections.reduce((acc: number, sec: any) => acc + sec.lessons.length, 0);
 
   return (

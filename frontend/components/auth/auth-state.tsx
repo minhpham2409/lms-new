@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { setAccessToken, getAccessToken } from "@/lib/api-service";
+import { setAccessToken } from "@/lib/api-service";
 
 interface UserInfo {
   id: string;
@@ -60,7 +60,7 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
             });
           }
         }
-      } catch (err) {
+      } catch {
         // If refresh fails, it means no valid cookie, user is logged out
         setAccessToken(null);
       } finally {

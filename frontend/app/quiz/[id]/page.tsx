@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
@@ -22,7 +21,9 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { if (token) fetchQuiz(); }, [id, token]);
+  useEffect(() => { if (token) fetchQuiz();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, token]);
 
   async function fetchQuiz() {
     try {

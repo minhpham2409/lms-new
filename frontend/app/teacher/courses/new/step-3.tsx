@@ -1,17 +1,18 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
 import { Play, Plus, Trash2, Upload, FileText, Image as ImageIcon, Video, ChevronDown, ChevronUp, CheckCircle2, Loader2 } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 function UploadButton({
-  lesId, type, token, onUploaded, uploading, setUploading, accept, label, color, successText
+  lesId, type, token, onUploaded, uploading, setUploading, accept, label, color
 }: {
   lesId: string; type: "video" | "image" | "file"; token: string;
   onUploaded: (url: string) => void; uploading: Record<string, boolean>;
   setUploading: (fn: (prev: any) => any) => void;
-  accept: string; label: string; color: string; successText?: string;
+  accept: string; label: string; color: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const key = `${lesId}-${type}`;
@@ -214,10 +215,12 @@ export function Step3Lessons({ sections, setSections, token }: any) {
 
                           {les.assignmentImageUrl ? (
                             <div className="space-y-1.5">
-                              <img
-                                src={les.assignmentImageUrl.startsWith("http") ? les.assignmentImageUrl : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace("/api/v1", "")}${les.assignmentImageUrl}`}
-                                alt="Đề bài" className="w-full rounded-lg object-cover" style={{ maxHeight: 80, border: "1px solid var(--border)" }}
-                              />
+                              <div className="relative w-full h-20 rounded-lg overflow-hidden border border-white/10">
+                                <Image
+                                  src={les.assignmentImageUrl.startsWith("http") ? les.assignmentImageUrl : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace("/api/v1", "")}${les.assignmentImageUrl}`}
+                                  alt="Đề bài" fill className="object-cover"
+                                />
+                              </div>
                               <button type="button" onClick={() => updateLesson(sec.id, les.id, { assignmentImageUrl: "" })}
                                 className="text-[10px] w-full text-center" style={{ color: "#ef4444" }}>Xóa ảnh</button>
                             </div>

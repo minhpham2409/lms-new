@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   GraduationCap, Bell, ShoppingCart, User, Menu, X,
-  ChevronDown, LogOut, Settings, LayoutDashboard, Zap, Sun, Moon, Trophy,
+  ChevronDown, LogOut, LayoutDashboard, Zap, Sun, Moon, Trophy,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth/auth-state";

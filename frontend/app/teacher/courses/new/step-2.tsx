@@ -1,4 +1,4 @@
-import { Layers, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Layers, Plus, Trash2 } from "lucide-react";
 
 export function Step2Sections({ sections, setSections }: any) {
   const addSection = () => {
