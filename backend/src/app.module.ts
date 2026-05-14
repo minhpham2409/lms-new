@@ -37,6 +37,7 @@ import { StorageModule } from './storage/storage.module';
 import { QueueNames, QueueEventBridge } from './shared/queues';
 import { EmailProcessor } from './shared/queues/processors/email.processor';
 import { CertificateProcessor } from './shared/queues/processors/certificate.processor';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -148,6 +149,7 @@ import { CertificateProcessor } from './shared/queues/processors/certificate.pro
     UploadModule,
     AchievementsModule,
     MonthlyRaceModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [

@@ -75,35 +75,6 @@ export class StorageService implements OnModuleInit {
       this.logger.log(`Creating bucket "${this.bucket}"...`);
       await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
     }
-    // Set public read policy so HLS segments/images are accessible
-    await this.setBucketPublicRead();
-  }
-
-  /**
-   * Set bucket policy to allow public read access.
-   * Required for HLS streaming (browser loads .m3u8 and .ts directly).
-   */
-  private async setBucketPublicRead(): Promise<void> {
-    const policy = JSON.stringify({
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Sid: 'PublicRead',
-          Effect: 'Allow',
-          Principal: '*',
-          Action: ['s3:GetObject'],
-          Resource: [`arn:aws:s3:::${this.bucket}/*`],
-        },
-      ],
-    });
-    try {
-      await this.client.send(
-        new PutBucketPolicyCommand({ Bucket: this.bucket, Policy: policy }),
-      );
-      this.logger.log(`Bucket "${this.bucket}" set to public-read`);
-    } catch (err) {
-      this.logger.warn(`Could not set bucket policy: ${(err as Error).message}`);
-    }
   }
 
   /**
@@ -162,16 +133,24 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
-   * Generate a public URL (path-style for MinIO, virtual-hosted for AWS).
-   * Only valid if bucket policy allows public reads.
+   * Return a streaming response for the object.
+   */
+  async getObjectStream(key: string): Promise<any> {
+    const response = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    return response.Body;
+  }
+
+  /**
+   * Generate a proxy URL for secured media.
    */
   getPublicUrl(key: string): string {
-    if (this.forcePathStyle) {
-      // MinIO path-style: http://host:9000/bucket/key
-      return `${this.publicEndpoint}/${this.bucket}/${key}`;
-    }
-    // AWS virtual-hosted-style: https://bucket.s3.region.amazonaws.com/key
-    return `${this.publicEndpoint}/${key}`;
+    const baseUrl = process.env.API_URL || 'http://localhost:4000/api/v1';
+    
+    // Strip "videos/" prefix if it exists so we can route cleanly
+    const mediaPath = key.startsWith('videos/') ? key.substring(7) : key;
+    return `${baseUrl}/media/videos/${mediaPath}`;
   }
 
   /**

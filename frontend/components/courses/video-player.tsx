@@ -21,7 +21,7 @@ import {
   ClipboardList,
   HelpCircle,
 } from 'lucide-react';
-import { coursesApi, enrollmentsApi, progressApi, assignmentsApi } from '@/lib/api-service';
+import { coursesApi, enrollmentsApi, progressApi, assignmentsApi, getAccessToken } from '@/lib/api-service';
 import type { Course, LessonWithProgress, Assignment } from '@/types';
 
 interface VideoPlayerProps {
@@ -288,7 +288,15 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
                               if (Hls.isSupported()) {
                                 // Cleanup previous instance
                                 if ((el as any).__hls) { (el as any).__hls.destroy(); }
-                                const hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60 });
+                                const hls = new Hls({ 
+                                  maxBufferLength: 30, 
+                                  maxMaxBufferLength: 60,
+                                  xhrSetup: (xhr) => {
+                                    xhr.withCredentials = true; // Send HttpOnly cookie
+                                    const token = getAccessToken();
+                                    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                                  }
+                                });
                                 hls.loadSource(src);
                                 hls.attachMedia(el);
                                 (el as any).__hls = hls;
