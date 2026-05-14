@@ -1,15 +1,20 @@
 import {
   Controller, Post, UseGuards, UseInterceptors,
-  UploadedFile, BadRequestException,
+  UploadedFile, BadRequestException, Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UploadService } from './upload.service';
+import { HlsService } from '../hls/hls.service';
+import { StorageService } from '../storage/storage.service';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { getContentType } from '../storage/storage.constants';
+import { readFileSync } from 'fs';
+import { randomUUID } from 'crypto';
 
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_VIDEO_TYPES = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
@@ -25,12 +30,16 @@ const ALLOWED_FILE_TYPES = ['.pdf', '.doc', '.docx', '.txt', '.ppt', '.pptx', '.
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class UploadController {
-  constructor(private readonly uploadService: UploadService) {}
+  constructor(
+    private readonly uploadService: UploadService,
+    private readonly hlsService: HlsService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Post('video')
   @UseGuards(RolesGuard)
   @Roles('teacher', 'admin')
-  @ApiOperation({ summary: 'Upload a video file for lessons' })
+  @ApiOperation({ summary: 'Upload a video file for lessons (converts to HLS)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -38,6 +47,7 @@ export class UploadController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
+  @ApiQuery({ name: 'hls', required: false, description: 'Set to false to skip HLS conversion' })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -60,16 +70,63 @@ export class UploadController {
       },
     }),
   )
-  uploadVideo(@UploadedFile() file: Express.Multer.File) {
+  async uploadVideo(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('hls') hlsParam?: string,
+  ) {
     if (!file) throw new BadRequestException('No file uploaded');
     // Validate MIME type after upload
     this.uploadService.validateFile(file, 'videos');
+
+    const skipHls = hlsParam === 'false';
+
+    if (!skipHls) {
+      // Convert to HLS and upload to S3/MinIO
+      try {
+        const result = await this.hlsService.convertAndUpload(file.path, file.originalname);
+        return {
+          url: result.hlsUrl,
+          hlsManifestKey: result.hlsManifestKey,
+          originalKey: result.originalKey,
+          videoId: result.videoId,
+          segmentCount: result.segmentCount,
+          format: 'hls',
+          filename: file.filename,
+          originalName: file.originalname,
+          size: file.size,
+          mimetype: file.mimetype,
+        };
+      } catch (error) {
+        // Fallback: if ffmpeg is not available, upload to S3 directly
+        const fileId = randomUUID();
+        const ext = extname(file.originalname).toLowerCase();
+        const key = `videos/original/${fileId}${ext}`;
+        const buffer = readFileSync(file.path);
+        await this.storageService.putObject({
+          key,
+          body: buffer,
+          contentType: getContentType(file.originalname),
+        });
+        return {
+          url: this.storageService.getPublicUrl(key),
+          storageKey: key,
+          format: 'direct',
+          filename: file.filename,
+          originalName: file.originalname,
+          size: file.size,
+          mimetype: file.mimetype,
+        };
+      }
+    }
+
+    // Legacy: local upload path (no HLS)
     return {
       url: this.uploadService.getFileUrl(file.filename, 'videos'),
       filename: file.filename,
       originalName: file.originalname,
       size: file.size,
       mimetype: file.mimetype,
+      format: 'local',
     };
   }
 
@@ -106,17 +163,39 @@ export class UploadController {
       },
     }),
   )
-  uploadImage(@UploadedFile() file: Express.Multer.File) {
+  async uploadImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
-    // Validate MIME type after upload
     this.uploadService.validateFile(file, 'images');
-    return {
-      url: this.uploadService.getFileUrl(file.filename, 'images'),
-      filename: file.filename,
-      originalName: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype,
-    };
+
+    // Upload to S3/MinIO
+    try {
+      const fileId = randomUUID();
+      const ext = extname(file.originalname).toLowerCase();
+      const key = `images/${fileId}${ext}`;
+      const buffer = readFileSync(file.path);
+      await this.storageService.putObject({
+        key,
+        body: buffer,
+        contentType: getContentType(file.originalname),
+      });
+      return {
+        url: this.storageService.getPublicUrl(key),
+        storageKey: key,
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+      };
+    } catch {
+      // Fallback to local
+      return {
+        url: this.uploadService.getFileUrl(file.filename, 'images'),
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+      };
+    }
   }
 
   @Post('file')
@@ -152,16 +231,38 @@ export class UploadController {
       },
     }),
   )
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
-    // Validate MIME type after upload
     this.uploadService.validateFile(file, 'files');
-    return {
-      url: this.uploadService.getFileUrl(file.filename, 'files'),
-      filename: file.filename,
-      originalName: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype,
-    };
+
+    // Upload to S3/MinIO
+    try {
+      const fileId = randomUUID();
+      const ext = extname(file.originalname).toLowerCase();
+      const key = `materials/${fileId}${ext}`;
+      const buffer = readFileSync(file.path);
+      await this.storageService.putObject({
+        key,
+        body: buffer,
+        contentType: getContentType(file.originalname),
+      });
+      return {
+        url: this.storageService.getPublicUrl(key),
+        storageKey: key,
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+      };
+    } catch {
+      // Fallback to local
+      return {
+        url: this.uploadService.getFileUrl(file.filename, 'files'),
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+      };
+    }
   }
 }

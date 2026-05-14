@@ -405,13 +405,39 @@ export default function LessonPage() {
                   </div>
                 );
               }
-              // Local video file
+              // Local / HLS / Direct video file
               const videoSrc = lesson.videoUrl.startsWith("http") ? lesson.videoUrl : `${BASE_URL}${lesson.videoUrl}`;
+              const isHls = lesson.videoUrl.includes('.m3u8');
               return (
                 <div className="aspect-video bg-black relative">
                   <video
                     key={videoSrc}
-                    src={videoSrc}
+                    ref={(el) => {
+                      if (!el) return;
+                      // HLS.js setup for .m3u8 streams
+                      if (isHls) {
+                        // Check native HLS support first (Safari)
+                        if (el.canPlayType('application/vnd.apple.mpegurl')) {
+                          el.src = videoSrc;
+                        } else {
+                          // Use hls.js for other browsers
+                          import('hls.js').then(({ default: Hls }) => {
+                            if (Hls.isSupported()) {
+                              const hls = new Hls({
+                                maxBufferLength: 30,
+                                maxMaxBufferLength: 60,
+                              });
+                              hls.loadSource(videoSrc);
+                              hls.attachMedia(el);
+                              // Store for cleanup
+                              (el as any).__hls = hls;
+                            }
+                          });
+                        }
+                      } else {
+                        el.src = videoSrc;
+                      }
+                    }}
                     className="w-full h-full"
                     controls
                     controlsList="nodownload"

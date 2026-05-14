@@ -9,7 +9,10 @@ import {
   Patch,
   Delete,
   Param,
+  Res,
+  Req,
 } from '@nestjs/common';
+import { Response, Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from '../common/guards/local-auth.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -22,6 +25,15 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+
+const REFRESH_COOKIE_NAME = 'refresh_token';
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/api/v1/auth',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -46,16 +58,40 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Request() req: any) {
-    return this.authService.login(req.user);
+  async login(@Request() req: any, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(req.user);
+
+    // Set refresh token as HttpOnly cookie
+    res.cookie(REFRESH_COOKIE_NAME, result.refresh_token, REFRESH_COOKIE_OPTIONS);
+
+    // Return access token + user info (refresh token also in body for backward compat)
+    return result;
   }
 
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refreshToken(@Body() body: RefreshTokenDto) {
-    return this.authService.refreshToken(body.refresh_token);
+  async refreshToken(
+    @Req() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
+    @Body() body?: RefreshTokenDto,
+  ) {
+    // Try cookie first, then body
+    const refreshToken =
+      (req.cookies && req.cookies[REFRESH_COOKIE_NAME]) ||
+      body?.refresh_token;
+
+    if (!refreshToken) {
+      throw new (require('@nestjs/common').UnauthorizedException)('No refresh token provided');
+    }
+
+    const result = await this.authService.refreshToken(refreshToken);
+
+    // Rotate cookie
+    res.cookie(REFRESH_COOKIE_NAME, result.refresh_token, REFRESH_COOKIE_OPTIONS);
+
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -65,9 +101,25 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(
     @GetUser() user: any,
+    @Req() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
     @Body() body?: RefreshTokenDto,
   ) {
-    return this.authService.logout(user.id, body?.refresh_token);
+    const refreshToken =
+      (req.cookies && req.cookies[REFRESH_COOKIE_NAME]) ||
+      body?.refresh_token;
+
+    const result = await this.authService.logout(user.id, refreshToken);
+
+    // Clear cookie
+    res.clearCookie(REFRESH_COOKIE_NAME, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/api/v1/auth',
+    });
+
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)

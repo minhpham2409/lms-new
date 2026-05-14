@@ -274,10 +274,33 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
                 ) : currentLesson.videoUrl ? (
                   <div className="relative w-full pb-[56.25%] bg-black">
                     <video
-                      ref={videoRef}
+                      ref={(el) => {
+                        // Assign to videoRef for progress tracking
+                        (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+                        if (!el) return;
+                        const src = currentLesson.videoUrl!;
+                        const isHls = src.includes('.m3u8');
+                        if (isHls) {
+                          if (el.canPlayType('application/vnd.apple.mpegurl')) {
+                            el.src = src;
+                          } else {
+                            import('hls.js').then(({ default: Hls }) => {
+                              if (Hls.isSupported()) {
+                                // Cleanup previous instance
+                                if ((el as any).__hls) { (el as any).__hls.destroy(); }
+                                const hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60 });
+                                hls.loadSource(src);
+                                hls.attachMedia(el);
+                                (el as any).__hls = hls;
+                              }
+                            });
+                          }
+                        } else {
+                          el.src = src;
+                        }
+                      }}
                       className="absolute top-0 left-0 w-full h-full"
                       controls
-                      src={currentLesson.videoUrl}
                     />
                   </div>
                 ) : (

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { CoursesService } from './courses.service';
 import { CourseRepository } from '../database/repositories';
 
@@ -9,6 +10,14 @@ describe('CoursesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CoursesService,
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+          },
+        },
         {
           provide: CourseRepository,
           useValue: {

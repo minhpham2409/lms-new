@@ -19,6 +19,9 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Install ffmpeg for HLS video conversion
+RUN apk add --no-cache ffmpeg
+
 # Copy package files and install only production dependencies
 COPY package.json yarn.lock* package-lock.json* ./
 RUN npm ci --omit=dev || yarn install --production --frozen-lockfile
@@ -30,6 +33,9 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 # Copy built application and Prisma schema
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+
+# Create temp directory for HLS processing
+RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files
 
 EXPOSE 4000
 

@@ -2,35 +2,56 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { CourseRepository } from '../database/repositories';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+
+const CACHE_KEY_ALL_COURSES = 'courses:public:all';
+const CACHE_KEY_COURSE_PREFIX = 'courses:detail:';
+const CACHE_TTL = 60_000; // 60 seconds in ms
 
 @Injectable()
 export class CoursesService {
   constructor(
     private readonly courseRepository: CourseRepository,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   async create(dto: CreateCourseDto, authorId: string) {
-    return this.courseRepository.createWithAuthor(
+    const result = await this.courseRepository.createWithAuthor(
       { ...dto, status: dto.status ?? 'draft' },
       authorId,
     );
+    await this.invalidateCourseCaches();
+    return result;
   }
 
   async findAll() {
-    return this.courseRepository.findAllWithCounts({ status: 'published' });
+    const cached = await this.cache.get(CACHE_KEY_ALL_COURSES);
+    if (cached) return cached;
+    const result = await this.courseRepository.findAllWithCounts({ status: 'published' });
+    await this.cache.set(CACHE_KEY_ALL_COURSES, result, CACHE_TTL);
+    return result;
   }
 
   async findOne(
     id: string,
     viewer?: { id: string; role: string } | null,
   ) {
+    const cacheKey = `${CACHE_KEY_COURSE_PREFIX}${id}`;
+    const cached = await this.cache.get(cacheKey) as any;
+    if (cached && cached.status === 'published') return cached;
+
     const course = await this.courseRepository.findByIdWithSections(id);
     if (!course) throw new NotFoundException('Course not found');
-    if (course.status === 'published') return course;
+    if (course.status === 'published') {
+      await this.cache.set(cacheKey, course, CACHE_TTL);
+      return course;
+    }
     if (
       viewer &&
       (course.authorId === viewer.id || viewer.role === 'admin')
@@ -56,7 +77,10 @@ export class CoursesService {
     if (!isAdmin) {
       delete payload.status;
     }
-    return this.courseRepository.update(id, payload as UpdateCourseDto);
+    return this.courseRepository.update(id, payload as UpdateCourseDto).then(async (result) => {
+      await this.invalidateCourseCaches(id);
+      return result;
+    });
   }
 
   async remove(id: string, authorId: string) {
@@ -66,7 +90,9 @@ export class CoursesService {
       throw new ForbiddenException('You can only delete your own courses');
     if (course.status !== 'draft')
       throw new ForbiddenException('Only draft courses can be deleted');
-    return this.courseRepository.delete(id);
+    const result = await this.courseRepository.delete(id);
+    await this.invalidateCourseCaches(id);
+    return result;
   }
 
   async findByAuthor(authorId: string) {
@@ -139,5 +165,13 @@ export class CoursesService {
       recentEnrollments,
       monthlyData,
     };
+  }
+
+  /** Invalidate all course-related caches */
+  private async invalidateCourseCaches(courseId?: string): Promise<void> {
+    await this.cache.del(CACHE_KEY_ALL_COURSES);
+    if (courseId) {
+      await this.cache.del(`${CACHE_KEY_COURSE_PREFIX}${courseId}`);
+    }
   }
 }

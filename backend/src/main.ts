@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 import { HttpExceptionFilter } from './shared/filters';
 
 /**
@@ -57,6 +58,9 @@ async function bootstrap() {
 
   // Global prefix — matches README: /api/v1
   app.setGlobalPrefix('api/v1');
+
+  // Cookie parser for HttpOnly refresh tokens
+  app.use(cookieParser());
 
   // Configure CORS for frontend communication
   const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',');

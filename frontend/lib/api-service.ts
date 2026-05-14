@@ -15,24 +15,96 @@ const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
+  withCredentials: true, // Send cookies (refresh_token) with every request
 });
 
-api.interceptors.request.use((config) => {
+// ─── In-memory access token (not in localStorage) ─────────────────────────────
+let _accessToken: string | null = null;
+
+export function setAccessToken(token: string | null) {
+  _accessToken = token;
+  // Keep localStorage in sync for backward compat (e.g. auth-state reads on reload)
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) localStorage.setItem('accessToken', token);
+    else localStorage.removeItem('accessToken');
+  }
+}
+
+export function getAccessToken(): string | null {
+  if (_accessToken) return _accessToken;
+  // Hydrate from localStorage on first call (page reload)
+  if (typeof window !== 'undefined') {
+    _accessToken = localStorage.getItem('accessToken');
+  }
+  return _accessToken;
+}
+
+// ─── Request interceptor: attach access token ────────────────────────────────
+api.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+// ─── Response interceptor: auto-refresh on 401 ──────────────────────────────
+let isRefreshing = false;
+let failedQueue: { resolve: (v: any) => void; reject: (e: any) => void }[] = [];
+
+function processQueue(error: any, token: string | null = null) {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+  failedQueue = [];
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      window.location.href = '/auth/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Skip refresh for auth endpoints themselves
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/refresh') &&
+      typeof window !== 'undefined'
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Call refresh endpoint — cookie will be sent automatically
+        const { data } = await api.post('/auth/refresh');
+        const newToken = data.access_token;
+        setAccessToken(newToken);
+        processQueue(null, newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        // Refresh failed — clear state and redirect to login
+        setAccessToken(null);
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/auth/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );

@@ -33,6 +33,7 @@ import { ParentsModule } from './parents/parents.module';
 import { UploadModule } from './upload/upload.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { MonthlyRaceModule } from './monthly-race/monthly-race.module';
+import { StorageModule } from './storage/storage.module';
 import { QueueNames, QueueEventBridge } from './shared/queues';
 import { EmailProcessor } from './shared/queues/processors/email.processor';
 import { CertificateProcessor } from './shared/queues/processors/certificate.processor';
@@ -72,13 +73,30 @@ import { CertificateProcessor } from './shared/queues/processors/certificate.pro
       { name: QueueNames.NOTIFICATION },
     ),
 
-    // ─── In-Memory Cache ───────────────────────────────────────────────────
-    // Global cache for hot data (public course lists, teacher profiles).
-    // Can be upgraded to Redis cache by adding store config.
-    CacheModule.register({
+    // ─── Redis Cache ────────────────────────────────────────────────────────
+    // Global cache backed by Redis for hot data (public course lists, etc.).
+    // Falls back to in-memory if Redis is not available.
+    CacheModule.registerAsync({
       isGlobal: true,
-      ttl: 60,     // Default TTL: 60 seconds
-      max: 500,    // Max items in cache
+      imports: [ConfigModule],
+      useFactory: async (config: ConfigService) => {
+        const redisHost = config.get('REDIS_HOST', 'localhost');
+        const redisPort = config.get<number>('REDIS_PORT', 6379);
+        const redisPassword = config.get('REDIS_PASSWORD', undefined);
+        try {
+          const { redisStore } = await import('cache-manager-redis-yet');
+          return {
+            store: redisStore,
+            socket: { host: redisHost, port: redisPort },
+            password: redisPassword,
+            ttl: 60_000, // 60s in ms
+          };
+        } catch {
+          // Fallback to in-memory if redis module unavailable
+          return { ttl: 60, max: 500 };
+        }
+      },
+      inject: [ConfigService],
     }),
 
     // ─── Security: Rate Limiting ───────────────────────────────────────────
@@ -105,6 +123,7 @@ import { CertificateProcessor } from './shared/queues/processors/certificate.pro
       serveRoot: '/uploads',
       serveStaticOptions: { index: false },
     }),
+    StorageModule,
     PrismaModule,
     UsersModule,
     CoursesModule,

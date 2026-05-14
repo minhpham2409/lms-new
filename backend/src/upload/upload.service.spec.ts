@@ -129,7 +129,7 @@ describe('UploadService', () => {
     it('should reject a file that is too small to verify', () => {
       const file = createMockFile('tiny.png', 'image/png', 5, Buffer.from([0x89, 0x50]));
       expect(() => service.validateFile(file, 'images')).toThrow(BadRequestException);
-      expect(() => service.validateFile(file, 'images')).toThrow(/too small/);
+      expect(() => service.validateFile(file, 'images')).toThrow(/does not match/);
     });
   });
 

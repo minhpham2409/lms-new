@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   postgres:
@@ -22,6 +22,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: lms-redis
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
@@ -29,6 +30,25 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: lms-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - miniodata:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,18 +64,36 @@ services:
     environment:
       - DATABASE_URL=postgresql://lms:lms_password@postgres:5432/lms_db?schema=public
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
-      - WEBHOOK_SECRET=${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-dev-webhook-secret}
       - FRONTEND_URL=http://localhost:3000
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - PORT=4000
       - NODE_ENV=production
+      # S3/MinIO config
+      - S3_ENDPOINT=http://minio:9000
+      - S3_PUBLIC_ENDPOINT=http://localhost:9000
+      - S3_REGION=us-east-1
+      - S3_BUCKET=lms-assets
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+      - S3_FORCE_PATH_STYLE=true
+      - S3_USE_SSL=false
+      - S3_SIGNED_URL_EXPIRES=3600
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:4000/api/v1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   frontend:
     build:
@@ -68,11 +106,19 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
       - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-nextauth-secret}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   pgdata:
   redisdata:
+  miniodata:

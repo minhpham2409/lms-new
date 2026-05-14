@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { setAccessToken, getAccessToken } from "@/lib/api-service";
 
 interface UserInfo {
   id: string;
@@ -39,7 +40,8 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem("accessToken");
+    // Hydrate from localStorage on mount (access token still persisted for SSR compat)
+    const saved = getAccessToken();
     if (saved) {
       const decoded = decodeJwt(saved);
       if (decoded && decoded.exp * 1000 > Date.now()) {
@@ -53,16 +55,16 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
           lastName: decoded.lastName,
         });
       } else {
-        localStorage.removeItem("accessToken");
+        setAccessToken(null);
         localStorage.removeItem("refreshToken");
       }
     }
     setLoading(false);
   }, []);
 
-  const login = useCallback((accessToken: string, refreshToken?: string) => {
-    localStorage.setItem("accessToken", accessToken);
-    if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+  const login = useCallback((accessToken: string, _refreshToken?: string) => {
+    setAccessToken(accessToken);
+    // refreshToken is now handled via HttpOnly cookie, no need to store in localStorage
     const decoded = decodeJwt(accessToken);
     if (decoded) {
       setToken(accessToken);
@@ -78,7 +80,7 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("accessToken");
+    setAccessToken(null);
     localStorage.removeItem("refreshToken");
     setToken(null);
     setUser(null);
