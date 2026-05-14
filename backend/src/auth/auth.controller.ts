@@ -11,6 +11,7 @@ import {
   Param,
   Res,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Response, Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
@@ -76,15 +77,12 @@ export class AuthController {
   async refreshToken(
     @Req() req: ExpressRequest,
     @Res({ passthrough: true }) res: Response,
-    @Body() body?: RefreshTokenDto,
   ) {
-    // Try cookie first, then body
-    const refreshToken =
-      (req.cookies && req.cookies[REFRESH_COOKIE_NAME]) ||
-      body?.refresh_token;
+    // Read from cookie only
+    const refreshToken = req.cookies && req.cookies[REFRESH_COOKIE_NAME];
 
     if (!refreshToken) {
-      throw new (require('@nestjs/common').UnauthorizedException)('No refresh token provided');
+      throw new UnauthorizedException('No refresh token provided in cookies');
     }
 
     const result = await this.authService.refreshToken(refreshToken);
@@ -106,11 +104,8 @@ export class AuthController {
     @GetUser() user: any,
     @Req() req: ExpressRequest,
     @Res({ passthrough: true }) res: Response,
-    @Body() body?: RefreshTokenDto,
   ) {
-    const refreshToken =
-      (req.cookies && req.cookies[REFRESH_COOKIE_NAME]) ||
-      body?.refresh_token;
+    const refreshToken = req.cookies && req.cookies[REFRESH_COOKIE_NAME];
 
     const result = await this.authService.logout(user.id, refreshToken);
 

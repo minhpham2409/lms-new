@@ -13,6 +13,7 @@ describe('Auth & Integration Flows (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     app.use(cookieParser());
     await app.init();
