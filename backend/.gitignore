@@ -36,3 +36,8 @@ lerna-debug.log*
 
 #DB
 dev.db
+
+# Env
+.env
+.env.*
+!.env.example
