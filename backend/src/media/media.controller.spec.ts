@@ -14,6 +14,12 @@ describe('MediaController', () => {
             getObjectStream: jest.fn(),
           },
         },
+        {
+          provide: require('../auth/services/jwt-token.service').JwtTokenService,
+          useValue: {
+            verifyToken: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

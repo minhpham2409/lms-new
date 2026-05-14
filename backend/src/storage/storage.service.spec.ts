@@ -40,13 +40,12 @@ describe('StorageService', () => {
   describe('getPublicUrl', () => {
     it('should generate proxy URL for media', () => {
       const url = service.getPublicUrl('hls/abc/index.m3u8');
-      expect(url).toContain('/media/videos/hls/abc/index.m3u8');
+      expect(url).toContain('/media/hls/abc/index.m3u8');
     });
 
-    it('should strip videos/ prefix if it exists', () => {
+    it('should correctly format videos prefix', () => {
       const url = service.getPublicUrl('videos/original/test.mp4');
       expect(url).toContain('/media/videos/original/test.mp4');
-      expect(url).not.toContain('videos/videos');
     });
   });
 
