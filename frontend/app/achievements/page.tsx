@@ -1,18 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
-  Trophy, Award, Star, Crown, Flame, Target,
-  TrendingUp, Users, Loader2, Lock, ChevronRight,
-  Sparkles, Medal, X, BookOpen, GraduationCap, Eye,
-  CheckCircle2, Hexagon
+  Trophy, Award, Crown, Flame, Target,
+  Users, Loader2, Lock, ChevronRight,
+  Sparkles, Medal, X,
+  CheckCircle2
 } from "lucide-react";
-import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
@@ -152,7 +150,6 @@ export default function AchievementsPage() {
     );
   }
 
-  const earnedBadges = badges.filter(b => b.earned);
   const categories = [...new Set(badges.map(b => b.category))].sort((a, b) => {
     const keys = Object.keys(CATEGORY_LABELS);
     return keys.indexOf(a) - keys.indexOf(b);

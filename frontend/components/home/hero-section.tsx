@@ -25,7 +25,7 @@ export function HeroSection() {
               </Button>
               {!user && (
                 <Button asChild variant="outline" size="lg">
-                  <Link href="/auth/signup">
+                  <Link href="/auth/register">
                     Sign Up For Free
                   </Link>
                 </Button>

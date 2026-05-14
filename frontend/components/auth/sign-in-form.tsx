@@ -4,15 +4,16 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { authApi } from '@/lib/api-service';
+import { useAuth } from '@/hooks/useAuth';
 
 const formSchema = z.object({
-  username: z.string().min(3, {
-    message: 'Username must be at least 3 characters.',
+  email: z.string().min(3, {
+    message: 'Email or username is required.',
   }),
   password: z.string().min(6, {
     message: 'Password must be at least 6 characters.',
@@ -22,6 +23,7 @@ const formSchema = z.object({
 export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
 
   const {
     register,
@@ -35,22 +37,21 @@ export function SignInForm() {
     setIsLoading(true);
 
     try {
-      const response = await signIn('credentials', {
-        username: data.username,
+      const response = await authApi.login({
+        email: data.email,
         password: data.password,
-        redirect: false,
       });
 
-      if (response?.error) {
-        toast.error('Sign in failed. Please check your credentials and try again.');
-      } else {
-        toast.success('You have successfully signed in.');
+      if (response?.access_token) {
+        login(response.access_token, response.refresh_token);
+        toast.success('Đăng nhập thành công!');
         router.push('/dashboard');
-        router.refresh();
+      } else {
+        toast.error('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
       }
-    } catch (error) {
-      console.error('Sign in error:', error);
-      toast.error('Something went wrong. Please try again later.');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -67,19 +68,19 @@ export function SignInForm() {
       <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
         <div className='space-y-2'>
           <label
-            htmlFor='username'
+            htmlFor='email'
             className='text-sm font-medium'
           >
-            Tên đăng nhập
+            Email / Tên đăng nhập
           </label>
           <Input
-            id='username'
-            placeholder='tên_đăng_nhập'
-            {...register('username')}
+            id='email'
+            placeholder='email@example.com'
+            {...register('email')}
             disabled={isLoading}
           />
-          {errors.username && (
-            <p className='text-sm text-red-500'>{errors.username.message}</p>
+          {errors.email && (
+            <p className='text-sm text-red-500'>{errors.email.message}</p>
           )}
         </div>
         <div className='space-y-2'>
@@ -107,7 +108,7 @@ export function SignInForm() {
       <div className='text-center text-sm section-content'>
         <p>Chưa có tài khoản?{' '}
           <a
-            href='/auth/signup'
+            href='/auth/register'
             className='text-blue-700 hover:underline font-semibold'
           >
             Đăng ký ngay

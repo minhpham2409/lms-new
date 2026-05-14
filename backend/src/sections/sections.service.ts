@@ -3,6 +3,8 @@ import { SectionRepository, CourseRepository } from '../database/repositories';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from './dto';
 import { RequestUser } from '../shared/helpers/course-content-access.helper';
 
+type WriteUser = { id: string; role: string };
+
 @Injectable()
 export class SectionsService {
   constructor(
@@ -10,16 +12,22 @@ export class SectionsService {
     private readonly courseRepository: CourseRepository,
   ) {}
 
-  async create(createSectionDto: CreateSectionDto, authorId: string) {
+  /** Admin can manage all; teacher only their own course. */
+  private assertWriteAccess(courseAuthorId: string, user: WriteUser) {
+    if (user.role === 'admin') return;
+    if (courseAuthorId !== user.id) {
+      throw new ForbiddenException('You can only manage sections in your own courses');
+    }
+  }
+
+  async create(createSectionDto: CreateSectionDto, user: WriteUser) {
     const course = await this.courseRepository.findById(createSectionDto.courseId);
 
     if (!course) {
       throw new NotFoundException('Course not found');
     }
 
-    if (course.authorId !== authorId) {
-      throw new ForbiddenException('You can only add sections to your own courses');
-    }
+    this.assertWriteAccess(course.authorId, user);
 
     const order = createSectionDto.order || await this.sectionRepository.getNextOrder(createSectionDto.courseId);
 
@@ -68,46 +76,38 @@ export class SectionsService {
     return section;
   }
 
-  async update(id: string, updateSectionDto: UpdateSectionDto, authorId: string) {
+  async update(id: string, updateSectionDto: UpdateSectionDto, user: WriteUser) {
     const section = await this.sectionRepository.findById(id);
     if (!section) {
       throw new NotFoundException('Section not found');
     }
 
     const course = await this.courseRepository.findById(section.courseId);
-
-    if (course.authorId !== authorId) {
-      throw new ForbiddenException('You can only update sections in your own courses');
-    }
+    this.assertWriteAccess(course.authorId, user);
 
     return this.sectionRepository.update(id, updateSectionDto);
   }
 
-  async remove(id: string, authorId: string) {
+  async remove(id: string, user: WriteUser) {
     const section = await this.sectionRepository.findById(id);
     if (!section) {
       throw new NotFoundException('Section not found');
     }
 
     const course = await this.courseRepository.findById(section.courseId);
-
-    if (course.authorId !== authorId) {
-      throw new ForbiddenException('You can only delete sections from your own courses');
-    }
+    this.assertWriteAccess(course.authorId, user);
 
     return this.sectionRepository.delete(id);
   }
 
-  async reorder(courseId: string, reorderDto: ReorderSectionsDto, authorId: string) {
+  async reorder(courseId: string, reorderDto: ReorderSectionsDto, user: WriteUser) {
     const course = await this.courseRepository.findById(courseId);
 
     if (!course) {
       throw new NotFoundException('Course not found');
     }
 
-    if (course.authorId !== authorId) {
-      throw new ForbiddenException('You can only reorder sections in your own courses');
-    }
+    this.assertWriteAccess(course.authorId, user);
 
     const sectionCount = await this.sectionRepository.countByCourseId(courseId);
     if (reorderDto.sections.length !== sectionCount) {

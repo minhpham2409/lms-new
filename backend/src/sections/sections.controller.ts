@@ -31,8 +31,8 @@ export class SectionsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create section' })
   @ApiResponse({ status: 201, description: 'Section created' })
-  create(@Body() createSectionDto: CreateSectionDto, @GetUser() user: { id: string }) {
-    return this.sectionsService.create(createSectionDto, user.id);
+  create(@Body() createSectionDto: CreateSectionDto, @GetUser() user: { id: string; role: string }) {
+    return this.sectionsService.create(createSectionDto, user);
   }
 
   /**
@@ -71,9 +71,9 @@ export class SectionsController {
   update(
     @Param('id') id: string,
     @Body() updateSectionDto: UpdateSectionDto,
-    @GetUser() user: { id: string },
+    @GetUser() user: { id: string; role: string },
   ) {
-    return this.sectionsService.update(id, updateSectionDto, user.id);
+    return this.sectionsService.update(id, updateSectionDto, user);
   }
 
   @Delete(':id')
@@ -82,8 +82,8 @@ export class SectionsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete section' })
   @ApiResponse({ status: 200, description: 'Section deleted' })
-  remove(@Param('id') id: string, @GetUser() user: { id: string }) {
-    return this.sectionsService.remove(id, user.id);
+  remove(@Param('id') id: string, @GetUser() user: { id: string; role: string }) {
+    return this.sectionsService.remove(id, user);
   }
 
   @Post('reorder')
@@ -95,8 +95,8 @@ export class SectionsController {
   reorder(
     @Query('courseId') courseId: string,
     @Body() reorderDto: ReorderSectionsDto,
-    @GetUser() user: { id: string },
+    @GetUser() user: { id: string; role: string },
   ) {
-    return this.sectionsService.reorder(courseId, reorderDto, user.id);
+    return this.sectionsService.reorder(courseId, reorderDto, user);
   }
 }

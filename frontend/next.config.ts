@@ -2,9 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   eslint: {
-    // Type errors in legacy files are tracked separately — don't block builds.
-    // Run `next lint` separately to review them.
-    ignoreDuringBuilds: true,
+    // Lint rules are properly configured in eslint.config.mjs.
+    // Errors will fail builds; warnings are allowed.
+    ignoreDuringBuilds: false,
   },
   typescript: {
     // Type errors must still be fixed — not ignored here.

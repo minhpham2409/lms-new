@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
-import { Bell, CheckCircle2, BookOpen, Award, MessageCircle, Clock, Info, Loader2 } from "lucide-react";
+import { Bell, CheckCircle2, Clock, Info, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";

@@ -5,8 +5,8 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import {
-  Search, BookOpen, Clock, Users, Star, Play, Grid3X3, List, Loader2,
-  Sparkles, Filter, TrendingUp, ArrowRight,
+  Search, BookOpen, Users, Star, Play, Grid3X3, List, Loader2,
+  Sparkles, ArrowRight,
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";

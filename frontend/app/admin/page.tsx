@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
   Users, BookOpen, DollarSign, TrendingUp, Shield, BarChart3, Search,
-  Eye, Edit, Trash2, UserCheck, UserX, Plus, Download,
+  Eye, Trash2, UserCheck, UserX,
   Tag, Package, RefreshCw, Activity,
   CheckCircle2, Clock, XCircle, Loader2,
 } from "lucide-react";
@@ -100,7 +100,7 @@ export default function AdminPage() {
     } catch { toast.error("Lỗi"); }
   }
 
-  async function deleteCourse(id: string) {
+  async function _deleteCourse(id: string) {
     if (!confirm("Xóa khóa học này?")) return;
     try {
       const res = await fetch(`${API}/admin/courses/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
@@ -108,7 +108,7 @@ export default function AdminPage() {
     } catch { toast.error("Lỗi"); }
   }
 
-  async function createUser(data: any) {
+  async function _createUser(data: any) {
     try {
       const res = await fetch(`${API}/admin/users`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(data) });
       if (res.ok) { fetchAll(); toast.success("Đã tạo người dùng"); }
@@ -116,14 +116,14 @@ export default function AdminPage() {
     } catch { toast.error("Lỗi"); }
   }
 
-  async function updateUser(id: string, data: any) {
+  async function _updateUser(id: string, data: any) {
     try {
       const res = await fetch(`${API}/admin/users/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(data) });
       if (res.ok) { fetchAll(); toast.success("Đã cập nhật"); }
     } catch { toast.error("Lỗi"); }
   }
 
-  async function createCoupon(data: any) {
+  async function _createCoupon(data: any) {
     try {
       const res = await fetch(`${API}/coupons`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(data) });
       if (res.ok) { fetchAll(); toast.success("Đã tạo mã giảm giá"); }
@@ -192,7 +192,7 @@ export default function AdminPage() {
                 const csData = stats?.coursesByStatus || { draft: 0, pending: 0, published: 0 };
                 const topCourses = [...courseStats].sort((a: any, b: any) => (b.enrollments || 0) - (a.enrollments || 0)).slice(0, 5);
                 const pendingCourses = courses.filter(c => c.status === 'pending' || c.status === 'draft');
-                const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'paid');
+                const _completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'paid');
                 const pendingOrders = orders.filter(o => o.status === 'pending');
 
                 return (

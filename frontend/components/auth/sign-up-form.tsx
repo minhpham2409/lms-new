@@ -62,7 +62,7 @@ export function SignUpForm() {
       void confirmPassword;
       await authApi.register(userData);
       toast.success("Account created! You can now sign in.");
-      router.push("/auth/signin");
+      router.push("/auth/login");
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || "Registration failed. Please try again.");
@@ -140,7 +140,7 @@ export function SignUpForm() {
       </form>
       <div className="text-center text-sm section-content">
         <p>Đã có tài khoản?{' '}
-          <a href="/auth/signin" className="text-blue-700 hover:underline font-semibold">
+          <a href="/auth/login" className="text-blue-700 hover:underline font-semibold">
             Đăng nhập
           </a>
         </p>

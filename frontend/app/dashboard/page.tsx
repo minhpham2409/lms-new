@@ -7,9 +7,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
-  BookOpen, Clock, Award, TrendingUp, Play, BarChart3,
-  ChevronRight, Star, Target, Loader2, AlertCircle,
-  UserPlus, CheckCircle2, XCircle, Gift,
+  ChevronRight, Loader2, Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -97,7 +95,7 @@ export default function DashboardPage() {
         .catch(() => {});
 
       // Auto check-in streak
-      fetch(`${API}/users/me/streak/check-in`, { method: "POST", headers: { Authorization: `Bearer ${token}` } })
+      fetch(`${API}/users/me/streak/check-in`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
         .then((d: CheckInResult | null) => {
           if (d) {

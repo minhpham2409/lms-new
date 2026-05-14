@@ -156,7 +156,7 @@ export default function LessonPage() {
       watchedPctRef.current = pct;
       setWatchedPercentage(pct);
     }
-    if (pct >= 80 && !videoWatchedRef.current) {
+    if (pct >= 90 && !videoWatchedRef.current) {
       videoWatchedRef.current = true;
       setVideoWatched(true);
       checkCanComplete();
@@ -232,17 +232,13 @@ export default function LessonPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
+        // Backend returns: { canComplete, videoCompleted, assignmentsCompleted }
         const d = await res.json();
-        setHasAssignment(d.hasAssignment);
-        setAssignmentSubmitted(d.submitted === true);
-        if (d.submitted) setSubmittedIds(new Set([String(lessonId)]));
-        // Keep the higher value between local and server
-        const serverPct = d.watchedPercentage || 0;
-        setWatchedPercentage(prev => Math.max(prev, serverPct));
-        const effectiveVideoWatched = (d.videoWatched !== false) || (watchedPctRef.current >= 80);
-        setVideoWatched(effectiveVideoWatched);
-        // Recalculate canComplete using local knowledge
-        const effectiveCanComplete = effectiveVideoWatched && (d.hasAssignment ? d.submitted === true : true);
+        setVideoWatched(d.videoCompleted || watchedPctRef.current >= 90);
+        setHasAssignment(!d.assignmentsCompleted && d.assignmentsCompleted !== undefined);
+        setAssignmentSubmitted(d.assignmentsCompleted === true);
+        // Use server canComplete, but also allow if local video pct >= 90
+        const effectiveCanComplete = (d.videoCompleted || watchedPctRef.current >= 90) && d.assignmentsCompleted;
         setCanComplete(effectiveCanComplete);
       }
     } catch {}
@@ -305,7 +301,7 @@ export default function LessonPage() {
   async function markComplete() {
     if (!token) { toast.error("Cần đăng nhập"); return; }
     if (!canComplete) {
-      if (!videoWatched) toast.error(`⚠️ Bạn cần xem ít nhất 80% video! (Hiện tại: ${watchedPercentage}%)`);
+      if (!videoWatched) toast.error(`⚠️ Bạn cần xem ít nhất 90% video! (Hiện tại: ${watchedPercentage}%)`);
       else if (hasAssignment) toast.error("⚠️ Bạn cần nộp bài tập trước khi hoàn thành bài học!");
       return;
     }
@@ -440,7 +436,7 @@ export default function LessonPage() {
                       const seconds = Math.floor(video.currentTime);
                       // Update local state
                       if (pct > watchedPercentage) setWatchedPercentage(pct);
-                      if (pct >= 80 && !videoWatched) { setVideoWatched(true); checkCanComplete(); }
+                      if (pct >= 90 && !videoWatched) { setVideoWatched(true); checkCanComplete(); }
                       // Send to server every 10%
                       if (token && pct >= lastSentPercent.current + 10) {
                         lastSentPercent.current = pct;
@@ -624,14 +620,14 @@ export default function LessonPage() {
               <h3 className="font-bold text-base mb-4 flex items-center gap-2">📊 Tiến độ bài học</h3>
               <div className="space-y-2">
                 {lesson?.videoUrl && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: watchedPercentage >= 80 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: watchedPercentage >= 80 ? '#10b981' : 'var(--border)', color: '#fff' }}>
-                      {watchedPercentage >= 80 ? '✓' : ''}
+                  <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: watchedPercentage >= 90 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)' }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ background: watchedPercentage >= 90 ? '#10b981' : 'var(--border)', color: '#fff' }}>
+                      {watchedPercentage >= 90 ? '✓' : ''}
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-medium">Xem video ({watchedPercentage}% / 80%)</p>
+                      <p className="text-xs font-medium">Xem video ({watchedPercentage}% / 90%)</p>
                       <div className="w-full h-1.5 rounded-full mt-1" style={{ background: 'var(--border)' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, watchedPercentage)}%`, background: watchedPercentage >= 80 ? '#10b981' : '#f59e0b' }} />
+                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, watchedPercentage)}%`, background: watchedPercentage >= 90 ? '#10b981' : '#f59e0b' }} />
                       </div>
                     </div>
                   </div>
@@ -648,10 +644,10 @@ export default function LessonPage() {
             </div>
             {!canComplete && (
               <div className="mb-4 p-3 rounded-xl flex items-center gap-2 text-sm" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", color: "#f59e0b" }}>
-                ⚠️ {watchedPercentage < 80 && hasAssignment && !assignmentSubmitted
-                  ? `Cần xem 80% video (${watchedPercentage}%) và nộp bài tập`
-                  : watchedPercentage < 80
-                    ? `Cần xem ít nhất 80% video (hiện tại: ${watchedPercentage}%)`
+                ⚠️ {watchedPercentage < 90 && hasAssignment && !assignmentSubmitted
+                  ? `Cần xem 90% video (${watchedPercentage}%) và nộp bài tập`
+                  : watchedPercentage < 90
+                    ? `Cần xem ít nhất 90% video (hiện tại: ${watchedPercentage}%)`
                     : 'Cần nộp bài tập'
                 } trước khi hoàn thành
               </div>

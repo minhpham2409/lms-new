@@ -77,6 +77,7 @@ export interface VideoProgress {
   userId: string;
   lessonId: string;
   watchTime: number;
+  watchedPercentage: number;
   completed: boolean;
   lesson?: Lesson;
 }
@@ -342,6 +343,7 @@ export interface ProgressData {
 export interface LessonWithProgress extends Lesson {
   completed: boolean;
   watchTime: number;
+  watchedPercentage?: number;
 }
 
 export interface PaginatedResponse<T> {

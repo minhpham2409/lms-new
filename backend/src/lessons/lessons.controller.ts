@@ -30,8 +30,8 @@ export class LessonsController {
   @Roles('teacher', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a lesson' })
-  create(@Body() dto: CreateLessonDto, @GetUser() user: { id: string }) {
-    return this.lessonsService.create(dto, user.id);
+  create(@Body() dto: CreateLessonDto, @GetUser() user: { id: string; role: string }) {
+    return this.lessonsService.create(dto, user);
   }
 
   /**
@@ -67,8 +67,8 @@ export class LessonsController {
   @Roles('teacher', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update lesson' })
-  update(@Param('id') id: string, @Body() dto: UpdateLessonDto, @GetUser() user: { id: string }) {
-    return this.lessonsService.update(id, dto, user.id);
+  update(@Param('id') id: string, @Body() dto: UpdateLessonDto, @GetUser() user: { id: string; role: string }) {
+    return this.lessonsService.update(id, dto, user);
   }
 
   @Delete(':id')
@@ -76,7 +76,7 @@ export class LessonsController {
   @Roles('teacher', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete lesson' })
-  remove(@Param('id') id: string, @GetUser() user: { id: string }) {
-    return this.lessonsService.remove(id, user.id);
+  remove(@Param('id') id: string, @GetUser() user: { id: string; role: string }) {
+    return this.lessonsService.remove(id, user);
   }
 }

@@ -128,7 +128,7 @@ export const progressApi = {
     api.get(`/progress/video/${courseId}`).then(r => r.data),
   getLesson: (lessonId: string): Promise<VideoProgress> =>
     api.get(`/progress/video/lesson/${lessonId}`).then(r => r.data),
-  updateVideo: (data: { lessonId: string; watchTime?: number; watchedPercentage?: number; completed?: boolean }) =>
+  updateVideo: (data: { lessonId: string; watchTime: number; watchedPercentage: number }) =>
     api.put('/progress/video', data).then(r => r.data),
 };
 
@@ -217,10 +217,8 @@ export const couponsApi = {
     api.get('/coupons').then(r => r.data),
   create: (data: { code: string; discount: number; maxUses?: number; expiresAt?: string }): Promise<Coupon> =>
     api.post('/coupons', data).then(r => r.data),
-  update: (id: string, data: Partial<Coupon>) =>
-    api.put(`/coupons/${id}`, data).then(r => r.data),
-  delete: (id: string) =>
-    api.delete(`/coupons/${id}`).then(r => r.data),
+  getByCode: (code: string): Promise<Coupon> =>
+    api.get(`/coupons/${encodeURIComponent(code)}`).then(r => r.data),
 };
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
@@ -232,8 +230,6 @@ export const reviewsApi = {
     api.post('/reviews', data).then(r => r.data),
   update: (id: string, data: { rating?: number; comment?: string }): Promise<Review> =>
     api.put(`/reviews/${id}`, data).then(r => r.data),
-  delete: (id: string) =>
-    api.delete(`/reviews/${id}`).then(r => r.data),
 };
 
 // ─── Comments ─────────────────────────────────────────────────────────────────

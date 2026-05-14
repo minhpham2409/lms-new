@@ -155,7 +155,7 @@ export default function TeacherCourseEditPage() {
       const url = await uploadVideo(file);
       if (!url) return;
       const res = await fetch(`${API}/lessons/${lessonId}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ videoUrl: url }),
       });
@@ -227,7 +227,7 @@ export default function TeacherCourseEditPage() {
                          setCourse({ ...course, allowPlatformPromotions: val });
                          try {
                            await fetch(`${API}/courses/${id}`, {
-                             method: "PATCH",
+                             method: "PUT",
                              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                              body: JSON.stringify({ allowPlatformPromotions: val }),
                            });

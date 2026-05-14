@@ -29,8 +29,8 @@ export class MaterialsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add material to lesson' })
   @ApiResponse({ status: 201, description: 'Material created' })
-  create(@Body() dto: CreateMaterialDto, @GetUser() user: { id: string }) {
-    return this.materialsService.create(dto, user.id);
+  create(@Body() dto: CreateMaterialDto, @GetUser() user: { id: string; role: string }) {
+    return this.materialsService.create(dto, user);
   }
 
   /**
@@ -72,9 +72,9 @@ export class MaterialsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateMaterialDto,
-    @GetUser() user: { id: string },
+    @GetUser() user: { id: string; role: string },
   ) {
-    return this.materialsService.update(id, dto, user.id);
+    return this.materialsService.update(id, dto, user);
   }
 
   @Delete(':id')
@@ -83,7 +83,7 @@ export class MaterialsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete material' })
   @ApiResponse({ status: 200, description: 'Material deleted' })
-  remove(@Param('id') id: string, @GetUser() user: { id: string }) {
-    return this.materialsService.remove(id, user.id);
+  remove(@Param('id') id: string, @GetUser() user: { id: string; role: string }) {
+    return this.materialsService.remove(id, user);
   }
 }

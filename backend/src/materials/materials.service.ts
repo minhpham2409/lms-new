@@ -29,12 +29,16 @@ export class MaterialsService {
     }
   }
 
-  async create(dto: CreateMaterialDto, authorId: string) {
-    const lesson = await this.getLessonWithCourse(dto.lessonId);
+  /** Verify user can write (create/update/delete) lesson content. */
+  private assertWriteAccess(courseAuthorId: string, user: AccessUser) {
+    if (user.role === 'admin') return;
+    if (user.role === 'teacher' && courseAuthorId === user.id) return;
+    throw new ForbiddenException('You can only manage materials in your own courses');
+  }
 
-    if (lesson.section.course.authorId !== authorId) {
-      throw new ForbiddenException('You can only add materials to your own lessons');
-    }
+  async create(dto: CreateMaterialDto, user: AccessUser) {
+    const lesson = await this.getLessonWithCourse(dto.lessonId);
+    this.assertWriteAccess(lesson.section.course.authorId, user);
 
     return this.materialRepository.create({
       title: dto.title,
@@ -62,28 +66,22 @@ export class MaterialsService {
     return material;
   }
 
-  async update(id: string, dto: UpdateMaterialDto, authorId: string) {
+  async update(id: string, dto: UpdateMaterialDto, user: AccessUser) {
     const material = await this.materialRepository.findById(id);
     if (!material) throw new NotFoundException('Material not found');
 
     const lesson = await this.getLessonWithCourse(material.lessonId);
-
-    if (lesson.section.course.authorId !== authorId) {
-      throw new ForbiddenException('You can only update materials in your own lessons');
-    }
+    this.assertWriteAccess(lesson.section.course.authorId, user);
 
     return this.materialRepository.update(id, dto);
   }
 
-  async remove(id: string, authorId: string) {
+  async remove(id: string, user: AccessUser) {
     const material = await this.materialRepository.findById(id);
     if (!material) throw new NotFoundException('Material not found');
 
     const lesson = await this.getLessonWithCourse(material.lessonId);
-
-    if (lesson.section.course.authorId !== authorId) {
-      throw new ForbiddenException('You can only delete materials from your own lessons');
-    }
+    this.assertWriteAccess(lesson.section.course.authorId, user);
 
     return this.materialRepository.delete(id);
   }

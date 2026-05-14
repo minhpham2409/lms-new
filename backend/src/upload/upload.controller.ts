@@ -60,8 +60,10 @@ export class UploadController {
       },
     }),
   )
-  uploadVideo(@UploadedFile() file: any) {
+  uploadVideo(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
+    // Validate MIME type after upload
+    this.uploadService.validateFile(file, 'videos');
     return {
       url: this.uploadService.getFileUrl(file.filename, 'videos'),
       filename: file.filename,
@@ -104,8 +106,10 @@ export class UploadController {
       },
     }),
   )
-  uploadImage(@UploadedFile() file: any) {
+  uploadImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
+    // Validate MIME type after upload
+    this.uploadService.validateFile(file, 'images');
     return {
       url: this.uploadService.getFileUrl(file.filename, 'images'),
       filename: file.filename,
@@ -148,8 +152,10 @@ export class UploadController {
       },
     }),
   )
-  uploadFile(@UploadedFile() file: any) {
+  uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
+    // Validate MIME type after upload
+    this.uploadService.validateFile(file, 'files');
     return {
       url: this.uploadService.getFileUrl(file.filename, 'files'),
       filename: file.filename,
@@ -159,4 +165,3 @@ export class UploadController {
     };
   }
 }
-

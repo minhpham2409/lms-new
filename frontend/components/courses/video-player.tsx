@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/components/auth/auth-state';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -29,6 +29,9 @@ interface VideoPlayerProps {
   lessonId: string;
 }
 
+/** Interval (ms) for sending progress updates to server. */
+const PROGRESS_SYNC_INTERVAL = 10_000;
+
 export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
   const { isLoggedIn } = useAuth();
   const router = useRouter();
@@ -38,9 +41,12 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
   const [currentLesson, setCurrentLesson] = useState<LessonWithProgress | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [overallProgress, setOverallProgress] = useState(0);
-  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [lessonAssignments, setLessonAssignments] = useState<Assignment[]>([]);
+
+  // Video tracking refs
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadData = useCallback(async () => {
     if (!isLoggedIn) return;
@@ -53,20 +59,22 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
         return;
       }
 
-      const [courseData] = await Promise.all([
-        coursesApi.getById(courseId),
-      ]);
+      const courseData = await coursesApi.getById(courseId);
 
       // Calculate progress from completed lessons
       let completedLessonsCount = 0;
       const flatLessons: LessonWithProgress[] = [];
       for (const section of (courseData.sections ?? [])) {
         for (const lesson of (section.lessons ?? [])) {
-          let lessonProgress = { completed: false, watchTime: 0 };
+          let lessonProgress = { completed: false, watchTime: 0, watchedPercentage: 0 };
           try {
             const lp = await progressApi.getLesson(lesson.id);
-            lessonProgress = { completed: lp.completed, watchTime: lp.watchTime };
-          } catch {}
+            lessonProgress = {
+              completed: lp.completed,
+              watchTime: lp.watchTime,
+              watchedPercentage: lp.watchedPercentage ?? 0,
+            };
+          } catch { /* first time */ }
           if (lessonProgress.completed) completedLessonsCount++;
           flatLessons.push({ ...lesson, ...lessonProgress });
         }
@@ -75,7 +83,6 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
       setCourse(courseData);
       setAllLessons(flatLessons);
       setExpandedSections(new Set((courseData.sections ?? []).map((s) => s.id)));
-      // Derive overall progress from actual lesson data
       const total = flatLessons.length;
       const pct = total > 0 ? Math.round((completedLessonsCount / total) * 100) : 0;
       setOverallProgress(pct);
@@ -83,7 +90,6 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
       const cur = flatLessons.find((l) => l.id === lessonId);
       setCurrentLesson(cur ?? flatLessons[0] ?? null);
 
-      // load assignments for current lesson
       const targetId = cur?.id ?? flatLessons[0]?.id;
       if (targetId) {
         assignmentsApi.getByLesson(targetId).then(setLessonAssignments).catch(() => setLessonAssignments([]));
@@ -103,23 +109,106 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
     loadData();
   }, [isLoggedIn, loadData, router]);
 
-  const markAsCompleted = async () => {
+  /** Send current video progress to backend. */
+  const syncVideoProgress = useCallback(async () => {
+    if (!currentLesson) return;
+    const video = videoRef.current;
+    if (!video || video.duration === 0 || isNaN(video.duration)) return;
+
+    const watchTime = Math.round(video.currentTime);
+    const watchedPercentage = Math.round((video.currentTime / video.duration) * 100);
+
+    try {
+      const result = await progressApi.updateVideo({
+        lessonId: currentLesson.id,
+        watchTime,
+        watchedPercentage,
+      });
+
+      // If server says completed, update local state
+      if (result.completed && !currentLesson.completed) {
+        setAllLessons((prev) =>
+          prev.map((l) => (l.id === currentLesson.id ? { ...l, completed: true } : l))
+        );
+        setCurrentLesson((prev) => prev ? { ...prev, completed: true } : prev);
+        const newCompleted = allLessons.filter((l) => l.id === currentLesson.id ? true : l.completed).length;
+        const pct = allLessons.length > 0 ? Math.round((newCompleted / allLessons.length) * 100) : 0;
+        setOverallProgress(pct);
+        toast.success('Lesson completed!');
+      }
+    } catch { /* silent fail for progress sync */ }
+  }, [currentLesson, allLessons]);
+
+  // Set up periodic progress sync for native HTML5 video
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !currentLesson?.videoUrl) return;
+
+    // Extract YouTube ID — if YouTube, don't attach native listeners
+    const ytMatch = currentLesson.videoUrl.match(/(?:youtu\.be\/|v\/|embed\/|watch\?v=|&v=)([^#&?]{11})/);
+    if (ytMatch) return; // YouTube handled separately
+
+    const onPlay = () => {
+      if (syncTimerRef.current) clearInterval(syncTimerRef.current);
+      syncTimerRef.current = setInterval(syncVideoProgress, PROGRESS_SYNC_INTERVAL);
+    };
+
+    const onPause = () => {
+      syncVideoProgress(); // final sync on pause
+      if (syncTimerRef.current) {
+        clearInterval(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
+
+    const onEnded = () => {
+      syncVideoProgress();
+      if (syncTimerRef.current) {
+        clearInterval(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
+
+    video.addEventListener('play', onPlay);
+    video.addEventListener('pause', onPause);
+    video.addEventListener('ended', onEnded);
+
+    return () => {
+      video.removeEventListener('play', onPlay);
+      video.removeEventListener('pause', onPause);
+      video.removeEventListener('ended', onEnded);
+      if (syncTimerRef.current) {
+        clearInterval(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
+  }, [currentLesson, syncVideoProgress]);
+
+  /**
+   * YouTube fallback: since we can't track iframe progress reliably without
+   * the YouTube IFrame API and proper origin setup, we provide a "Mark Watched"
+   * button for YouTube videos that sends watchedPercentage=100.
+   */
+  const markYouTubeWatched = async () => {
     if (!currentLesson) return;
     try {
-      setIsMarkingComplete(true);
-      await progressApi.updateVideo({ lessonId: currentLesson.id, completed: true });
-      toast.success('Lesson marked as completed!');
-      setAllLessons((prev) =>
-        prev.map((l) => (l.id === currentLesson.id ? { ...l, completed: true } : l))
-      );
-      setCurrentLesson((prev) => prev ? { ...prev, completed: true } : prev);
-      const newCompleted = allLessons.filter((l) => l.id === currentLesson.id ? true : l.completed).length;
-      const pct = allLessons.length > 0 ? Math.round((newCompleted / allLessons.length) * 100) : 0;
-      setOverallProgress(pct);
+      const result = await progressApi.updateVideo({
+        lessonId: currentLesson.id,
+        watchTime: (currentLesson.duration ?? 0) * 60,
+        watchedPercentage: 100,
+      });
+      if (result.completed) {
+        setAllLessons((prev) =>
+          prev.map((l) => (l.id === currentLesson.id ? { ...l, completed: true } : l))
+        );
+        setCurrentLesson((prev) => prev ? { ...prev, completed: true } : prev);
+        const newCompleted = allLessons.filter((l) => l.id === currentLesson.id ? true : l.completed).length;
+        const pct = allLessons.length > 0 ? Math.round((newCompleted / allLessons.length) * 100) : 0;
+        setOverallProgress(pct);
+        toast.success('Lesson completed!');
+      }
     } catch {
-      toast.error('Failed to mark as completed');
-    } finally {
-      setIsMarkingComplete(false);
+      toast.error('Failed to update progress');
     }
   };
 
@@ -185,6 +274,7 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
                 ) : currentLesson.videoUrl ? (
                   <div className="relative w-full pb-[56.25%] bg-black">
                     <video
+                      ref={videoRef}
                       className="absolute top-0 left-0 w-full h-full"
                       controls
                       src={currentLesson.videoUrl}
@@ -216,17 +306,22 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
                     </div>
                   )}
                   <div className="flex gap-3">
-                    {!currentLesson.completed && (
+                    {/* YouTube fallback: manual "Mark Watched" button */}
+                    {youtubeId && !currentLesson.completed && (
                       <Button
-                        onClick={markAsCompleted}
-                        disabled={isMarkingComplete}
+                        onClick={markYouTubeWatched}
                         className="flex-1"
                       >
-                        {isMarkingComplete ? (
-                          <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" /> Saving...</>
-                        ) : (
-                          <><CheckCircle className="h-4 w-4 mr-2" /> Mark Complete</>
-                        )}
+                        <CheckCircle className="h-4 w-4 mr-2" /> I&apos;ve Watched This
+                      </Button>
+                    )}
+                    {/* Native video: progress auto-tracked, no manual button needed */}
+                    {!youtubeId && !currentLesson.videoUrl && !currentLesson.completed && (
+                      <Button
+                        onClick={markYouTubeWatched}
+                        className="flex-1"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" /> Mark Complete
                       </Button>
                     )}
                     {allDone && (

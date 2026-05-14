@@ -49,6 +49,31 @@ export class AssignmentsController {
     return this.assignmentsService.findByLesson(lessonId, user);
   }
 
+  // ── Static routes MUST come before parameterized :id routes ───────────
+  @Get('teacher/all-submissions')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all submissions across teacher courses' })
+  getAllSubmissionsForTeacher(@GetUser() user: any) {
+    return this.assignmentsService.getAllSubmissionsForTeacher(user.id);
+  }
+
+  @Patch('submissions/:submissionId/grade')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Grade a submission' })
+  @ApiResponse({ status: 200, description: 'Submission graded' })
+  gradeSubmission(
+    @Param('submissionId') submissionId: string,
+    @Body() dto: GradeSubmissionDto,
+    @GetUser() user: any,
+  ) {
+    return this.assignmentsService.gradeSubmission(submissionId, dto, user.id);
+  }
+
+  // ── Parameterized :id routes ──────────────────────────────────────────
   @Get(':id/my-submission')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('student')
@@ -106,28 +131,5 @@ export class AssignmentsController {
   @ApiResponse({ status: 200, description: 'Submissions retrieved' })
   getSubmissions(@Param('id') id: string, @GetUser() user: any) {
     return this.assignmentsService.getSubmissions(id, user.id);
-  }
-
-  @Patch('submissions/:submissionId/grade')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('teacher', 'admin')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Grade a submission' })
-  @ApiResponse({ status: 200, description: 'Submission graded' })
-  gradeSubmission(
-    @Param('submissionId') submissionId: string,
-    @Body() dto: GradeSubmissionDto,
-    @GetUser() user: any,
-  ) {
-    return this.assignmentsService.gradeSubmission(submissionId, dto, user.id);
-  }
-
-  @Get('teacher/all-submissions')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('teacher', 'admin')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all submissions across teacher courses' })
-  getAllSubmissionsForTeacher(@GetUser() user: any) {
-    return this.assignmentsService.getAllSubmissionsForTeacher(user.id);
   }
 }
