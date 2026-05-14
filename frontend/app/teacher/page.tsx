@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -37,9 +38,9 @@ export default function TeacherPage() {
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingSubmissionCount, setPendingSubmissionCount] = useState(0);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   async function fetchMyCourses() {
@@ -667,12 +668,13 @@ export default function TeacherPage() {
                   {bankName && bankAccount && bankOwner && (
                     <div className="mt-8 p-6 rounded-2xl border border-white/10 bg-indigo-950/30 flex flex-col items-center">
                       <p className="text-sm font-bold text-white mb-4 text-center">Bản xem trước Mã QR hiển thị cho học sinh</p>
-                      <div className="w-48 h-48 bg-white rounded-2xl p-2 shadow-2xl shadow-indigo-500/20">
-                        <img
+                      <div className="w-48 h-48 bg-white rounded-2xl p-2 shadow-2xl shadow-indigo-500/20 relative">
+                        <Image
                           src={`https://img.vietqr.io/image/${bankName}-${bankAccount}-compact.png?accountName=${encodeURIComponent(bankOwner)}`}
                           alt="QR Code"
-                          className="w-full h-full object-contain"
-                          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none'; }}
+                          fill
+                          className="object-contain"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       </div>
                       <p className="text-xs font-semibold text-indigo-300 mt-4 text-center tracking-wide">

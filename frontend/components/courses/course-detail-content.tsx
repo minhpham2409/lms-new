@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-state';
+import Image from 'next/image';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -137,8 +138,8 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
       <div className="grid gap-8 md:grid-cols-[2fr_1fr]">
         <div>
           {course.imageUrl && (
-            <div className="rounded-xl overflow-hidden mb-6 h-64">
-              <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
+            <div className="relative rounded-xl overflow-hidden mb-6 h-64 border border-white/10">
+              <Image src={course.imageUrl} alt={course.title} fill className="object-cover" />
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2 mb-3">

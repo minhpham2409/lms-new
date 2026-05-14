@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { coursesApi } from "@/lib/api-service";
 import type { Course } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,7 +71,7 @@ export function FeaturedCourses({
               <Card key={course.id} className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-200">
                 <div className="h-44 bg-gradient-to-br from-blue-500 to-purple-600 relative overflow-hidden">
                   {course.imageUrl ? (
-                    <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
+                    <Image src={course.imageUrl} alt={course.title} fill className="object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <BookOpen className="h-14 w-14 text-white/40" />

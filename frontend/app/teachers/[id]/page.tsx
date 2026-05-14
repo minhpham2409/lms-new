@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
@@ -330,10 +331,11 @@ export default function TeacherProfilePage() {
                         <div className="sm:w-56 md:w-64 flex-shrink-0 aspect-video sm:aspect-auto relative overflow-hidden"
                              style={{ background: "var(--muted)" }}>
                           {course.thumbnail ? (
-                            <img
+                            <Image
                               src={course.thumbnail}
                               alt={course.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-2 min-h-[140px]" style={{ color: "var(--foreground-muted)" }}>

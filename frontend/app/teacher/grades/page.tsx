@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/components/auth/auth-state";
 import { Navbar } from "@/components/layout/navbar";
 import { toast } from "sonner";
@@ -29,7 +30,9 @@ export default function TeacherGradesPage() {
   const [grading, setGrading] = useState<Record<string, { score: string; feedback: string }>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
 
-  useEffect(() => { if (token) fetchSubmissions(); }, [token]);
+  useEffect(() => { if (token) fetchSubmissions(); 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   async function fetchSubmissions() {
     setLoading(true);
@@ -220,14 +223,18 @@ export default function TeacherGradesPage() {
                           {descUrl && (descUrl.startsWith("/uploads") || descUrl.startsWith("http")) && (
                             <div>
                               <p className="text-xs font-semibold mb-2" style={{ color: "var(--foreground-muted)" }}>📄 Đề bài:</p>
-                              <img src={imgUrl(descUrl)} alt="Đề" className="max-w-full rounded-xl" style={{ maxHeight: 250, border: "1px solid var(--border)" }} />
+                              <div className="relative w-full max-w-lg h-64 border border-white/10 rounded-xl overflow-hidden">
+                                <Image src={imgUrl(descUrl)} alt="Đề" fill className="object-contain" />
+                              </div>
                             </div>
                           )}
                           {/* Student work */}
                           {sub.fileUrl && (
                             <div>
                               <p className="text-xs font-semibold mb-2" style={{ color: "var(--foreground-muted)" }}>🖼️ Bài làm:</p>
-                              <img src={imgUrl(sub.fileUrl)} alt="Bài làm" className="max-w-full rounded-xl" style={{ maxHeight: 350, border: "1px solid var(--border)" }} />
+                              <div className="relative w-full max-w-lg h-80 border border-white/10 rounded-xl overflow-hidden">
+                                <Image src={imgUrl(sub.fileUrl)} alt="Bài làm" fill className="object-contain" />
+                              </div>
                             </div>
                           )}
                           {sub.content && sub.content !== "Bài nộp bằng ảnh" && (

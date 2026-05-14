@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { coursesApi, enrollmentsApi } from '@/lib/api-service';
 import type { Course } from '@/types';
 import {
@@ -185,10 +186,11 @@ export default function CoursesPageContent() {
                 >
                   <div className="h-44 bg-gradient-to-br from-blue-500 to-purple-600 relative overflow-hidden">
                     {course.imageUrl ? (
-                      <img
+                      <Image
                         src={course.imageUrl}
                         alt={course.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
