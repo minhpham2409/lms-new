@@ -40,9 +40,9 @@ api.interceptors.request.use((config) => {
 
 // ─── Response interceptor: auto-refresh on 401 ──────────────────────────────
 let isRefreshing = false;
-let failedQueue: { resolve: (v: any) => void; reject: (e: any) => void }[] = [];
+let failedQueue: { resolve: (v: string | null) => void; reject: (e: unknown) => void }[] = [];
 
-function processQueue(error: any, token: string | null = null) {
+function processQueue(error: unknown, token: string | null = null) {
   failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
     else prom.resolve(token);

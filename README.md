@@ -40,7 +40,7 @@ HọcLộ Trình là một hệ thống quản lý học tập (Learning Managem
 
 ### Backend (API & Business Logic)
 - **Framework:** NestJS (Node.js).
-- **Database:** SQLite (Dễ dàng di chuyển, deploy).
+- **Database:** PostgreSQL (Mạnh mẽ, hỗ trợ production).
 - **ORM:** Prisma Client.
 - **Security:** JWT (JSON Web Tokens) cho Authentication, Passport.js, Bcrypt cho băm mật khẩu.
 - **File Storage:** Multer tích hợp sẵn để lưu trữ Avatar, Video, File bài nộp cục bộ (`/uploads`).
@@ -58,7 +58,6 @@ lms-new/
 ├── backend/
 │   ├── prisma/
 │   │   ├── schema.prisma       # Cấu trúc CSDL (Models: User, Course, Section, Lesson...)
-│   │   └── dev.db              # File cơ sở dữ liệu SQLite
 │   ├── src/
 │   │   ├── auth/               # [Module] Login, Register, Change/Reset Password
 │   │   ├── users/              # [Module] Quản lý user, Teacher profiles, Cập nhật Bio
@@ -164,7 +163,7 @@ Tạo file `.env` ở cả thư mục `backend` và `frontend`.
 
 **Backend (`backend/.env`):**
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://user:password@localhost:5432/lms"
 JWT_SECRET="mot_chuoi_bi_mat_rat_dai_va_kho_doan"
 PORT=3001
 FRONTEND_URL="http://localhost:3000"
@@ -204,7 +203,7 @@ Trong trường hợp bạn cần sửa code và dev:
 ```bash
 cd backend
 npm install
-npx prisma db push      # Cập nhật schema vào database SQLite
+npx prisma db push      # Cập nhật schema vào database PostgreSQL
 npm run start:dev       # Server sẽ lắng nghe ở cổng 3001
 ```
 

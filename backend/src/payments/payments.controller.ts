@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { CreateQrDto, WebhookDto } from './dto';
@@ -20,6 +21,7 @@ export class PaymentsController {
   }
 
   @Post('webhook')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Bank webhook — confirm payment' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
   webhook(@Body() dto: WebhookDto) {
