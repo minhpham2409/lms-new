@@ -13,7 +13,7 @@ export class CourseRepository extends BaseRepository<Course> {
     return this.prisma.course;
   }
 
-  findAllWithCounts(where?: { status?: CourseStatus }) {
+  findAllWithCounts(where?: { status?: CourseStatus }, options?: { skip?: number; take?: number }) {
     return this.prisma.course.findMany({
       where: where ?? {},
       include: {
@@ -25,6 +25,9 @@ export class CourseRepository extends BaseRepository<Course> {
         },
         _count: { select: { enrollments: true } },
       },
+      skip: options?.skip,
+      take: options?.take ?? 50,
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -42,7 +45,7 @@ export class CourseRepository extends BaseRepository<Course> {
                 materials: true,
                 assignments: {
                   include: {
-                    submissions: { select: { id: true, studentId: true, status: true, score: true, feedback: true, gradedAt: true } },
+                    submissions: { select: { id: true, status: true } },
                   },
                 },
               },

@@ -38,10 +38,13 @@ import { QueueNames, QueueEventBridge } from './shared/queues';
 import { EmailProcessor } from './shared/queues/processors/email.processor';
 import { CertificateProcessor } from './shared/queues/processors/certificate.processor';
 import { MediaModule } from './media/media.module';
+import { WalletsModule } from './wallets/wallets.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
 
     // ─── Event-Driven Architecture ─────────────────────────────────────────
     // In-process events for lightweight cross-module communication.
@@ -150,6 +153,7 @@ import { MediaModule } from './media/media.module';
     AchievementsModule,
     MonthlyRaceModule,
     MediaModule,
+    WalletsModule,
   ],
   controllers: [AppController],
   providers: [

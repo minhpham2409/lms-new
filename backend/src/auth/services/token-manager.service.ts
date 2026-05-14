@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { createHash } from 'crypto';
 import { RefreshTokenRepository } from '../../database/repositories';
 import { DateUtil } from '../../shared/utils';
@@ -67,10 +68,19 @@ export class TokenManagerService {
     return tokenRecord;
   }
 
+  private readonly logger = new Logger(TokenManagerService.name);
+
   /**
    * Clean expired tokens (can be run as cron job)
    */
   async cleanExpiredTokens(): Promise<number> {
     return this.refreshTokenRepository.cleanExpiredTokens();
+  }
+
+  /** Run every day at 2:00 AM to prevent DB bloat */
+  @Cron('0 2 * * *')
+  async handleExpiredTokenCleanup() {
+    const count = await this.cleanExpiredTokens();
+    this.logger.log(`[Cron] Cleaned ${count} expired refresh tokens`);
   }
 }

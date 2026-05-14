@@ -5,9 +5,11 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { useAuth } from "@/components/auth/auth-state";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play, ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Clock,
   MessageCircle, Send, List, X, Loader2, Image as ImageIcon,
+  FileText, PenTool, Maximize2, Minimize2, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -127,6 +129,7 @@ export default function LessonPage() {
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [theaterMode, setTheaterMode] = useState(false);
   const lastSentPercent = useRef(0);
   const ytPlayerRef = useRef<any>(null);
   const ytIntervalRef = useRef<any>(null);

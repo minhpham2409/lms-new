@@ -24,3 +24,5 @@ export * from './student-dashboard.repository';
 export * from './achievement.repository';
 export * from './monthly-race.repository';
 export * from './parent-dashboard.repository';
+export * from './wallet.repository';
+export * from './system-config.repository';
