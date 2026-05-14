@@ -183,16 +183,10 @@ export class ProgressService {
 
     let assignmentsCompleted = true;
     if (lesson.assignments && lesson.assignments.length > 0) {
-      // For essay assignments: submission must exist and be graded with passing score
-      // For quiz assignments: attempt must exist
+      // For assignments: submission must exist (even if pending)
       for (const assignment of lesson.assignments) {
         const submission = await this.progressRepo.findSubmissionForAssignment(userId, assignment.id);
         if (!submission) {
-          assignmentsCompleted = false;
-          break;
-        }
-        // If submission is graded, check score against minScore
-        if (submission.status === 'pending') {
           assignmentsCompleted = false;
           break;
         }

@@ -126,7 +126,7 @@ export default function CartPage() {
   const colors = ["#7c3aed", "#3b82f6", "#f59e0b", "#10b981", "#ec4899"];
 
   async function handleCheckout() {
-    if (hasParent === false) {
+    if (user?.role === "student" && hasParent !== true) {
       toast.error("Bạn cần liên kết tài khoản phụ huynh trước khi thanh toán!");
       return;
     }
@@ -187,7 +187,7 @@ export default function CartPage() {
           </h1>
 
           {/* No parent warning */}
-          {hasParent === false && items.length > 0 && (
+          {hasParent !== true && user?.role === "student" && items.length > 0 && (
             <div className="card-base mb-4 flex items-center gap-3" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)" }}>
               <AlertTriangle className="w-5 h-5 flex-shrink-0" style={{ color: "#f59e0b" }} />
               <div className="flex-1">

@@ -53,6 +53,22 @@ export default function CourseWizardPage() {
   const handleSave = async (publish: boolean) => {
     if (!title.trim()) { toast.error("Thiếu tên khóa học"); return; }
     if (!token) { toast.error("Chưa đăng nhập"); return; }
+    // Validate sections and lessons before creating course
+    for (let si = 0; si < sections.length; si++) {
+      const sec = sections[si];
+      if (!sec.title.trim()) {
+        toast.error(`Vui lòng nhập tên cho chương thứ ${si + 1}`);
+        return;
+      }
+      for (let li = 0; li < sec.lessons.length; li++) {
+        const les = sec.lessons[li];
+        if (!les.title.trim()) {
+          toast.error(`Vui lòng nhập tên cho bài học thứ ${li + 1} trong chương "${sec.title}"`);
+          return;
+        }
+      }
+    }
+
     setSaving(true);
 
     try {
@@ -74,7 +90,6 @@ export default function CourseWizardPage() {
       // 2. Create sections
       for (let si = 0; si < sections.length; si++) {
         const sec = sections[si];
-        if (!sec.title.trim()) continue;
 
         const secRes = await fetch(`${API}/sections`, {
           method: "POST",
@@ -88,7 +103,6 @@ export default function CourseWizardPage() {
         let lessonErrors = 0;
         for (let li = 0; li < sec.lessons.length; li++) {
           const les = sec.lessons[li];
-          if (!les.title.trim()) continue;
 
           const lesBody = {
             title: les.title.trim(),

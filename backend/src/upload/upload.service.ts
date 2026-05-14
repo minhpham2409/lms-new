@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, openSync, readSync, closeSync } from 'fs';
 import { randomUUID } from 'crypto';
 
 /** Allowed MIME types per upload category. */
@@ -122,15 +122,35 @@ export class UploadService {
    * Skips validation for text/plain and SVG (text-based formats).
    */
   private validateMagicBytes(file: Express.Multer.File) {
-    const { mimetype, buffer } = file;
+    const { mimetype } = file;
 
     // Skip text-based formats that don't have binary signatures
     if (mimetype === 'text/plain' || mimetype === 'image/svg+xml') {
       return;
     }
 
-    // Need at least 12 bytes to check signatures
-    if (!buffer || buffer.length < 12) {
+    let buffer: Buffer;
+    if (file.buffer) {
+      buffer = file.buffer;
+    } else if (file.path) {
+      // If using diskStorage, read the first 12 bytes from the file
+      try {
+        const fd = openSync(file.path, 'r');
+        buffer = Buffer.alloc(12);
+        const bytesRead = readSync(fd, buffer, 0, 12, 0);
+        closeSync(fd);
+        if (bytesRead < 12 && bytesRead < Buffer.byteLength(buffer)) {
+           buffer = buffer.subarray(0, bytesRead);
+        }
+      } catch (e) {
+        throw new BadRequestException('Unable to read file for integrity check.');
+      }
+    } else {
+      throw new BadRequestException('File content unavailable for integrity check.');
+    }
+
+    // Need at least 12 bytes to check signatures (or whatever the buffer length is)
+    if (!buffer || buffer.length === 0) {
       throw new BadRequestException(
         'File is too small or empty — unable to verify file integrity.',
       );

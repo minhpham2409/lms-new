@@ -181,7 +181,7 @@ async function main() {
     { userId: students[9].id, courseId: courses[1].id, progress: 10 },
   ];
   for (const e of enrollments) {
-    await prisma.enrollment.create({ data: { ...e, status: e.progress === 100 ? 'completed' : 'active' } });
+    await prisma.enrollment.create({ data: { ...e, status: 'active' } });
   }
 
   console.log('⭐ Creating reviews...');
@@ -219,13 +219,13 @@ async function main() {
 
   console.log('🛒 Creating orders...');
   const ordersData = [
-    { userId: students[1].id, courseId: courses[1].id, price: 199000, status: 'completed' },
-    { userId: students[3].id, courseId: courses[1].id, price: 199000, status: 'completed' },
-    { userId: students[5].id, courseId: courses[1].id, price: 199000, status: 'completed', couponId: coupons[0].id },
-    { userId: students[2].id, courseId: courses[3].id, price: 149000, status: 'completed' },
+    { userId: students[1].id, courseId: courses[1].id, price: 199000, status: 'paid' },
+    { userId: students[3].id, courseId: courses[1].id, price: 199000, status: 'paid' },
+    { userId: students[5].id, courseId: courses[1].id, price: 199000, status: 'paid', couponId: coupons[0].id },
+    { userId: students[2].id, courseId: courses[3].id, price: 149000, status: 'paid' },
     { userId: students[5].id, courseId: courses[3].id, price: 149000, status: 'pending' },
-    { userId: students[3].id, courseId: courses[5].id, price: 249000, status: 'completed' },
-    { userId: students[8].id, courseId: courses[5].id, price: 249000, status: 'completed' },
+    { userId: students[3].id, courseId: courses[5].id, price: 249000, status: 'paid' },
+    { userId: students[8].id, courseId: courses[5].id, price: 249000, status: 'paid' },
     { userId: students[9].id, courseId: courses[1].id, price: 199000, status: 'pending' },
   ];
   for (const od of ordersData) {
@@ -234,7 +234,7 @@ async function main() {
       data: { userId: od.userId, totalPrice: od.price, finalPrice, status: od.status, couponId: od.couponId || null },
     });
     await prisma.orderItem.create({ data: { orderId: order.id, courseId: od.courseId, price: od.price } });
-    if (od.status === 'completed') {
+    if (od.status === 'paid') {
       await prisma.payment.create({
         data: { orderId: order.id, amount: finalPrice, status: 'completed', txnRef: `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`, paidAt: new Date() },
       });

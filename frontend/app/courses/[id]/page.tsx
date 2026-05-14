@@ -171,7 +171,7 @@ export default function CourseDetailPage() {
 
   async function handleBuyNow() {
     if (!isLoggedIn) { router.push("/auth/login"); return; }
-    if (hasParent === false) {
+    if (user?.role === "student" && hasParent !== true) {
       toast.error("Bạn cần liên kết tài khoản phụ huynh trước khi mua khóa học!");
       return;
     }
@@ -475,7 +475,7 @@ export default function CourseDetailPage() {
                       {course.price > 0 ? "Thanh toán một lần, học trọn đời" : "Truy cập toàn bộ nội dung"}
                     </p>
 
-                    {course.price > 0 && hasParent === false && user?.role === "student" && (
+                    {course.price > 0 && hasParent !== true && user?.role === "student" && (
                       <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)" }}>
                         <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#f59e0b" }} />
                         <div>

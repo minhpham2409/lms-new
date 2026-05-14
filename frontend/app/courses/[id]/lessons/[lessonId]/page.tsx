@@ -121,8 +121,6 @@ export default function LessonPage() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [canComplete, setCanComplete] = useState(true);
-  const [hasAssignment, setHasAssignment] = useState(false);
-  const [assignmentSubmitted, setAssignmentSubmitted] = useState(false);
   const [videoWatched, setVideoWatched] = useState(true);
   const [watchedPercentage, setWatchedPercentage] = useState(0);
   const [comment, setComment] = useState("");
@@ -180,15 +178,7 @@ export default function LessonPage() {
     }
   }, []);
 
-  // Cleanup on lessonId change
-  useEffect(() => {
-    return () => {
-      if (ytIntervalRef.current) clearInterval(ytIntervalRef.current);
-      if (ytPlayerRef.current) { try { ytPlayerRef.current.destroy(); } catch {} }
-      ytPlayerRef.current = null;
-      ytInitedRef.current = null;
-    };
-  }, [lessonId]);
+  // Cleanup managed by ref callback to prevent race conditions
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchData(); }, [lessonId, id]);
@@ -248,8 +238,6 @@ export default function LessonPage() {
         // Trust backend state as source of truth
         const d = await res.json();
         setVideoWatched(d.videoCompleted);
-        setHasAssignment(!d.assignmentsCompleted);
-        setAssignmentSubmitted(d.assignmentsCompleted);
         setCanComplete(d.canComplete);
       }
     } catch {}
@@ -346,6 +334,9 @@ export default function LessonPage() {
 
   const initials = (user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?").toUpperCase();
 
+  const hasAssignment = assignments.length > 0;
+  const assignmentSubmitted = assignments.length > 0 && assignments.every(a => a.submissions?.some((s: any) => s.studentId === user?.id));
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       {/* Top bar */}
@@ -379,7 +370,14 @@ export default function LessonPage() {
                 return (
                   <div className="aspect-video bg-black">
                     <div id={`yt-player-${lessonId}`} ref={(el) => {
-                      if (!el || ytInitedRef.current === ytVideoId) return;
+                      if (!el) {
+                        if (ytIntervalRef.current) clearInterval(ytIntervalRef.current);
+                        if (ytPlayerRef.current) { try { ytPlayerRef.current.destroy(); } catch {} }
+                        ytPlayerRef.current = null;
+                        ytInitedRef.current = null;
+                        return;
+                      }
+                      if (ytInitedRef.current === ytVideoId) return;
                       ytInitedRef.current = ytVideoId;
                       const initPlayer = () => {
                         if (ytPlayerRef.current) { try { ytPlayerRef.current.destroy(); } catch {} }
@@ -591,7 +589,7 @@ export default function LessonPage() {
                             {!isSubmitted && (
                               <>
                                 <p className="text-xs mb-1 font-semibold" style={{ color: "var(--foreground-muted)" }}>Nộp bài (chụp ảnh bài làm):</p>
-                                <AssignmentSubmit assignmentId={a.id} token={token} API={API} BASE_URL={BASE_URL} onSuccess={checkCanComplete} />
+                                <AssignmentSubmit assignmentId={a.id} token={token} API={API} BASE_URL={BASE_URL} onSuccess={() => { fetchAssignmentsApi(); checkCanComplete(); }} />
                               </>
                             )}
                           </div>

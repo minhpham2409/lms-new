@@ -99,11 +99,14 @@ export default function AchievementsPage() {
   useEffect(() => {
     if (loading) return;
     if (!isLoggedIn) { router.push("/auth/login"); return; }
-  }, [isLoggedIn, loading, router]);
+    if (user?.role && user.role !== "student") { router.push("/dashboard"); return; }
+  }, [isLoggedIn, loading, user, router]);
 
   useEffect(() => {
     if (token) {
-      Promise.all([fetchAchievements(), fetchLeaderboard()]).finally(() => setPageLoading(false));
+      fetchAchievements()
+        .then(() => fetchLeaderboard())
+        .finally(() => setPageLoading(false));
     }
   }, [token]);
 

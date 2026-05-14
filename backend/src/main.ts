@@ -51,7 +51,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // ─── Security: HTTP Headers ─────────────────────────────────────────────────
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: false,
+  }));
 
   // Global prefix — matches README: /api/v1
   app.setGlobalPrefix('api/v1');

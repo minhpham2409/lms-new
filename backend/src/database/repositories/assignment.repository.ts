@@ -16,7 +16,10 @@ export class AssignmentRepository extends BaseRepository<Assignment> {
   findByLessonId(lessonId: string) {
     return this.prisma.assignment.findMany({
       where: { lessonId },
-      include: { quiz: true },
+      include: { 
+        quiz: true,
+        submissions: { select: { id: true, studentId: true, status: true, score: true, feedback: true, gradedAt: true } }
+      },
     });
   }
 

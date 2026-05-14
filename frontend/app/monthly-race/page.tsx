@@ -88,7 +88,8 @@ export default function MonthlyRacePage() {
   useEffect(() => {
     if (loading) return;
     if (!isLoggedIn) { router.push("/auth/login"); return; }
-  }, [isLoggedIn, loading, router]);
+    if (user?.role && user.role !== "student") { router.push("/dashboard"); return; }
+  }, [isLoggedIn, loading, user, router]);
 
   useEffect(() => {
     if (!token) return;
@@ -155,6 +156,7 @@ export default function MonthlyRacePage() {
         { icon: Calendar, label: "Ngày check-in", value: stats.checkInDays, xp: stats.checkInDays * 3, color: "#f59e0b" },
         { icon: Award, label: "Huy hiệu mới", value: stats.badgesEarned, xp: stats.badgesEarned * 20, color: "#ffd700" },
         { icon: Trophy, label: "Khóa hoàn thành", value: stats.coursesCompleted, xp: stats.coursesCompleted * 50, color: "#ef4444" },
+        { icon: Crown, label: "Chứng chỉ", value: stats.certificatesEarned, xp: stats.certificatesEarned * 30, color: "#a855f7" },
       ].map(item => (
         <div key={item.label} className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
