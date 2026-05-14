@@ -1,6 +1,6 @@
 import {
   Controller, Post, UseGuards, UseInterceptors,
-  UploadedFile, BadRequestException, Query,
+  UploadedFile, BadRequestException, Query, InternalServerErrorException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
@@ -98,7 +98,7 @@ export class UploadController {
         };
       } catch (error) {
         // Fail hard if HLS conversion fails
-        throw new require('@nestjs/common').InternalServerErrorException(
+        throw new InternalServerErrorException(
           `HLS conversion failed: ${(error as Error).message}`
         );
       }
