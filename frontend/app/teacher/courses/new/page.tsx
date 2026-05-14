@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
-import { ArrowLeft, Save, ArrowRight, BookOpen, Layers, Play, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Layers, Play, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { StepIndicator } from "@/components/courses/step-indicator";
 import { Step1BasicInfo } from "./step-1";
@@ -25,7 +25,7 @@ const steps = [
 
 export default function CourseWizardPage() {
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);

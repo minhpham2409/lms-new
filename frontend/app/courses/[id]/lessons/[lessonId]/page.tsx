@@ -7,7 +7,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { useAuth } from "@/components/auth/auth-state";
 import {
   Play, ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Clock,
-  MessageCircle, Send, List, X, Loader2, Upload, Image as ImageIcon,
+  MessageCircle, Send, List, X, Loader2, Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -120,7 +120,6 @@ export default function LessonPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
-  const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set());
   const [canComplete, setCanComplete] = useState(true);
   const [hasAssignment, setHasAssignment] = useState(false);
   const [assignmentSubmitted, setAssignmentSubmitted] = useState(false);
@@ -133,7 +132,6 @@ export default function LessonPage() {
   const lastSentPercent = useRef(0);
   const ytPlayerRef = useRef<any>(null);
   const ytIntervalRef = useRef<any>(null);
-  const ytContainerRef = useRef<HTMLDivElement>(null);
   const ytInitedRef = useRef<string | null>(null);
   // Use refs for tracking to avoid re-creating callbacks
   const watchedPctRef = useRef(0);
@@ -192,6 +190,7 @@ export default function LessonPage() {
     };
   }, [lessonId]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchData(); }, [lessonId, id]);
 
   async function fetchData() {
@@ -228,18 +227,30 @@ export default function LessonPage() {
   async function checkCanComplete() {
     if (!token) return;
     try {
+      // First sync video progress to server so it has latest data
+      if (watchedPctRef.current > 0) {
+        await fetch(`${API}/progress/video`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            lessonId,
+            watchTime: 0,
+            watchedPercentage: watchedPctRef.current,
+            completed: watchedPctRef.current >= 95,
+          }),
+        }).catch(() => {});
+      }
       const res = await fetch(`${API}/progress/lesson/${lessonId}/can-complete`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         // Backend returns: { canComplete, videoCompleted, assignmentsCompleted }
+        // Trust backend state as source of truth
         const d = await res.json();
-        setVideoWatched(d.videoCompleted || watchedPctRef.current >= 90);
-        setHasAssignment(!d.assignmentsCompleted && d.assignmentsCompleted !== undefined);
-        setAssignmentSubmitted(d.assignmentsCompleted === true);
-        // Use server canComplete, but also allow if local video pct >= 90
-        const effectiveCanComplete = (d.videoCompleted || watchedPctRef.current >= 90) && d.assignmentsCompleted;
-        setCanComplete(effectiveCanComplete);
+        setVideoWatched(d.videoCompleted);
+        setHasAssignment(!d.assignmentsCompleted);
+        setAssignmentSubmitted(d.assignmentsCompleted);
+        setCanComplete(d.canComplete);
       }
     } catch {}
   }
@@ -248,16 +259,6 @@ export default function LessonPage() {
     try {
       const res = await fetch(`${API}/lessons/${lessonId}/comments`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (res.ok) setComments(await res.json());
-    } catch {}
-  }
-
-  async function fetchMaterials() {
-    try {
-      const res = await fetch(`${API}/materials?lessonId=${lessonId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) setMaterials(data);
-      }
     } catch {}
   }
 
@@ -329,18 +330,6 @@ export default function LessonPage() {
         toast.error(d.message || "Lỗi cập nhật tiến độ");
       }
     } catch { toast.error("Lỗi kết nối"); }
-  }
-
-  async function submitAssignment(assignmentId: string, content: string) {
-    try {
-      const res = await fetch(`${API}/assignments/${assignmentId}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content }),
-      });
-      if (res.ok) toast.success("Đã nộp bài!");
-      else { const d = await res.json(); toast.error(d.message || "Lỗi nộp bài"); }
-    } catch { toast.error("Lỗi"); }
   }
 
   if (loading) return (

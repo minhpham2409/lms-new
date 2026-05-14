@@ -9,21 +9,17 @@ import { useAuth } from "@/components/auth/auth-state";
 import {
   Users,
   BookOpen,
-  Clock,
   TrendingUp,
   Award,
   BarChart3,
   Calendar,
-  Bell,
   Loader2,
   UserPlus,
   UserMinus,
   CheckCircle2,
   XCircle,
-  ChevronRight,
   Send,
   RefreshCw,
-  QrCode,
   CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,7 +33,7 @@ export default function ParentPage() {
   const [selectedChild, setSelectedChild] = useState<any>(null);
   const [childCourses, setChildCourses] = useState<any[]>([]);
   const [childDashboard, setChildDashboard] = useState<any>(null);
-  const [childProgress, setChildProgress] = useState<any>(null);
+  const [_childProgress, setChildProgress] = useState<any>(null);
   const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -66,6 +62,7 @@ export default function ParentPage() {
     }
   }, [user, isLoggedIn, authLoading, router]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (token && user?.role === "parent") fetchAll();
   }, [token, user]);

@@ -8,9 +8,9 @@ import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
   BookOpen, Users, DollarSign, TrendingUp, Plus, Eye, Edit, Star,
-  BarChart3, MessageCircle, Clock, FileText, Play, Trash2, Upload,
+  BarChart3, MessageCircle, Play, Trash2,
   Calendar, ArrowUpRight, CheckCircle2, Settings, CreditCard, Building2, Send, Loader2,
-  CheckCircle, X,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -37,6 +37,7 @@ export default function TeacherPage() {
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingSubmissionCount, setPendingSubmissionCount] = useState(0);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); }
   }, [token]);
@@ -275,7 +276,7 @@ export default function TeacherPage() {
                     { label: "Tổng học sinh", value: String(stats?.totalStudents || 0), icon: Users, color: "#0891b2", sub: "tích lũy", grad: "from-cyan-500 to-blue-500" },
                     { label: "Doanh thu", value: stats?.totalRevenue ? `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫` : "0 ₫", icon: DollarSign, color: "#10b981", sub: "tổng cộng", grad: "from-emerald-500 to-teal-500" },
                     { label: "Đánh giá TB", value: stats?.avgRating ? `⭐ ${stats.avgRating}` : "—", icon: Star, color: "#f59e0b", sub: stats?.totalReviews ? `${stats.totalReviews} lượt đánh giá` : "chưa có", grad: "from-amber-500 to-orange-500" },
-                  ].map(({ label, value, icon: Icon, color, sub, grad }, i) => (
+                  ].map(({ label, value, icon: Icon, color, sub, grad }, _i) => (
                     <div key={label} className="glass-card rounded-2xl p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
                       <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${grad} opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity`} />
                       <div className="flex items-start justify-between mb-4 relative z-10">

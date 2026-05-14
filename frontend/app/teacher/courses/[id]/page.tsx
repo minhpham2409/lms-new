@@ -6,8 +6,8 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { useAuth } from "@/components/auth/auth-state";
 import {
-  ArrowLeft, Save, Plus, Trash2, BookOpen, Play, Upload,
-  FileText, Settings, Eye, Loader2, CheckCircle2, Film, X, Edit,
+  ArrowLeft, Plus, Trash2, BookOpen, Upload,
+  FileText, Eye, Loader2, CheckCircle2, Film, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,8 +15,8 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 export default function TeacherCourseEditPage() {
   const { id } = useParams();
-  const router = useRouter();
-  const { user, token, loading: authLoading } = useAuth();
+  const _router = useRouter();
+  const { token, loading: authLoading } = useAuth();
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,9 +36,10 @@ export default function TeacherCourseEditPage() {
 
   // Edit lesson
   const [editingLesson, setEditingLesson] = useState<string | null>(null);
-  const [editVideoFile, setEditVideoFile] = useState<File | null>(null);
+  const [_editVideoFile, setEditVideoFile] = useState<File | null>(null);
   const editVideoRef = useRef<HTMLInputElement>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (token && id) fetchCourse();
   }, [token, id]);
@@ -59,7 +60,7 @@ export default function TeacherCourseEditPage() {
       formData.append("file", file);
 
       // Use XMLHttpRequest for progress tracking
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve, _reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", `${API}/upload/video`);
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
@@ -155,7 +156,7 @@ export default function TeacherCourseEditPage() {
       const url = await uploadVideo(file);
       if (!url) return;
       const res = await fetch(`${API}/lessons/${lessonId}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ videoUrl: url }),
       });

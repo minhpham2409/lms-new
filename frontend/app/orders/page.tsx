@@ -18,7 +18,7 @@ const statusMap: Record<string, { label: string; color: string; icon: any }> = {
 export default function OrdersPage() {
   const { token } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [_selectedOrder, setSelectedOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
