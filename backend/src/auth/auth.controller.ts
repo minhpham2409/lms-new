@@ -108,13 +108,9 @@ export class AuthController {
 
     const result = await this.authService.logout(user.id, refreshToken);
 
-    // Clear cookie
-    res.clearCookie(REFRESH_COOKIE_NAME, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/api/v1/auth',
-    });
+    // Clear cookie with matching path/domain
+    const { maxAge, ...clearOptions } = REFRESH_COOKIE_OPTIONS;
+    res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
 
     return result;
   }
