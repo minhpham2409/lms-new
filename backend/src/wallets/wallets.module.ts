@@ -6,8 +6,6 @@ import { AuthModule } from '../auth/auth.module';
 import {
   WalletRepository,
   SystemConfigRepository,
-  OrderRepository,
-  CourseRepository,
 } from '../database/repositories';
 
 @Module({
@@ -17,8 +15,6 @@ import {
     WalletsService,
     WalletRepository,
     SystemConfigRepository,
-    OrderRepository,
-    CourseRepository,
   ],
   exports: [WalletsService],
 })

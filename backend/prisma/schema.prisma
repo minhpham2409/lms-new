@@ -60,9 +60,9 @@ model SystemConfig {
 model Wallet {
   id             String              @id @default(uuid())
   userId         String              @unique
-  balance        Decimal             @default(0) @db.Decimal(10, 2)
-  pendingBalance Decimal             @default(0) @db.Decimal(10, 2)
-  totalEarned    Decimal             @default(0) @db.Decimal(10, 2)
+  balance        Decimal             @default(0) @db.Decimal(12, 2)
+  pendingBalance Decimal             @default(0) @db.Decimal(12, 2)
+  totalEarned    Decimal             @default(0) @db.Decimal(12, 2)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -70,30 +70,34 @@ model Wallet {
 }
 
 model WalletTransaction {
-  id          String   @id @default(uuid())
-  walletId    String
-  amount      Decimal  @db.Decimal(10, 2)
-  type        String // "EARNING", "WITHDRAWAL"
-  referenceId String? // orderId or payoutId
-  description String?
-  createdAt   DateTime @default(now())
-  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  id             String                @id @default(uuid())
+  walletId       String
+  amount         Decimal               @db.Decimal(12, 2)
+  type           WalletTransactionType
+  referenceId    String?               // orderId or payoutId
+  idempotencyKey String?               @unique // format: "revenue:{orderId}:{courseId}:{authorId}"
+  description    String?
+  createdAt      DateTime              @default(now())
+  wallet         Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@index([walletId])
+  @@index([referenceId])
+  @@index([type])
 }
 
 model PayoutRequest {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   userId      String
-  amount      Decimal  @db.Decimal(10, 2)
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  bankDetails Json? // Snapshot of bank info
+  amount      Decimal      @db.Decimal(12, 2)
+  status      PayoutStatus @default(PENDING)
+  bankDetails Json?        // Snapshot of bank info at time of request
   adminNote   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([status])
 }
 
 model RefreshToken {
@@ -516,4 +520,19 @@ enum CouponType {
   admin
   streak
   platform
+}
+
+enum WalletTransactionType {
+  EARNING
+  WITHDRAWAL_REQUEST
+  WITHDRAWAL_APPROVED
+  WITHDRAWAL_REJECTED
+  ADJUSTMENT
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
 }

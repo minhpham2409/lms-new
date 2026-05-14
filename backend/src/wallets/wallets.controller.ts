@@ -14,6 +14,12 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { GetUser } from '../common/decorators/get-user.decorator';
+import {
+  RequestPayoutDto,
+  UpdateBankInfoDto,
+  RejectPayoutDto,
+  UpdatePlatformFeeDto,
+} from './dto';
 
 @Controller('wallets')
 @UseGuards(JwtAuthGuard)
@@ -26,7 +32,7 @@ export class WalletsController {
   @Get('me')
   @UseGuards(RolesGuard)
   @Roles('teacher')
-  getMyWallet(@GetUser() user: any) {
+  getMyWallet(@GetUser() user: { id: string }) {
     return this.walletsService.getMyWallet(user.id);
   }
 
@@ -35,8 +41,8 @@ export class WalletsController {
   @UseGuards(RolesGuard)
   @Roles('teacher')
   updateBankInfo(
-    @GetUser() user: any,
-    @Body() body: { bankName: string; bankAccount: string; bankOwner: string },
+    @GetUser() user: { id: string },
+    @Body() body: UpdateBankInfoDto,
   ) {
     return this.walletsService.updateBankInfo(user.id, body);
   }
@@ -45,7 +51,10 @@ export class WalletsController {
   @Post('payouts')
   @UseGuards(RolesGuard)
   @Roles('teacher')
-  requestPayout(@GetUser() user: any, @Body() body: { amount: number }) {
+  requestPayout(
+    @GetUser() user: { id: string },
+    @Body() body: RequestPayoutDto,
+  ) {
     return this.walletsService.requestPayout(user.id, body.amount);
   }
 
@@ -81,7 +90,7 @@ export class WalletsController {
   @Roles('admin')
   rejectPayout(
     @Param('id') id: string,
-    @Body() body: { adminNote?: string },
+    @Body() body: RejectPayoutDto,
   ) {
     return this.walletsService.rejectPayout(id, body.adminNote);
   }
@@ -98,7 +107,7 @@ export class WalletsController {
   @Put('admin/configs/fee')
   @UseGuards(RolesGuard)
   @Roles('admin')
-  updatePlatformFee(@Body() body: { percentage: number }) {
+  updatePlatformFee(@Body() body: UpdatePlatformFeeDto) {
     return this.walletsService.updatePlatformFee(body.percentage);
   }
 }
