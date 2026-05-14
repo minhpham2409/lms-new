@@ -38,15 +38,15 @@ describe('StorageService', () => {
   });
 
   describe('getPublicUrl', () => {
-    it('should generate path-style URL for MinIO', () => {
+    it('should generate proxy URL for media', () => {
       const url = service.getPublicUrl('hls/abc/index.m3u8');
-      expect(url).toBe('http://localhost:9000/test-bucket/hls/abc/index.m3u8');
+      expect(url).toContain('/media/videos/hls/abc/index.m3u8');
     });
 
-    it('should include bucket in URL for path-style', () => {
+    it('should strip videos/ prefix if it exists', () => {
       const url = service.getPublicUrl('videos/original/test.mp4');
-      expect(url).toContain('test-bucket');
-      expect(url).toContain('videos/original/test.mp4');
+      expect(url).toContain('/media/videos/original/test.mp4');
+      expect(url).not.toContain('videos/videos');
     });
   });
 

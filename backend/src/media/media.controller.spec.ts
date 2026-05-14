@@ -7,6 +7,14 @@ describe('MediaController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MediaController],
+      providers: [
+        {
+          provide: require('../storage/storage.service').StorageService,
+          useValue: {
+            getObjectStream: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get<MediaController>(MediaController);

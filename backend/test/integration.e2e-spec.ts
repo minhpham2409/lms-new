@@ -20,6 +20,10 @@ describe('Auth & Integration Flows (e2e)', () => {
   });
 
   afterAll(async () => {
+    // Force cleanup any open Prisma or Redis connections
+    const prismaService = app.get(require('./../src/prisma/prisma.service').PrismaService);
+    if (prismaService) await prismaService.$disconnect();
+    
     await app.close();
   });
 
