@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BaseRepository } from './base.repository';
-import { Payment } from '@prisma/client';
+import { Payment, Prisma } from '@prisma/client';
+
+export type WebhookEventStatusValue =
+  | 'received'
+  | 'processed'
+  | 'duplicate'
+  | 'rejected'
+  | 'failed';
 
 @Injectable()
 export class PaymentRepository extends BaseRepository<Payment> {
@@ -19,6 +26,52 @@ export class PaymentRepository extends BaseRepository<Payment> {
 
   findByTxnRef(txnRef: string) {
     return this.prisma.payment.findUnique({ where: { txnRef } });
+  }
+
+  async createWebhookEvent(params: {
+    eventKey: string;
+    eventId?: string;
+    txnRef?: string;
+    signature?: string;
+    payload: Prisma.InputJsonValue;
+  }) {
+    try {
+      const event = await (this.prisma as any).webhookEvent.create({
+        data: {
+          provider: 'bank',
+          eventKey: params.eventKey,
+          eventId: params.eventId,
+          txnRef: params.txnRef,
+          signature: params.signature,
+          payload: params.payload,
+          status: 'received',
+        },
+      });
+      return { event, duplicate: false };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return { event: null, duplicate: true };
+      }
+      throw error;
+    }
+  }
+
+  updateWebhookEventStatus(
+    eventId: string,
+    status: WebhookEventStatusValue,
+    error?: string,
+  ) {
+    return (this.prisma as any).webhookEvent.update({
+      where: { id: eventId },
+      data: {
+        status,
+        error,
+        processedAt: new Date(),
+      },
+    });
   }
 
   /**
@@ -50,10 +103,14 @@ export class PaymentRepository extends BaseRepository<Payment> {
       }
 
       // 2. Conditional update: only mark order paid if still pending
-      await tx.order.updateMany({
+      const orderUpdate = await tx.order.updateMany({
         where: { id: params.orderId, status: 'pending' },
         data: { status: 'paid' },
       });
+
+      if (orderUpdate.count === 0) {
+        throw new Error('Order is no longer pending; payment completion rolled back');
+      }
 
       // 3. Increment coupon usedCount with maxUses guard (prevents over-use in race)
       if (params.couponId) {
@@ -61,7 +118,24 @@ export class PaymentRepository extends BaseRepository<Payment> {
           where: { id: params.couponId },
           select: { usedCount: true, maxUses: true },
         });
-        if (coupon && (!coupon.maxUses || coupon.usedCount < coupon.maxUses)) {
+
+        if (!coupon) {
+          throw new Error('Coupon not found; payment completion rolled back');
+        }
+
+        if (coupon.maxUses) {
+          const couponUpdate = await tx.coupon.updateMany({
+            where: {
+              id: params.couponId,
+              usedCount: { lt: coupon.maxUses },
+            },
+            data: { usedCount: { increment: 1 } },
+          });
+
+          if (couponUpdate.count === 0) {
+            throw new Error('Coupon usage limit reached; payment completion rolled back');
+          }
+        } else {
           await tx.coupon.update({
             where: { id: params.couponId },
             data: { usedCount: { increment: 1 } },
@@ -99,17 +173,23 @@ export class PaymentRepository extends BaseRepository<Payment> {
    */
   async failPaymentTransaction(params: { paymentId: string; orderId?: string }) {
     return this.prisma.$transaction(async (tx) => {
-      await tx.payment.update({
-        where: { id: params.paymentId },
+      const paymentUpdate = await tx.payment.updateMany({
+        where: { id: params.paymentId, status: 'pending' },
         data: { status: 'failed' },
       });
 
+      if (paymentUpdate.count === 0) {
+        return { alreadyProcessed: true };
+      }
+
       if (params.orderId) {
-        await tx.order.update({
-          where: { id: params.orderId },
+        await tx.order.updateMany({
+          where: { id: params.orderId, status: 'pending' },
           data: { status: 'failed' },
         });
       }
+
+      return { alreadyProcessed: false };
     });
   }
 }

@@ -12,10 +12,11 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getContentType } from './storage.constants';
+import { Readable } from 'stream';
 
 export interface PutObjectInput {
   key: string;
-  body: Buffer | Uint8Array | string;
+  body: Buffer | Uint8Array | string | Readable;
   contentType?: string;
   metadata?: Record<string, string>;
 }

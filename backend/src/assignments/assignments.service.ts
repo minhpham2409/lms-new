@@ -51,7 +51,7 @@ export class AssignmentsService {
         throw new ForbiddenException('This course is not available');
       }
       const enr = await this.enrollmentRepository.findByUserAndCourse(user.id, course.id);
-      if (!enr) {
+      if (!enr || enr.status !== 'active') {
         throw new ForbiddenException('You must be enrolled in this course to access assignments');
       }
       return;

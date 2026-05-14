@@ -345,6 +345,23 @@ model Payment {
   @@index([txnRef])
 }
 
+model WebhookEvent {
+  id          String             @id @default(uuid())
+  provider    String             @default("bank")
+  eventKey    String             @unique
+  eventId     String?            @unique
+  txnRef      String?
+  signature   String?
+  payload     Json
+  status      WebhookEventStatus @default(received)
+  error       String?
+  receivedAt  DateTime           @default(now())
+  processedAt DateTime?
+
+  @@index([provider, status, receivedAt])
+  @@index([txnRef])
+}
+
 model Review {
   id        String   @id @default(uuid())
   courseId  String
@@ -506,6 +523,14 @@ enum OrderStatus {
 enum PaymentStatus {
   pending
   completed
+  failed
+}
+
+enum WebhookEventStatus {
+  received
+  processed
+  duplicate
+  rejected
   failed
 }
 

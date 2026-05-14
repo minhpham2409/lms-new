@@ -16,6 +16,7 @@ describe('PaymentRepository — Idempotency', () => {
     coupon: {
       findUnique: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     enrollment: {
       upsert: jest.fn(),
@@ -67,30 +68,63 @@ describe('PaymentRepository — Idempotency', () => {
       expect(mockTx.enrollment.upsert).not.toHaveBeenCalled();
     });
 
-    it('should NOT increment coupon when maxUses is reached', async () => {
+    it('should rollback when order is no longer pending', async () => {
+      mockTx.payment.updateMany.mockResolvedValue({ count: 1 });
+      mockTx.order.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(repo.completePaymentTransaction(baseParams)).rejects.toThrow(
+        'Order is no longer pending',
+      );
+      expect(mockTx.enrollment.upsert).not.toHaveBeenCalled();
+    });
+
+    it('should rollback when coupon maxUses is reached', async () => {
       mockTx.payment.updateMany.mockResolvedValue({ count: 1 });
       mockTx.order.updateMany.mockResolvedValue({ count: 1 });
       mockTx.coupon.findUnique.mockResolvedValue({ usedCount: 5, maxUses: 5 }); // Fully used
+      mockTx.coupon.updateMany.mockResolvedValue({ count: 0 });
       mockTx.enrollment.upsert.mockResolvedValue({});
 
-      await repo.completePaymentTransaction({ ...baseParams, couponId: 'coupon-1' });
+      await expect(
+        repo.completePaymentTransaction({ ...baseParams, couponId: 'coupon-1' }),
+      ).rejects.toThrow('Coupon usage limit reached');
 
       expect(mockTx.coupon.findUnique).toHaveBeenCalled();
-      expect(mockTx.coupon.update).not.toHaveBeenCalled(); // Should NOT increment
+      expect(mockTx.enrollment.upsert).not.toHaveBeenCalled();
     });
 
     it('should increment coupon when under maxUses', async () => {
       mockTx.payment.updateMany.mockResolvedValue({ count: 1 });
       mockTx.order.updateMany.mockResolvedValue({ count: 1 });
       mockTx.coupon.findUnique.mockResolvedValue({ usedCount: 2, maxUses: 5 });
-      mockTx.coupon.update.mockResolvedValue({});
+      mockTx.coupon.updateMany.mockResolvedValue({ count: 1 });
       mockTx.enrollment.upsert.mockResolvedValue({});
 
       await repo.completePaymentTransaction({ ...baseParams, couponId: 'coupon-1' });
 
-      expect(mockTx.coupon.update).toHaveBeenCalledWith({
-        where: { id: 'coupon-1' },
+      expect(mockTx.coupon.updateMany).toHaveBeenCalledWith({
+        where: { id: 'coupon-1', usedCount: { lt: 5 } },
         data: { usedCount: { increment: 1 } },
+      });
+    });
+
+    it('should fail payment idempotently with conditional updates', async () => {
+      mockTx.payment.updateMany.mockResolvedValue({ count: 1 });
+      mockTx.order.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await repo.failPaymentTransaction({
+        paymentId: 'payment-1',
+        orderId: 'order-1',
+      });
+
+      expect(result).toEqual({ alreadyProcessed: false });
+      expect(mockTx.payment.updateMany).toHaveBeenCalledWith({
+        where: { id: 'payment-1', status: 'pending' },
+        data: { status: 'failed' },
+      });
+      expect(mockTx.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 'order-1', status: 'pending' },
+        data: { status: 'failed' },
       });
     });
   });

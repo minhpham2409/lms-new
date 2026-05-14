@@ -2,7 +2,7 @@ import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common
 import { StorageService, PutObjectInput } from '../storage/storage.service';
 import { randomUUID } from 'crypto';
 import { join, extname, basename } from 'path';
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, rmdirSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, rmdirSync, createReadStream } from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { getContentType } from '../storage/storage.constants';
@@ -42,11 +42,14 @@ export class HlsService {
     const hlsDir = join(this.tempDir, videoId);
 
     try {
+      if (!existsSync(filePath)) {
+        throw new Error(`Input file not found: ${filePath}`);
+      }
+
       // 1. Upload original to S3
-      const originalBuffer = readFileSync(filePath);
       await this.storageService.putObject({
         key: originalKey,
-        body: originalBuffer,
+        body: createReadStream(filePath),
         contentType: getContentType(originalName),
       });
       this.logger.log(`Uploaded original video: ${originalKey}`);

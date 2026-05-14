@@ -20,6 +20,14 @@ describe('MediaController', () => {
             verifyToken: jest.fn(),
           },
         },
+        {
+          provide: require('../prisma/prisma.service').PrismaService,
+          useValue: {
+            lesson: { findFirst: jest.fn() },
+            material: { findFirst: jest.fn() },
+            enrollment: { findUnique: jest.fn() },
+          },
+        },
       ],
     }).compile();
 

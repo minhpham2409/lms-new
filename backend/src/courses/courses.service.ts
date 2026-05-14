@@ -6,18 +6,19 @@ import {
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { CourseRepository } from '../database/repositories';
+import { CourseRepository, EnrollmentRepository } from '../database/repositories';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
 const CACHE_KEY_ALL_COURSES = 'courses:public:all';
-const CACHE_KEY_COURSE_PREFIX = 'courses:detail:';
+const CACHE_KEY_PUBLIC_COURSE_PREFIX = 'courses:public:detail:';
 const CACHE_TTL = 60_000; // 60 seconds in ms
 
 @Injectable()
 export class CoursesService {
   constructor(
     private readonly courseRepository: CourseRepository,
+    private readonly enrollmentRepository: EnrollmentRepository,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
@@ -42,15 +43,19 @@ export class CoursesService {
     id: string,
     viewer?: { id: string; role: string } | null,
   ) {
-    const cacheKey = `${CACHE_KEY_COURSE_PREFIX}${id}`;
-    const cached = await this.cache.get(cacheKey) as any;
-    if (cached && cached.status === 'published') return cached;
-
     const course = await this.courseRepository.findByIdWithSections(id);
     if (!course) throw new NotFoundException('Course not found');
     if (course.status === 'published') {
-      await this.cache.set(cacheKey, course, CACHE_TTL);
-      return course;
+      const hasFullAccess = await this.hasFullCourseAccess(course, viewer);
+      if (hasFullAccess) return course;
+
+      const cacheKey = `${CACHE_KEY_PUBLIC_COURSE_PREFIX}${id}`;
+      const cached = await this.cache.get(cacheKey);
+      if (cached) return cached;
+
+      const publicCourse = this.toPublicCourseDetail(course);
+      await this.cache.set(cacheKey, publicCourse, CACHE_TTL);
+      return publicCourse;
     }
     if (
       viewer &&
@@ -171,7 +176,37 @@ export class CoursesService {
   private async invalidateCourseCaches(courseId?: string): Promise<void> {
     await this.cache.del(CACHE_KEY_ALL_COURSES);
     if (courseId) {
-      await this.cache.del(`${CACHE_KEY_COURSE_PREFIX}${courseId}`);
+      await this.cache.del(`${CACHE_KEY_PUBLIC_COURSE_PREFIX}${courseId}`);
     }
+  }
+
+  private async hasFullCourseAccess(
+    course: { id: string; authorId: string },
+    viewer?: { id: string; role: string } | null,
+  ): Promise<boolean> {
+    if (!viewer) return false;
+    if (viewer.role === 'admin') return true;
+    if (viewer.role === 'teacher' && course.authorId === viewer.id) return true;
+
+    const enrollment = await this.enrollmentRepository.findByUserAndCourse(viewer.id, course.id);
+    return enrollment?.status === 'active';
+  }
+
+  private toPublicCourseDetail(course: any) {
+    return {
+      ...course,
+      sections: course.sections?.map((section: any) => ({
+        ...section,
+        lessons: section.lessons?.map((lesson: any) => ({
+          id: lesson.id,
+          title: lesson.title,
+          order: lesson.order,
+          duration: lesson.duration,
+          sectionId: lesson.sectionId,
+          createdAt: lesson.createdAt,
+          updatedAt: lesson.updatedAt,
+        })),
+      })),
+    };
   }
 }

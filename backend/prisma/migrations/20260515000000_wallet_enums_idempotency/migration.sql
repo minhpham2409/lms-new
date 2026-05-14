@@ -19,7 +19,11 @@ ALTER TABLE "PayoutRequest" ALTER COLUMN "amount" TYPE DECIMAL(12,2);
 -- 3. Add idempotencyKey column
 ALTER TABLE "WalletTransaction" ADD COLUMN "idempotencyKey" TEXT;
 
--- 4. Convert WalletTransaction.type from String to enum
+-- 4. Drop text defaults before enum casts. PostgreSQL cannot cast an
+--    existing text default to an enum default automatically.
+ALTER TABLE "PayoutRequest" ALTER COLUMN "status" DROP DEFAULT;
+
+-- 5. Convert WalletTransaction.type from String to enum
 --    Map existing string values:
 --    "EARNING"     -> EARNING
 --    "WITHDRAWAL"  -> WITHDRAWAL_REQUEST (best-effort mapping; see note below)
@@ -43,7 +47,7 @@ ALTER TABLE "WalletTransaction"
     END
   );
 
--- 5. Convert PayoutRequest.status from String to enum
+-- 6. Convert PayoutRequest.status from String to enum
 ALTER TABLE "PayoutRequest"
   ALTER COLUMN "status" TYPE "PayoutStatus"
   USING (
@@ -56,13 +60,13 @@ ALTER TABLE "PayoutRequest"
     END
   );
 
--- 6. Set default for PayoutRequest.status
+-- 7. Set default for PayoutRequest.status
 ALTER TABLE "PayoutRequest" ALTER COLUMN "status" SET DEFAULT 'PENDING'::"PayoutStatus";
 
--- 7. Add unique constraint on idempotencyKey (NULL values are allowed)
+-- 8. Add unique constraint on idempotencyKey (NULL values are allowed)
 CREATE UNIQUE INDEX "WalletTransaction_idempotencyKey_key" ON "WalletTransaction"("idempotencyKey");
 
--- 8. Add performance indexes
+-- 9. Add performance indexes
 CREATE INDEX "WalletTransaction_referenceId_idx" ON "WalletTransaction"("referenceId");
 CREATE INDEX "WalletTransaction_type_idx" ON "WalletTransaction"("type");
 CREATE INDEX "PayoutRequest_status_idx" ON "PayoutRequest"("status");

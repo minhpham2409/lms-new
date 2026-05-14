@@ -13,7 +13,7 @@ import { StorageService } from '../storage/storage.service';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { getContentType } from '../storage/storage.constants';
-import { readFileSync } from 'fs';
+import { createReadStream, unlinkSync, existsSync } from 'fs';
 import { randomUUID } from 'crypto';
 
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
@@ -24,6 +24,15 @@ const ALLOWED_IMAGE_TYPES = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_FILE_TYPES = ['.pdf', '.doc', '.docx', '.txt', '.ppt', '.pptx', '.xls', '.xlsx'];
+
+function cleanupUploadedFile(path?: string) {
+  if (!path) return;
+  try {
+    if (existsSync(path)) unlinkSync(path);
+  } catch {
+    // Best-effort cleanup only.
+  }
+}
 
 @ApiTags('Upload')
 @Controller('upload')
@@ -108,22 +117,25 @@ export class UploadController {
     const fileId = randomUUID();
     const ext = extname(file.originalname).toLowerCase();
     const key = `videos/original/${fileId}${ext}`;
-    const buffer = readFileSync(file.path);
-    await this.storageService.putObject({
-      key,
-      body: buffer,
-      contentType: getContentType(file.originalname),
-    });
-    
-    return {
-      url: this.storageService.getPublicUrl(key),
-      storageKey: key,
-      filename: file.filename,
-      originalName: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype,
-      format: 'direct',
-    };
+    try {
+      await this.storageService.putObject({
+        key,
+        body: createReadStream(file.path),
+        contentType: getContentType(file.originalname),
+      });
+
+      return {
+        url: this.storageService.getPublicUrl(key),
+        storageKey: key,
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+        format: 'direct',
+      };
+    } finally {
+      cleanupUploadedFile(file.path);
+    }
   }
 
   @Post('image')
@@ -164,16 +176,17 @@ export class UploadController {
     this.uploadService.validateFile(file, 'images');
 
     // Upload to S3/MinIO
+    let uploadedToObjectStorage = false;
     try {
       const fileId = randomUUID();
       const ext = extname(file.originalname).toLowerCase();
       const key = `images/${fileId}${ext}`;
-      const buffer = readFileSync(file.path);
       await this.storageService.putObject({
         key,
-        body: buffer,
+        body: createReadStream(file.path),
         contentType: getContentType(file.originalname),
       });
+      uploadedToObjectStorage = true;
       return {
         url: this.storageService.getPublicUrl(key),
         storageKey: key,
@@ -191,6 +204,8 @@ export class UploadController {
         size: file.size,
         mimetype: file.mimetype,
       };
+    } finally {
+      if (uploadedToObjectStorage) cleanupUploadedFile(file.path);
     }
   }
 
@@ -232,16 +247,17 @@ export class UploadController {
     this.uploadService.validateFile(file, 'files');
 
     // Upload to S3/MinIO
+    let uploadedToObjectStorage = false;
     try {
       const fileId = randomUUID();
       const ext = extname(file.originalname).toLowerCase();
       const key = `materials/${fileId}${ext}`;
-      const buffer = readFileSync(file.path);
       await this.storageService.putObject({
         key,
-        body: buffer,
+        body: createReadStream(file.path),
         contentType: getContentType(file.originalname),
       });
+      uploadedToObjectStorage = true;
       return {
         url: this.storageService.getPublicUrl(key),
         storageKey: key,
@@ -259,6 +275,8 @@ export class UploadController {
         size: file.size,
         mimetype: file.mimetype,
       };
+    } finally {
+      if (uploadedToObjectStorage) cleanupUploadedFile(file.path);
     }
   }
 }

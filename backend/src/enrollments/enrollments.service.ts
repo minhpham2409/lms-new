@@ -133,7 +133,10 @@ export class EnrollmentsService {
 
   async getEnrollmentStatus(userId: string, courseId: string) {
     const enrollment = await this.enrollmentRepository.findByUserAndCourse(userId, courseId);
-    return { isEnrolled: !!enrollment, enrollment: enrollment || null };
+    return {
+      isEnrolled: enrollment?.status === 'active',
+      enrollment: enrollment || null,
+    };
   }
 
   async getUserEnrollments(userId: string) {

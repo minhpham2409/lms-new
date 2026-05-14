@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { CoursesService } from './courses.service';
-import { CourseRepository } from '../database/repositories';
+import { CourseRepository, EnrollmentRepository } from '../database/repositories';
 
 describe('CoursesService', () => {
   let service: CoursesService;
@@ -29,6 +29,12 @@ describe('CoursesService', () => {
             delete: jest.fn(),
             findByAuthorId: jest.fn(),
             search: jest.fn(),
+          },
+        },
+        {
+          provide: EnrollmentRepository,
+          useValue: {
+            findByUserAndCourse: jest.fn(),
           },
         },
       ],

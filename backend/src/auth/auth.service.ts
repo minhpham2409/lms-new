@@ -119,9 +119,20 @@ export class AuthService {
    */
   async refreshToken(refreshToken: string) {
     // 1. Validate the refresh token exists in DB
-    const storedToken = await this.tokenManagerService.getRefreshToken(refreshToken);
-    if (!storedToken) {
-      throw new UnauthorizedException('Invalid refresh token');
+    try {
+      await this.tokenManagerService.getRefreshToken(refreshToken);
+    } catch (error) {
+      // If a cryptographically valid refresh token is no longer in storage,
+      // treat it as possible reuse after rotation and revoke the user's sessions.
+      try {
+        const decoded = this.jwtTokenService.verifyToken(refreshToken);
+        if (decoded?.sub) {
+          await this.tokenManagerService.revokeAllUserTokens(decoded.sub);
+        }
+      } catch {
+        // Invalid/expired JWT: nothing reliable to revoke.
+      }
+      throw error;
     }
 
     // 2. Verify JWT integrity

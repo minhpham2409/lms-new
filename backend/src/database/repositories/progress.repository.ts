@@ -13,6 +13,12 @@ export class ProgressRepository {
     });
   }
 
+  findActiveEnrollment(userId: string, courseId: string) {
+    return this.prisma.enrollment.findFirst({
+      where: { userId, courseId, status: 'active' },
+    });
+  }
+
   findEnrollmentsWithCourse(userId: string) {
     return this.prisma.enrollment.findMany({
       where: { userId },
@@ -87,6 +93,38 @@ export class ProgressRepository {
         watchTime: data.watchTime || 0,
         completed: data.completed || false,
         watchedPercentage: data.watchedPercentage,
+      },
+    });
+  }
+
+  async upsertVideoProgressMonotonic(data: {
+    userId: string;
+    lessonId: string;
+    watchTime: number;
+    completed: boolean;
+    watchedPercentage: number;
+  }) {
+    const existing = await this.findVideoProgress(data.userId, data.lessonId);
+    const nextWatchTime = Math.max(existing?.watchTime ?? 0, data.watchTime);
+    const nextPercentage = Math.max(
+      Number(existing?.watchedPercentage ?? 0),
+      data.watchedPercentage,
+    );
+    const nextCompleted = Boolean(existing?.completed) || data.completed;
+
+    return this.prisma.videoProgress.upsert({
+      where: { userId_lessonId: { userId: data.userId, lessonId: data.lessonId } },
+      update: {
+        watchTime: nextWatchTime,
+        watchedPercentage: nextPercentage,
+        completed: nextCompleted,
+      },
+      create: {
+        userId: data.userId,
+        lessonId: data.lessonId,
+        watchTime: nextWatchTime,
+        watchedPercentage: nextPercentage,
+        completed: nextCompleted,
       },
     });
   }

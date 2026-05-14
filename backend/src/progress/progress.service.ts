@@ -119,8 +119,8 @@ export class ProgressService {
     const courseId = lesson.section?.courseId;
     if (!courseId) throw new BadRequestException('Lesson is not part of a course');
 
-    const enrollment = await this.progressRepo.findEnrollment(userId, courseId);
-    if (!enrollment) throw new NotFoundException('Enrollment not found for this course');
+    const enrollment = await this.progressRepo.findActiveEnrollment(userId, courseId);
+    if (!enrollment) throw new NotFoundException('Active enrollment not found for this course');
 
     // ── Server-side completion decision ──────────────────────────────────
     // Clamp percentage to [0, 100] (DTO already validates, but be safe)
@@ -130,7 +130,7 @@ export class ProgressService {
     // Server decides: completed only if watched >= COMPLETION_THRESHOLD%
     const serverCompleted = pct >= COMPLETION_THRESHOLD;
 
-    const result = await this.progressRepo.upsertVideoProgress({
+    const result = await this.progressRepo.upsertVideoProgressMonotonic({
       userId,
       lessonId: dto.lessonId,
       watchTime,

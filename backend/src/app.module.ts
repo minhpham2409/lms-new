@@ -123,8 +123,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     ]),
 
     ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'uploads'),
-      serveRoot: '/uploads',
+      rootPath: join(process.cwd(), 'uploads', 'images'),
+      serveRoot: '/uploads/images',
       serveStaticOptions: { index: false },
     }),
     StorageModule,

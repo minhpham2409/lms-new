@@ -19,14 +19,19 @@ export class CommentsService {
   private async checkAccess(lessonId: string, userId: string, userRole: string) {
     const lesson = await this.getLessonWithCourse(lessonId);
 
-    // Teachers and admins can comment without being enrolled
-    if (userRole === 'teacher' || userRole === 'admin') {
+    if (userRole === 'admin') {
+      return lesson;
+    }
+
+    if (userRole === 'teacher' && lesson.section.course.authorId === userId) {
       return lesson;
     }
 
     // Students must be enrolled
     const enrollment = await this.enrollmentRepository.findByUserAndCourse(userId, lesson.section.courseId);
-    if (!enrollment) throw new ForbiddenException('You must be enrolled to comment');
+    if (!enrollment || enrollment.status !== 'active') {
+      throw new ForbiddenException('You must be actively enrolled to comment');
+    }
     return lesson;
   }
 

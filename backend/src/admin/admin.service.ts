@@ -5,6 +5,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { OnApplicationBootstrap } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import {
   UserRepository,
   CourseRepository,
@@ -30,6 +33,7 @@ export class AdminService implements OnApplicationBootstrap {
     private readonly sectionRepository: SectionRepository,
     private readonly adminRepository: AdminRepository,
     private readonly passwordService: PasswordService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   /** Run after DI is fully set up — safe for async logic */
@@ -136,6 +140,13 @@ export class AdminService implements OnApplicationBootstrap {
     if (updateData.username !== undefined) safeData.username = updateData.username;
     if (updateData.role !== undefined) safeData.role = updateData.role;
 
+    if (user.role === 'admin' && safeData.role && safeData.role !== 'admin') {
+      const activeAdminCount = await this.userRepository.count({ role: 'admin', isActive: true });
+      if (activeAdminCount <= 1) {
+        throw new ForbiddenException('Cannot remove the last active admin role');
+      }
+    }
+
     return this.userRepository.update(id, safeData);
   }
 
@@ -161,6 +172,12 @@ export class AdminService implements OnApplicationBootstrap {
   async toggleUserStatus(id: string, isActive: boolean) {
     const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('User not found');
+    if (user.role === 'admin' && user.isActive && !isActive) {
+      const activeAdminCount = await this.userRepository.count({ role: 'admin', isActive: true });
+      if (activeAdminCount <= 1) {
+        throw new ForbiddenException('Cannot deactivate the last active admin account');
+      }
+    }
     return this.userRepository.update(id, { isActive });
   }
 
@@ -232,13 +249,16 @@ export class AdminService implements OnApplicationBootstrap {
       if (!author) throw new NotFoundException('Author not found');
     }
 
-    return this.courseRepository.update(id, updateData);
+    const result = await this.courseRepository.update(id, updateData);
+    await this.invalidateCourseCaches(id);
+    return result;
   }
 
   async deleteCourse(id: string): Promise<void> {
     const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
     await this.courseRepository.delete(id);
+    await this.invalidateCourseCaches(id);
   }
 
   async publishCourse(id: string) {
@@ -249,7 +269,9 @@ export class AdminService implements OnApplicationBootstrap {
         'Only courses pending review can be published',
       );
     }
-    return this.courseRepository.update(id, { status: 'published' });
+    const result = await this.courseRepository.update(id, { status: 'published' });
+    await this.invalidateCourseCaches(id);
+    return result;
   }
 
   async rejectCourse(id: string) {
@@ -260,7 +282,16 @@ export class AdminService implements OnApplicationBootstrap {
         'Only courses pending review can be rejected',
       );
     }
-    return this.courseRepository.update(id, { status: 'draft' });
+    const result = await this.courseRepository.update(id, { status: 'draft' });
+    await this.invalidateCourseCaches(id);
+    return result;
+  }
+
+  private async invalidateCourseCaches(courseId?: string) {
+    await this.cache.del('courses:public:all');
+    if (courseId) {
+      await this.cache.del(`courses:public:detail:${courseId}`);
+    }
   }
 
   // ─── Order Management (Paginated) ─────────────────────────────────────────

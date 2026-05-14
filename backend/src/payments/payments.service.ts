@@ -13,11 +13,14 @@ import {
   PaymentCompletedPayload,
   PaymentFailedPayload,
 } from '../shared/events';
-import { randomUUID, createHmac } from 'crypto';
+import { randomUUID, createHmac, timingSafeEqual, createHash } from 'crypto';
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
+  private readonly successStatuses = new Set(['success', 'paid', 'completed']);
+  private readonly finalFailureStatuses = new Set(['failed', 'failure', 'cancelled', 'canceled', 'expired']);
+  private readonly nonFinalStatuses = new Set(['pending', 'processing']);
 
   constructor(
     private readonly paymentRepository: PaymentRepository,
@@ -52,9 +55,24 @@ export class PaymentsService {
       .update(payload)
       .digest('hex');
 
-    if (dto.signature !== expected) {
+    const expectedBuffer = Buffer.from(expected, 'hex');
+    const receivedBuffer = Buffer.from(dto.signature, 'hex');
+    if (
+      expectedBuffer.length !== receivedBuffer.length ||
+      !timingSafeEqual(expectedBuffer, receivedBuffer)
+    ) {
       throw new UnauthorizedException('Invalid webhook signature');
     }
+  }
+
+  private buildWebhookEventKey(dto: WebhookDto): string {
+    const canonicalPayload = JSON.stringify({
+      txnRef: dto.txnRef,
+      amount: dto.amount,
+      status: dto.status,
+      signature: dto.signature ?? '',
+    });
+    return createHash('sha256').update(canonicalPayload).digest('hex');
   }
 
   async createQr(dto: CreateQrDto, userId: string) {
@@ -114,93 +132,156 @@ export class PaymentsService {
     // 1. Validate HMAC signature
     this.verifyWebhookSignature(dto);
 
-    // 2. Find payment
-    const payment = await this.paymentRepository.findByTxnRef(dto.txnRef);
-    if (!payment) throw new NotFoundException('Transaction not found');
+    const eventKey = this.buildWebhookEventKey(dto);
+    const webhookEvent = await this.paymentRepository.createWebhookEvent({
+      eventKey,
+      txnRef: dto.txnRef,
+      signature: dto.signature,
+      payload: dto as any,
+    });
 
-    // 3. Idempotency: already processed
-    if (payment.status === 'completed') {
-      return { message: 'Already processed' };
+    if (webhookEvent.duplicate) {
+      this.logger.warn(`[Webhook replay] Duplicate event ignored for txnRef ${dto.txnRef}`);
+      return { message: 'Duplicate webhook ignored' };
     }
 
-    // 4. Payment must be pending
-    if (payment.status !== 'pending') {
-      throw new BadRequestException(`Payment is in '${payment.status}' state, cannot process`);
-    }
+    const webhookEventId = webhookEvent.event!.id;
 
-    // 5. Order must exist and be pending
-    const order = await this.orderRepository.findByIdWithDetails(payment.orderId);
-    if (!order) throw new NotFoundException('Order not found');
-    if (order.status !== 'pending') {
-      throw new BadRequestException(`Order is in '${order.status}' state, cannot process`);
-    }
+    try {
+      // 2. Find payment
+      const payment = await this.paymentRepository.findByTxnRef(dto.txnRef);
+      if (!payment) throw new NotFoundException('Transaction not found');
 
-    // 6. Amount verification — dto.amount must match payment.amount
-    const paymentAmount = Number(payment.amount);
-    const dtoAmount = Number(dto.amount);
-    if (Math.abs(paymentAmount - dtoAmount) > 0.01) {
-      this.logger.error(
-        `[AMOUNT MISMATCH] Payment ${payment.id}: expected ${paymentAmount}, got ${dtoAmount}`,
-      );
-      await this.paymentRepository.failPaymentTransaction({
-        paymentId: payment.id,
-        orderId: payment.orderId,
-      });
-      return { message: 'Amount mismatch — payment rejected' };
-    }
+      // 3. Idempotency: already processed
+      if (payment.status === 'completed') {
+        await this.paymentRepository.updateWebhookEventStatus(
+          webhookEventId,
+          'duplicate',
+        );
+        return { message: 'Already processed' };
+      }
 
-    // ── Payment Failed ─────────────────────────────────────────────────────
-    if (dto.status !== 'success') {
-      await this.paymentRepository.failPaymentTransaction({
-        paymentId: payment.id,
-        orderId: payment.orderId,
-      });
+      // 4. Payment must be pending
+      if (payment.status !== 'pending') {
+        throw new BadRequestException(`Payment is in '${payment.status}' state, cannot process`);
+      }
 
-      this.eventEmitter.emit(AppEvents.PAYMENT_FAILED, {
+      // 5. Order must exist and be pending
+      const order = await this.orderRepository.findByIdWithDetails(payment.orderId);
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status !== 'pending') {
+        throw new BadRequestException(`Order is in '${order.status}' state, cannot process`);
+      }
+
+      const normalizedStatus = dto.status.toLowerCase();
+
+      if (this.nonFinalStatuses.has(normalizedStatus)) {
+        await this.paymentRepository.updateWebhookEventStatus(
+          webhookEventId,
+          'processed',
+        );
+        return { message: 'Payment status acknowledged' };
+      }
+
+      if (!this.successStatuses.has(normalizedStatus) && !this.finalFailureStatuses.has(normalizedStatus)) {
+        this.logger.warn(`[Webhook unknown status] ${dto.status} for payment ${payment.id}`);
+        await this.paymentRepository.updateWebhookEventStatus(
+          webhookEventId,
+          'rejected',
+          `Unknown status: ${dto.status}`,
+        );
+        return { message: 'Payment status rejected for review' };
+      }
+
+      // 6. Amount verification — dto.amount must match payment.amount.
+      // Do not fail the order automatically; reject the event for manual review.
+      const paymentAmount = Number(payment.amount);
+      const dtoAmount = Number(dto.amount);
+      if (Math.abs(paymentAmount - dtoAmount) > 0.01) {
+        this.logger.error(
+          `[AMOUNT MISMATCH] Payment ${payment.id}: expected ${paymentAmount}, got ${dtoAmount}`,
+        );
+        await this.paymentRepository.updateWebhookEventStatus(
+          webhookEventId,
+          'rejected',
+          `Amount mismatch: expected ${paymentAmount}, got ${dtoAmount}`,
+        );
+        return { message: 'Amount mismatch — payment rejected for review' };
+      }
+
+      // ── Payment Failed ─────────────────────────────────────────────────────
+      if (this.finalFailureStatuses.has(normalizedStatus)) {
+        await this.paymentRepository.failPaymentTransaction({
+          paymentId: payment.id,
+          orderId: payment.orderId,
+        });
+
+        this.eventEmitter.emit(AppEvents.PAYMENT_FAILED, {
+          paymentId: payment.id,
+          orderId: payment.orderId,
+          userId: order.userId,
+          reason: `Bank returned final status: ${dto.status}`,
+        } as PaymentFailedPayload);
+
+        await this.paymentRepository.updateWebhookEventStatus(
+          webhookEventId,
+          'processed',
+        );
+        return { message: 'Payment failed' };
+      }
+
+      // ── Payment Success: Atomic Transaction ────────────────────────────────
+      const courseItems = order.items.map((item) => ({ courseId: item.courseId }));
+
+      // All-or-nothing: Payment ✓ → Order ✓ → Coupon increment ✓ → Enrollments ✓
+      const result = await this.paymentRepository.completePaymentTransaction({
         paymentId: payment.id,
         orderId: payment.orderId,
         userId: order.userId,
-        reason: `Bank returned status: ${dto.status}`,
-      } as PaymentFailedPayload);
+        courseItems,
+        couponId: order.couponId ?? undefined,
+      });
 
-      return { message: 'Payment failed' };
+      // Duplicate webhook that arrived after we already processed — safe
+      if (result?.alreadyProcessed) {
+        await this.paymentRepository.updateWebhookEventStatus(
+          webhookEventId,
+          'duplicate',
+        );
+        return { message: 'Already processed' };
+      }
+
+      this.logger.log(
+        `[Transaction OK] Payment ${payment.id} → Order ${order.id} → ${courseItems.length} enrollments`,
+      );
+
+      // ── Emit Domain Event (async side-effects) ─────────────────────────────
+      const titles = order.items
+        .map((item) => item.course?.title)
+        .filter((t): t is string => !!t);
+
+      this.eventEmitter.emit(AppEvents.PAYMENT_COMPLETED, {
+        paymentId: payment.id,
+        orderId: order.id,
+        userId: order.userId,
+        amount: Number(order.finalPrice),
+        courseIds: courseItems.map((c) => c.courseId),
+        courseTitles: titles,
+      } as PaymentCompletedPayload);
+
+      await this.paymentRepository.updateWebhookEventStatus(
+        webhookEventId,
+        'processed',
+      );
+
+      return { message: 'Payment confirmed, enrollments created' };
+    } catch (error) {
+      await this.paymentRepository.updateWebhookEventStatus(
+        webhookEventId,
+        'failed',
+        (error as Error).message,
+      );
+      throw error;
     }
-
-    // ── Payment Success: Atomic Transaction ────────────────────────────────
-    const courseItems = order.items.map((item) => ({ courseId: item.courseId }));
-
-    // All-or-nothing: Payment ✓ → Order ✓ → Coupon increment ✓ → Enrollments ✓
-    const result = await this.paymentRepository.completePaymentTransaction({
-      paymentId: payment.id,
-      orderId: payment.orderId,
-      userId: order.userId,
-      courseItems,
-      couponId: order.couponId ?? undefined,
-    });
-
-    // Duplicate webhook that arrived after we already processed — safe
-    if (result?.alreadyProcessed) {
-      return { message: 'Already processed' };
-    }
-
-    this.logger.log(
-      `[Transaction OK] Payment ${payment.id} → Order ${order.id} → ${courseItems.length} enrollments`,
-    );
-
-    // ── Emit Domain Event (async side-effects) ─────────────────────────────
-    const titles = order.items
-      .map((item) => item.course?.title)
-      .filter((t): t is string => !!t);
-
-    this.eventEmitter.emit(AppEvents.PAYMENT_COMPLETED, {
-      paymentId: payment.id,
-      orderId: order.id,
-      userId: order.userId,
-      amount: Number(order.finalPrice),
-      courseIds: courseItems.map((c) => c.courseId),
-      courseTitles: titles,
-    } as PaymentCompletedPayload);
-
-    return { message: 'Payment confirmed, enrollments created' };
   }
 }

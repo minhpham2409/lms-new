@@ -35,7 +35,7 @@ export class QuizzesService {
         throw new ForbiddenException('This course is not available');
       }
       const enr = await this.enrollmentRepository.findByUserAndCourse(user.id, course.id);
-      if (!enr) {
+      if (!enr || enr.status !== 'active') {
         throw new ForbiddenException('You must be enrolled in this course to access quizzes');
       }
       return;
@@ -73,6 +73,14 @@ export class QuizzesService {
     const assignment = await this.assignmentRepository.findByIdWithLesson(quiz.assignmentId);
     if (!assignment) throw new NotFoundException('Assignment not found');
     await this.assertLearnerOrStaffOnCourse(user, assignment.lesson.section.course);
+
+    if (user.role === 'student') {
+      return {
+        ...quiz,
+        questions: quiz.questions.map(({ answer: _answer, ...question }) => question),
+      };
+    }
+
     return quiz;
   }
 
