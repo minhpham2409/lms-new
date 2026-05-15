@@ -25,7 +25,7 @@ export class MediaController {
     if (!key) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
     await this.verifyVideoAccess(user, `videos/${key}`);
-    await this.pipeMedia(`videos/${key}`, res);
+    await this.pipeMedia(`videos/${key}`, req, res);
   }
 
   @Get('hls/*')
@@ -38,7 +38,7 @@ export class MediaController {
     if (!key) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
     await this.verifyVideoAccess(user, `hls/${key}`);
-    await this.pipeMedia(`hls/${key}`, res);
+    await this.pipeMedia(`hls/${key}`, req, res);
   }
 
   @Get('materials/*')
@@ -51,7 +51,7 @@ export class MediaController {
     if (!key) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
     await this.verifyMaterialAccess(user, `materials/${key}`);
-    await this.pipeMedia(`materials/${key}`, res);
+    await this.pipeMedia(`materials/${key}`, req, res);
   }
 
   @Get('images/*')
@@ -63,7 +63,7 @@ export class MediaController {
     // Images are public (avatars, thumbnails)
     const key = req.params[0]; 
     if (!key) return res.status(400).send('Invalid media path');
-    await this.pipeMedia(`images/${key}`, res);
+    await this.pipeMedia(`images/${key}`, req, res);
   }
 
   private verifyMediaAuth(req: Request) {
@@ -156,19 +156,71 @@ export class MediaController {
     }
   }
 
-  private async pipeMedia(fullKey: string, res: Response) {
-    try {
-      const stream = await this.storageService.getObjectStream(fullKey);
-      
-      if (fullKey.endsWith('.m3u8')) res.setHeader('Content-Type', 'application/x-mpegURL');
-      else if (fullKey.endsWith('.ts')) res.setHeader('Content-Type', 'video/MP2T');
-      else if (fullKey.endsWith('.mp4')) res.setHeader('Content-Type', 'video/mp4');
-      else if (fullKey.endsWith('.pdf')) res.setHeader('Content-Type', 'application/pdf');
-      else if (fullKey.endsWith('.jpg') || fullKey.endsWith('.jpeg')) res.setHeader('Content-Type', 'image/jpeg');
-      else if (fullKey.endsWith('.png')) res.setHeader('Content-Type', 'image/png');
-      else if (fullKey.endsWith('.webp')) res.setHeader('Content-Type', 'image/webp');
-      else if (fullKey.endsWith('.gif')) res.setHeader('Content-Type', 'image/gif');
+  private getContentType(fullKey: string): string | undefined {
+    if (fullKey.endsWith('.m3u8')) return 'application/x-mpegURL';
+    if (fullKey.endsWith('.ts')) return 'video/MP2T';
+    if (fullKey.endsWith('.mp4')) return 'video/mp4';
+    if (fullKey.endsWith('.pdf')) return 'application/pdf';
+    if (fullKey.endsWith('.jpg') || fullKey.endsWith('.jpeg')) return 'image/jpeg';
+    if (fullKey.endsWith('.png')) return 'image/png';
+    if (fullKey.endsWith('.webp')) return 'image/webp';
+    if (fullKey.endsWith('.gif')) return 'image/gif';
+    return undefined;
+  }
 
+  private parseRange(range: string, size: number) {
+    const match = range.match(/^bytes=(\d*)-(\d*)$/);
+    if (!match) return null;
+
+    let start = match[1] ? parseInt(match[1], 10) : 0;
+    let end = match[2] ? parseInt(match[2], 10) : size - 1;
+
+    if (!match[1] && match[2]) {
+      const suffixLength = parseInt(match[2], 10);
+      start = Math.max(size - suffixLength, 0);
+      end = size - 1;
+    }
+
+    if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= size) {
+      return null;
+    }
+
+    return { start, end: Math.min(end, size - 1) };
+  }
+
+  private async pipeMedia(fullKey: string, req: Request, res: Response) {
+    try {
+      const contentType = this.getContentType(fullKey);
+      if (contentType) res.setHeader('Content-Type', contentType);
+
+      const metadata = await this.storageService.getObjectMetadata(fullKey);
+      const size = metadata.ContentLength;
+      if (size) {
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Content-Length', size.toString());
+      }
+
+      const rangeHeader = req.headers.range;
+      if (rangeHeader && size) {
+        const range = this.parseRange(rangeHeader, size);
+        if (!range) {
+          res.setHeader('Content-Range', `bytes */${size}`);
+          return res.status(416).send('Requested range not satisfiable');
+        }
+
+        const contentLength = range.end - range.start + 1;
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${size}`);
+        res.setHeader('Content-Length', contentLength.toString());
+
+        const stream = await this.storageService.getObjectStream(
+          fullKey,
+          `bytes=${range.start}-${range.end}`,
+        );
+        return (stream as any).pipe(res);
+      }
+
+      const stream = await this.storageService.getObjectStream(fullKey);
       (stream as any).pipe(res);
     } catch (error: any) {
       if (error.name === 'NoSuchKey') {

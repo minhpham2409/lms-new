@@ -157,15 +157,9 @@ describe('WalletRepository', () => {
 
       expect(result.credited).toBe(0);
       expect(result.skippedDuplicate).toBe(1);
-      // On duplicate, balance should be reverted
-      expect(mockTx.wallet.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: 'teacher-1' },
-          data: expect.objectContaining({
-            balance: expect.objectContaining({ decrement: expect.any(Prisma.Decimal) }),
-          }),
-        }),
-      );
+      // Duplicate events reserve the idempotency key before balance mutation,
+      // so no compensating debit should be needed.
+      expect(mockTx.wallet.update).not.toHaveBeenCalled();
     });
 
     it('should throw and rollback on non-duplicate error', async () => {

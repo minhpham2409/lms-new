@@ -191,22 +191,19 @@ export class WalletRepository extends BaseRepository<Wallet> {
         const idempotencyKey = `revenue:${params.orderId}:${item.course.id}:${item.course.authorId}`;
 
         try {
-          // Upsert teacher wallet
+          // Ensure the wallet exists, then reserve the idempotency key before
+          // mutating balances. This avoids crediting duplicate webhook events.
           const wallet = await tx.wallet.upsert({
             where: { userId: item.course.authorId },
             create: {
               userId: item.course.authorId,
-              balance: teacherEarning,
-              totalEarned: teacherEarning,
+              balance: 0,
+              totalEarned: 0,
               pendingBalance: 0,
             },
-            update: {
-              balance: { increment: teacherEarning },
-              totalEarned: { increment: teacherEarning },
-            },
+            update: {},
           });
 
-          // Create transaction log with idempotencyKey
           await tx.walletTransaction.create({
             data: {
               walletId: wallet.id,
@@ -215,6 +212,14 @@ export class WalletRepository extends BaseRepository<Wallet> {
               referenceId: params.orderId,
               idempotencyKey,
               description: `Bán khóa "${item.course.title}" — đơn #${params.orderId.substring(0, 8)}`,
+            },
+          });
+
+          await tx.wallet.update({
+            where: { userId: item.course.authorId },
+            data: {
+              balance: { increment: teacherEarning },
+              totalEarned: { increment: teacherEarning },
             },
           });
 
@@ -227,18 +232,6 @@ export class WalletRepository extends BaseRepository<Wallet> {
             err.code === 'P2002'
           ) {
             skippedDuplicate++;
-
-            // IMPORTANT: We already incremented balance above via upsert.
-            // On duplicate, we need to revert the balance increment.
-            // Since the create failed, we need to decrement what we added.
-            await tx.wallet.update({
-              where: { userId: item.course.authorId },
-              data: {
-                balance: { decrement: teacherEarning },
-                totalEarned: { decrement: teacherEarning },
-              },
-            });
-
             continue;
           }
           // Any other error → rethrow to rollback the entire transaction

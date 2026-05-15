@@ -21,7 +21,7 @@ import {
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 const courseColors = ["#7c3aed", "#3b82f6", "#f59e0b", "#10b981", "#ec4899", "#0891b2"];
 
-type Tab = "overview" | "courses" | "students" | "analytics" | "reviews" | "settings";
+type Tab = "overview" | "courses" | "students" | "analytics" | "wallet" | "reviews" | "settings";
 
 export default function TeacherPage() {
   const router = useRouter();
@@ -37,9 +37,14 @@ export default function TeacherPage() {
   const [pendingStudents, setPendingStudents] = useState<any[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingSubmissionCount, setPendingSubmissionCount] = useState(0);
+  const [wallet, setWallet] = useState<any>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [bankSaving, setBankSaving] = useState(false);
+  const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState("");
 
   useEffect(() => {
-    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); }
+    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); fetchWallet(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -111,6 +116,63 @@ export default function TeacherPage() {
     } catch {}
   }
 
+  async function fetchWallet() {
+    setWalletLoading(true);
+    try {
+      const res = await fetch(`${API}/wallets/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setWallet(await res.json());
+    } catch {} finally { setWalletLoading(false); }
+  }
+
+  async function saveBankInfo() {
+    if (!bankName || !bankAccount || !bankOwner) {
+      toast.error("Vui lòng nhập đủ thông tin ngân hàng");
+      return;
+    }
+    setBankSaving(true);
+    try {
+      const res = await fetch(`${API}/wallets/bank-info`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bankName, bankAccount, bankOwner }),
+      });
+      if (res.ok) {
+        toast.success("Đã cập nhật tài khoản nhận tiền");
+      } else {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.message || "Không thể cập nhật tài khoản ngân hàng");
+      }
+    } catch { toast.error("Lỗi kết nối"); }
+    finally { setBankSaving(false); }
+  }
+
+  async function requestPayout() {
+    const amount = Number(payoutAmount);
+    if (!amount || amount <= 0) {
+      toast.error("Số tiền rút không hợp lệ");
+      return;
+    }
+    setPayoutLoading(true);
+    try {
+      const res = await fetch(`${API}/wallets/payouts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount }),
+      });
+      if (res.ok) {
+        setPayoutAmount("");
+        toast.success("Đã gửi yêu cầu rút tiền");
+        fetchWallet();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.message || "Không thể tạo yêu cầu rút tiền");
+      }
+    } catch { toast.error("Lỗi kết nối"); }
+    finally { setPayoutLoading(false); }
+  }
+
   async function approveStudent(enrollmentId: string) {
     try {
       const res = await fetch(`${API}/enrollments/${enrollmentId}/approve`, {
@@ -168,9 +230,12 @@ export default function TeacherPage() {
     { id: "courses", label: "Quản lý khóa học", icon: BookOpen },
     { id: "students", label: "Duyệt học sinh", icon: Users, badge: pendingStudents.length },
     { id: "analytics", label: "Phân tích chi tiết", icon: TrendingUp },
+    { id: "wallet", label: "Ví doanh thu", icon: CreditCard },
     { id: "reviews", label: "Hỏi đáp & Đánh giá", icon: MessageCircle },
     { id: "settings", label: "Cài đặt thanh toán", icon: Settings },
   ];
+
+  const money = (value: any) => `${Number(value || 0).toLocaleString("vi-VN")} ₫`;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -613,6 +678,123 @@ export default function TeacherPage() {
               </div>
             )}
 
+            {tab === "wallet" && (
+              <div className="space-y-6">
+                <div className="grid md:grid-cols-3 gap-4">
+                  {[
+                    { label: "Số dư có thể rút", value: money(wallet?.balance), color: "#10b981", icon: DollarSign },
+                    { label: "Đang chờ rút", value: money(wallet?.pendingBalance), color: "#f59e0b", icon: CreditCard },
+                    { label: "Tổng đã kiếm", value: money(wallet?.totalEarned), color: "#0891b2", icon: TrendingUp },
+                  ].map(({ label, value, color, icon: Icon }) => (
+                    <div key={label} className="glass-card rounded-2xl p-5 border border-white/5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
+                          <Icon className="w-6 h-6" style={{ color }} />
+                        </div>
+                        {walletLoading && <Loader2 className="w-4 h-4 animate-spin text-indigo-300" />}
+                      </div>
+                      <p className="text-2xl font-extrabold text-white">{value}</p>
+                      <p className="text-sm mt-1 text-indigo-200/60">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 glass-strong rounded-2xl border border-white/5 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 bg-indigo-950/20 flex items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                          <DollarSign className="w-5 h-5 text-emerald-400" /> Lịch sử ví
+                        </h3>
+                        <p className="text-sm text-indigo-200/60 mt-1">Doanh thu được cộng sau khi thanh toán được xác nhận.</p>
+                      </div>
+                      <button onClick={fetchWallet} className="btn-secondary text-xs" disabled={walletLoading}>
+                        {walletLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        Làm mới
+                      </button>
+                    </div>
+
+                    {!wallet?.transactions?.length ? (
+                      <div className="text-center py-16">
+                        <CreditCard className="w-14 h-14 mx-auto mb-4 opacity-30 text-indigo-300" />
+                        <h3 className="text-lg font-bold text-white mb-2">Chưa có giao dịch ví</h3>
+                        <p className="text-sm text-indigo-200/60">Khi có đơn hàng được xác nhận, phần doanh thu giáo viên sẽ xuất hiện ở đây.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                          <thead className="bg-white/5 text-xs uppercase font-bold text-indigo-200/70 border-b border-white/10">
+                            <tr>
+                              <th className="px-6 py-4">Loại</th>
+                              <th className="px-6 py-4">Mô tả</th>
+                              <th className="px-6 py-4">Ngày</th>
+                              <th className="px-6 py-4 text-right">Số tiền</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {wallet.transactions.map((tx: any) => {
+                              const positive = tx.type === "EARNING" || tx.type === "WITHDRAWAL_REJECTED";
+                              return (
+                                <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
+                                  <td className="px-6 py-4">
+                                    <span className={`badge text-[10px] ${positive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}>
+                                      {tx.type}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 text-indigo-100/80">{tx.description || tx.referenceId || "Giao dịch ví"}</td>
+                                  <td className="px-6 py-4 text-indigo-200/50">{tx.createdAt ? new Date(tx.createdAt).toLocaleString("vi-VN") : "-"}</td>
+                                  <td className={`px-6 py-4 text-right font-bold ${positive ? "text-emerald-400" : "text-amber-400"}`}>
+                                    {positive ? "+" : "-"}{money(tx.amount)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="glass-strong rounded-2xl p-6 border border-white/5">
+                      <h3 className="font-bold text-lg text-white flex items-center gap-2 mb-2">
+                        <CreditCard className="w-5 h-5 text-indigo-400" /> Yêu cầu rút tiền
+                      </h3>
+                      <p className="text-sm text-indigo-200/60 mb-5">Admin sẽ kiểm tra và chuyển khoản ngoài hệ thống.</p>
+                      <input
+                        type="number"
+                        min="0"
+                        value={payoutAmount}
+                        onChange={(e) => setPayoutAmount(e.target.value)}
+                        className="input-base bg-white/5 border-white/10 text-white !h-12 mb-3"
+                        placeholder="Số tiền muốn rút"
+                      />
+                      <button onClick={requestPayout} disabled={payoutLoading} className="btn-primary w-full justify-center py-3">
+                        {payoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Gửi yêu cầu rút
+                      </button>
+                    </div>
+
+                    <div className="glass-strong rounded-2xl p-6 border border-white/5">
+                      <h3 className="font-bold text-lg text-white flex items-center gap-2 mb-2">
+                        <Building2 className="w-5 h-5 text-cyan-400" /> Tài khoản nhận tiền
+                      </h3>
+                      <p className="text-sm text-indigo-200/60 mb-5">Thông tin này dùng cho payout từ Admin sang giáo viên.</p>
+                      <div className="space-y-3">
+                        <input value={bankName} onChange={(e) => setBankName(e.target.value)} className="input-base bg-white/5 border-white/10 text-white !h-12" placeholder="Ngân hàng, ví dụ VCB" />
+                        <input value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} className="input-base bg-white/5 border-white/10 text-white !h-12" placeholder="Số tài khoản" />
+                        <input value={bankOwner} onChange={(e) => setBankOwner(e.target.value)} className="input-base bg-white/5 border-white/10 text-white !h-12" placeholder="Tên chủ tài khoản" />
+                        <button onClick={saveBankInfo} disabled={bankSaving} className="btn-secondary w-full justify-center py-3">
+                          {bankSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                          Lưu tài khoản
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {tab === "reviews" && (
               <div className="glass-strong rounded-2xl p-12 text-center border border-white/5">
                 <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-30 text-indigo-300" />
@@ -684,8 +866,8 @@ export default function TeacherPage() {
                   )}
 
                   <div className="pt-4 flex justify-end">
-                    <button className="btn-primary py-3 px-8 text-base shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50">
-                      <CreditCard className="w-5 h-5" /> Cập nhật thông tin
+                    <button onClick={saveBankInfo} disabled={bankSaving} className="btn-primary py-3 px-8 text-base shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50">
+                      {bankSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />} Cập nhật thông tin
                     </button>
                   </div>
                 </div>

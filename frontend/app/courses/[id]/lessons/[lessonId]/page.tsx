@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { useAuth } from "@/components/auth/auth-state";
+import { getAccessToken } from "@/lib/api-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play, ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Clock,
@@ -421,6 +422,11 @@ export default function LessonPage() {
                     key={videoSrc}
                     ref={(el) => {
                       if (!el) return;
+                      if ((el as any).__hls) {
+                        try { (el as any).__hls.destroy(); } catch {}
+                        (el as any).__hls = null;
+                      }
+                      el.crossOrigin = "use-credentials";
                       // HLS.js setup for .m3u8 streams
                       if (isHls) {
                         // Check native HLS support first (Safari)
@@ -433,6 +439,13 @@ export default function LessonPage() {
                               const hls = new Hls({
                                 maxBufferLength: 30,
                                 maxMaxBufferLength: 60,
+                                xhrSetup: (xhr) => {
+                                  xhr.withCredentials = true;
+                                  const accessToken = getAccessToken();
+                                  if (accessToken) {
+                                    xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+                                  }
+                                },
                               });
                               hls.loadSource(videoSrc);
                               hls.attachMedia(el);

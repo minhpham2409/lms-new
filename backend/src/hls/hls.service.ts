@@ -65,10 +65,16 @@ export class HlsService {
 
       await execFileAsync('ffmpeg', [
         '-i', filePath,
-        '-codec', 'copy',           // Copy streams without re-encoding for speed
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-crf', '23',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-ac', '2',
         '-start_number', '0',
         '-hls_time', '10',          // 10-second segments
         '-hls_list_size', '0',      // Include all segments in playlist
+        '-hls_flags', 'independent_segments',
         '-hls_segment_filename', segmentPattern,
         '-f', 'hls',
         manifestPath,

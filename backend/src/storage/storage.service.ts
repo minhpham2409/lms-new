@@ -5,12 +5,12 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  GetObjectCommand,
   CreateBucketCommand,
   HeadBucketCommand,
   PutBucketPolicyCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getContentType } from './storage.constants';
 import { Readable } from 'stream';
 
@@ -134,11 +134,20 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
+   * Return object metadata without downloading the object.
+   */
+  async getObjectMetadata(key: string) {
+    return this.client.send(
+      new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+  }
+
+  /**
    * Return a streaming response for the object.
    */
-  async getObjectStream(key: string): Promise<any> {
+  async getObjectStream(key: string, range?: string): Promise<any> {
     const response = await this.client.send(
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: range }),
     );
     return response.Body;
   }
