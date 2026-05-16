@@ -66,7 +66,9 @@ services:
       - DATABASE_URL=postgresql://lms:lms_password@postgres:5432/lms_db?schema=public
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-dev-webhook-secret}
+      - SEPAY_API_KEY=${SEPAY_API_KEY:-dev-sepay-api-key}
       - FRONTEND_URL=http://localhost:3000
+      - API_URL=http://localhost:4000/api/v1
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - PORT=4000

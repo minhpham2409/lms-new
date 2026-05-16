@@ -15,6 +15,12 @@ export const QueueNames = {
 
   /** Notification delivery queue (batched, non-critical) */
   NOTIFICATION: 'notification-queue',
+
+  /** Video processing queue (HLS conversion, thumbnails, etc.) */
+  VIDEO: 'video-queue',
+
+  /** Wallet/revenue queue (teacher revenue split, payout side effects) */
+  WALLET: 'wallet-queue',
 } as const;
 
 export type QueueName = (typeof QueueNames)[keyof typeof QueueNames];
@@ -34,6 +40,12 @@ export const JobNames = {
 
   // Notification queue jobs
   SEND_BULK_NOTIFICATION: 'send-bulk-notification',
+
+  // Video queue jobs
+  CONVERT_VIDEO_HLS: 'convert-video-hls',
+
+  // Wallet queue jobs
+  SPLIT_ORDER_REVENUE: 'split-order-revenue',
 } as const;
 
 export type JobName = (typeof JobNames)[keyof typeof JobNames];

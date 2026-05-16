@@ -3,15 +3,19 @@ import {
   Logger,
   BadRequestException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
 import { OnEvent } from '@nestjs/event-emitter';
+import { Queue } from 'bull';
 import { Prisma, PayoutStatus } from '@prisma/client';
 import {
   WalletRepository,
   SystemConfigRepository,
 } from '../database/repositories';
 import { AppEvents, PaymentCompletedPayload } from '../shared/events';
+import { JobNames, QueueNames } from '../shared/queues';
 
 const DEFAULT_PLATFORM_FEE = 20; // 20%
+const REVENUE_SPLIT_ATTEMPTS = 5;
 
 @Injectable()
 export class WalletsService {
@@ -20,31 +24,25 @@ export class WalletsService {
   constructor(
     private readonly walletRepository: WalletRepository,
     private readonly systemConfigRepository: SystemConfigRepository,
+    @InjectQueue(QueueNames.WALLET) private readonly walletQueue: Queue,
   ) {}
 
   // ─── Event Listener: Auto-split revenue on payment ──────────────────
 
   @OnEvent(AppEvents.PAYMENT_COMPLETED)
   async onPaymentCompleted(payload: PaymentCompletedPayload) {
-    this.logger.log(`[Revenue Split] Processing order ${payload.orderId}`);
-
-    try {
-      const feePercentage = await this.getPlatformFeePercentage();
-
-      const result = await this.walletRepository.splitOrderRevenueAtomic({
-        orderId: payload.orderId,
-        feePercent: feePercentage,
-      });
-
-      this.logger.log(
-        `[Revenue Split] Order ${result.orderId}: credited=${result.credited}, skipped=${result.skippedDuplicate}, total=${result.totalTeacherEarning}`,
-      );
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        `[Revenue Split] Failed for order ${payload.orderId}: ${message}`,
-      );
-    }
+    await this.walletQueue.add(
+      JobNames.SPLIT_ORDER_REVENUE,
+      { orderId: payload.orderId },
+      {
+        jobId: `revenue:${payload.orderId}`,
+        attempts: REVENUE_SPLIT_ATTEMPTS,
+        backoff: { type: 'exponential', delay: 30_000 },
+        removeOnComplete: false,
+        removeOnFail: false,
+      },
+    );
+    this.logger.log(`[Revenue Split] Queued order ${payload.orderId}`);
   }
 
   // ─── Teacher APIs ───────────────────────────────────────────────────

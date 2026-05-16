@@ -46,6 +46,7 @@ model User {
   videoProgress    VideoProgress[]
   wallet           Wallet?
   payouts          PayoutRequest[]
+  mediaAssets      MediaAsset[]
 }
 
 model SystemConfig {
@@ -169,6 +170,30 @@ model Lesson {
 
   @@unique([sectionId, order])
   @@index([sectionId])
+}
+
+model MediaAsset {
+  id             String           @id @default(uuid())
+  ownerId        String
+  type           MediaAssetType
+  status         MediaAssetStatus @default(PROCESSING)
+  url            String?
+  storageKey     String?
+  originalKey    String?
+  hlsManifestKey String?
+  jobId          String?
+  originalName   String
+  mimeType       String
+  size           Int
+  error          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, status])
+  @@index([storageKey])
+  @@index([hlsManifestKey])
+  @@index([jobId])
 }
 
 model Material {
@@ -535,6 +560,20 @@ enum WebhookEventStatus {
   duplicate
   rejected
   failed
+}
+
+enum MediaAssetType {
+  VIDEO
+  IMAGE
+  FILE
+}
+
+enum MediaAssetStatus {
+  PROCESSING
+  READY
+  FAILED
+  ORPHANED
+  DELETED
 }
 
 enum SubmissionStatus {

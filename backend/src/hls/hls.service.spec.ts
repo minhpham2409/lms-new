@@ -10,6 +10,7 @@ describe('HlsService', () => {
     putObject: jest.fn().mockResolvedValue('test-key'),
     putManyObjects: jest.fn().mockResolvedValue(['key1', 'key2']),
     deleteObject: jest.fn().mockResolvedValue(undefined),
+    deleteObjects: jest.fn().mockResolvedValue(undefined),
     getPublicUrl: jest.fn().mockReturnValue('http://localhost:9000/test-bucket/hls/test/index.m3u8'),
   };
 

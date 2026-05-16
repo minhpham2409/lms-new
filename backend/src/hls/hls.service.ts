@@ -40,6 +40,7 @@ export class HlsService {
     const ext = extname(originalName).toLowerCase();
     const originalKey = `videos/original/${videoId}${ext}`;
     const hlsDir = join(this.tempDir, videoId);
+    let hlsKeys: string[] = [];
 
     try {
       if (!existsSync(filePath)) {
@@ -91,6 +92,7 @@ export class HlsService {
         body: readFileSync(join(hlsDir, file)),
         contentType: getContentType(file),
       }));
+      hlsKeys = uploads.map((upload) => upload.key);
 
       await this.storageService.putManyObjects(uploads);
       this.logger.log(`Uploaded ${uploads.length} HLS files for video ${videoId}`);
@@ -111,6 +113,11 @@ export class HlsService {
       // Attempt cleanup of any partial S3 uploads
       try {
         await this.storageService.deleteObject(originalKey);
+      } catch { /* ignore cleanup errors */ }
+      try {
+        if (hlsKeys.length > 0) {
+          await this.storageService.deleteObjects(hlsKeys);
+        }
       } catch { /* ignore cleanup errors */ }
       throw new InternalServerErrorException(
         `Video conversion failed: ${(error as Error).message}`,

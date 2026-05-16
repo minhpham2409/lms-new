@@ -18,6 +18,27 @@ function UploadButton({
   const key = `${lesId}-${type}`;
   const isUploading = uploading[key];
 
+  const waitForVideoJob = async (jobId: string): Promise<string | null> => {
+    for (let attempt = 0; attempt < 180; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const res = await fetch(`${API}/upload/video/jobs/${jobId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      if (data.status === "completed" && data.url) return data.url;
+      if (data.status === "failed") {
+        toast.error(data.error || "Lỗi xử lý video");
+        return null;
+      }
+    }
+
+    toast.error("Xử lý video quá lâu, vui lòng thử lại sau");
+    return null;
+  };
+
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -32,8 +53,14 @@ function UploadButton({
       });
       if (res.ok) {
         const data = await res.json();
-        onUploaded(data.url);
-        toast.success("Tải lên thành công!");
+        const url = data.url || (data.jobId ? await waitForVideoJob(data.jobId) : null);
+        if (!url) {
+          toast.error("Server không trả về URL file");
+          return;
+        }
+
+        onUploaded(url);
+        toast.success(type === "video" ? "Video đã xử lý xong!" : "Tải lên thành công!");
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err.message || "Lỗi tải lên — kiểm tra định dạng file");
@@ -181,7 +208,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                               lesId={les.id} type="video" token={token}
                               onUploaded={(url) => updateLesson(sec.id, les.id, { videoUrl: url })}
                               uploading={uploading} setUploading={setUploading}
-                              accept="video/mp4,video/webm,video/mov,video/avi,video/mkv,.mp4,.webm,.mov,.avi,.mkv"
+                              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
                               label="Tải video từ máy" color="#ef4444"
                             />
                           )}

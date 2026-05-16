@@ -573,23 +573,22 @@ describe('WalletsService', () => {
   });
 
   describe('onPaymentCompleted — idempotency', () => {
-    it('should call splitOrderRevenueAtomic and log results', async () => {
+    it('should enqueue a retryable revenue split job', async () => {
       const mockWalletRepo = {
-        splitOrderRevenueAtomic: jest.fn().mockResolvedValue({
-          orderId: 'order-1',
-          credited: 2,
-          skippedDuplicate: 0,
-          totalTeacherEarning: '160',
-        } as RevenueSplitResult),
+        splitOrderRevenueAtomic: jest.fn(),
       };
 
       const mockConfigRepo = {
         getByKey: jest.fn().mockResolvedValue({ value: 20 }),
       };
+      const mockWalletQueue = {
+        add: jest.fn().mockResolvedValue({ id: 'revenue:order-1' }),
+      };
 
       const service = new WalletsServiceClass(
         mockWalletRepo as any,
         mockConfigRepo as any,
+        mockWalletQueue as any,
       );
 
       await service.onPaymentCompleted({
@@ -601,29 +600,34 @@ describe('WalletsService', () => {
         courseTitles: ['A', 'B'],
       });
 
-      expect(mockWalletRepo.splitOrderRevenueAtomic).toHaveBeenCalledWith({
-        orderId: 'order-1',
-        feePercent: 20,
-      });
+      expect(mockWalletRepo.splitOrderRevenueAtomic).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).toHaveBeenCalledWith(
+        'split-order-revenue',
+        { orderId: 'order-1' },
+        expect.objectContaining({
+          jobId: 'revenue:order-1',
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 30000 },
+        }),
+      );
     });
 
-    it('should handle duplicate event gracefully (skippedDuplicate > 0)', async () => {
+    it('should not throw when duplicate payment events enqueue the same job id', async () => {
       const mockWalletRepo = {
-        splitOrderRevenueAtomic: jest.fn().mockResolvedValue({
-          orderId: 'order-1',
-          credited: 0,
-          skippedDuplicate: 2,
-          totalTeacherEarning: '0',
-        } as RevenueSplitResult),
+        splitOrderRevenueAtomic: jest.fn(),
       };
 
       const mockConfigRepo = {
         getByKey: jest.fn().mockResolvedValue(null), // use default fee
       };
+      const mockWalletQueue = {
+        add: jest.fn().mockResolvedValue({ id: 'revenue:order-1' }),
+      };
 
       const service = new WalletsServiceClass(
         mockWalletRepo as any,
         mockConfigRepo as any,
+        mockWalletQueue as any,
       );
 
       // Should NOT throw
@@ -651,6 +655,7 @@ describe('WalletsService', () => {
       const service = new WalletsServiceClass(
         mockWalletRepo as any,
         mockConfigRepo,
+        { add: jest.fn() } as any,
       );
 
       await expect(service.requestPayout('user-1', 0)).rejects.toThrow(
@@ -675,6 +680,7 @@ describe('WalletsService', () => {
       const service = new WalletsServiceClass(
         mockWalletRepo as any,
         mockConfigRepo,
+        { add: jest.fn() } as any,
       );
 
       await expect(service.requestPayout('user-1', 100)).rejects.toThrow(

@@ -22,6 +22,7 @@ describe('StorageService', () => {
                 S3_BUCKET: 'test-bucket',
                 S3_PUBLIC_ENDPOINT: 'http://localhost:9000',
                 S3_SIGNED_URL_EXPIRES: '3600',
+                API_URL: 'http://api.example.test/api/v1',
               };
               return config[key] ?? defaultVal;
             },
@@ -40,6 +41,7 @@ describe('StorageService', () => {
   describe('getPublicUrl', () => {
     it('should generate proxy URL for media', () => {
       const url = service.getPublicUrl('hls/abc/index.m3u8');
+      expect(url).toBe('http://api.example.test/api/v1/media/hls/abc/index.m3u8');
       expect(url).toContain('/media/hls/abc/index.m3u8');
     });
 

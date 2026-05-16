@@ -19,6 +19,7 @@ function validateEnvironment() {
     { key: 'JWT_SECRET' },
     { key: 'FRONTEND_URL' },
     { key: 'WEBHOOK_SECRET', prodOnly: true },
+    { key: 'SEPAY_API_KEY', prodOnly: true },
   ];
 
   const missing: string[] = [];

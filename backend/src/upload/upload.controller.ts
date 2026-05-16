@@ -1,15 +1,19 @@
 import {
-  Controller, Post, UseGuards, UseInterceptors,
-  UploadedFile, BadRequestException, Query, InternalServerErrorException,
+  Controller, Get, Param, Post, UseGuards, UseInterceptors,
+  UploadedFile, BadRequestException, NotFoundException, Query, InternalServerErrorException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { GetUser } from '../common/decorators/get-user.decorator';
 import { UploadService } from './upload.service';
-import { HlsService } from '../hls/hls.service';
 import { StorageService } from '../storage/storage.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { JobNames, QueueNames } from '../shared/queues';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { getContentType } from '../storage/storage.constants';
@@ -17,7 +21,7 @@ import { createReadStream, unlinkSync, existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
-const ALLOWED_VIDEO_TYPES = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
+const ALLOWED_VIDEO_TYPES = ['.mp4', '.webm', '.mov', '.avi'];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_IMAGE_TYPES = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
@@ -62,14 +66,15 @@ function generateFilename(originalName: string): string {
 export class UploadController {
   constructor(
     private readonly uploadService: UploadService,
-    private readonly hlsService: HlsService,
     private readonly storageService: StorageService,
+    private readonly prisma: PrismaService,
+    @InjectQueue(QueueNames.VIDEO) private readonly videoQueue: Queue,
   ) {}
 
   @Post('video')
   @UseGuards(RolesGuard)
   @Roles('teacher', 'admin')
-  @ApiOperation({ summary: 'Upload a video file for lessons (converts to HLS)' })
+  @ApiOperation({ summary: 'Upload a video file for lessons (queues HLS conversion)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -100,35 +105,74 @@ export class UploadController {
   )
   async uploadVideo(
     @UploadedFile() file: Express.Multer.File,
+    @GetUser() user: { id: string },
     @Query('hls') hlsParam?: string,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
-    // Validate MIME type after upload
-    this.uploadService.validateFile(file, 'videos');
+    try {
+      this.uploadService.validateFile(file, 'videos');
+    } catch (error) {
+      cleanupUploadedFile(file.path);
+      throw error;
+    }
 
     const skipHls = hlsParam === 'false';
 
     if (!skipHls) {
-      // Convert to HLS and upload to S3/MinIO
+      let mediaAsset: { id: string } | undefined;
       try {
-        const result = await this.hlsService.convertAndUpload(file.path, file.originalname);
+        mediaAsset = await (this.prisma as any).mediaAsset.create({
+          data: {
+            ownerId: user.id,
+            type: 'VIDEO',
+            status: 'PROCESSING',
+            originalName: file.originalname,
+            mimeType: file.mimetype,
+            size: file.size,
+          },
+        });
+
+        const job = await this.videoQueue.add(
+          JobNames.CONVERT_VIDEO_HLS,
+          {
+            filePath: file.path,
+            originalName: file.originalname,
+            filename: file.filename,
+            size: file.size,
+            mimetype: file.mimetype,
+            mediaAssetId: mediaAsset.id,
+          },
+          {
+            attempts: 1,
+            removeOnComplete: false,
+            removeOnFail: false,
+            timeout: 30 * 60 * 1000,
+          },
+        );
+
         return {
-          url: result.hlsUrl,
-          hlsManifestKey: result.hlsManifestKey,
-          originalKey: result.originalKey,
-          videoId: result.videoId,
-          segmentCount: result.segmentCount,
-          format: 'hls',
+          jobId: String(job.id),
+          mediaAssetId: mediaAsset.id,
+          status: 'processing',
+          format: 'hls-processing',
           filename: file.filename,
           originalName: file.originalname,
           size: file.size,
           mimetype: file.mimetype,
         };
       } catch (error) {
-        // Cleanup the uploaded temp file on HLS failure
+        if (mediaAsset) {
+          await (this.prisma as any).mediaAsset.update({
+            where: { id: mediaAsset.id },
+            data: {
+              status: 'FAILED',
+              error: (error as Error).message,
+            },
+          }).catch(() => undefined);
+        }
         cleanupUploadedFile(file.path);
         throw new InternalServerErrorException(
-          `HLS conversion failed: ${(error as Error).message}`
+          `Failed to queue HLS conversion: ${(error as Error).message}`
         );
       }
     }
@@ -143,9 +187,22 @@ export class UploadController {
         body: createReadStream(file.path),
         contentType: getContentType(file.originalname),
       });
+      const mediaAsset = await (this.prisma as any).mediaAsset.create({
+        data: {
+          ownerId: user.id,
+          type: 'VIDEO',
+          status: 'READY',
+          url: this.storageService.getPublicUrl(key),
+          storageKey: key,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+        },
+      });
 
       return {
-        url: this.storageService.getPublicUrl(key),
+        url: mediaAsset.url,
+        mediaAssetId: mediaAsset.id,
         storageKey: key,
         filename: file.filename,
         originalName: file.originalname,
@@ -156,6 +213,43 @@ export class UploadController {
     } finally {
       cleanupUploadedFile(file.path);
     }
+  }
+
+  @Get('video/jobs/:jobId')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Get HLS video processing status' })
+  async getVideoJobStatus(@Param('jobId') jobId: string) {
+    const job = await this.videoQueue.getJob(jobId);
+    if (!job) throw new NotFoundException('Video processing job not found');
+
+    const state = await job.getState();
+    const progress = job.progress();
+
+    if (state === 'completed') {
+      const result = await job.finished();
+      return {
+        jobId,
+        status: 'completed',
+        progress: 100,
+        ...result,
+      };
+    }
+
+    if (state === 'failed') {
+      return {
+        jobId,
+        status: 'failed',
+        progress,
+        error: job.failedReason || 'Video processing failed',
+      };
+    }
+
+    return {
+      jobId,
+      status: state,
+      progress,
+    };
   }
 
   @Post('image')

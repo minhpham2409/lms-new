@@ -28,6 +28,7 @@ export default function TeacherCourseEditPage() {
   const [newLessonVideo, setNewLessonVideo] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadPhase, setUploadPhase] = useState<"uploading" | "processing">("uploading");
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   // New section form
@@ -60,13 +61,14 @@ export default function TeacherCourseEditPage() {
 
   async function uploadVideo(file: File): Promise<string | null> {
     setUploading(true);
+    setUploadPhase("uploading");
     setUploadProgress(0);
     try {
       const formData = new FormData();
       formData.append("file", file);
 
       // Use XMLHttpRequest for progress tracking
-      return new Promise((resolve, _reject) => {
+      return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", `${API}/upload/video`);
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
@@ -75,12 +77,29 @@ export default function TeacherCourseEditPage() {
           if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
         };
 
-        xhr.onload = () => {
-          setUploading(false);
+        xhr.onload = async () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             const data = JSON.parse(xhr.responseText);
-            resolve(data.url);
+            if (data.url) {
+              setUploading(false);
+              resolve(data.url);
+              return;
+            }
+
+            if (data.jobId) {
+              setUploadPhase("processing");
+              setUploadProgress(100);
+              const url = await waitForVideoJob(data.jobId);
+              setUploading(false);
+              resolve(url);
+              return;
+            }
+
+            setUploading(false);
+            toast.error("Server không trả về URL video");
+            resolve(null);
           } else {
+            setUploading(false);
             toast.error("Lỗi upload video");
             resolve(null);
           }
@@ -99,6 +118,31 @@ export default function TeacherCourseEditPage() {
       toast.error("Lỗi upload");
       return null;
     }
+  }
+
+  async function waitForVideoJob(jobId: string): Promise<string | null> {
+    for (let attempt = 0; attempt < 180; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const res = await fetch(`${API}/upload/video/jobs/${jobId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      if (typeof data.progress === "number") {
+        setUploadProgress(Math.max(0, Math.min(100, data.progress)));
+      }
+
+      if (data.status === "completed" && data.url) return data.url;
+      if (data.status === "failed") {
+        toast.error(data.error || "Lỗi xử lý video");
+        return null;
+      }
+    }
+
+    toast.error("Xử lý video quá lâu, vui lòng thử lại sau");
+    return null;
   }
 
   async function addSection() {
@@ -378,7 +422,7 @@ export default function TeacherCourseEditPage() {
                               <span className="text-xs font-medium" style={{ color: "var(--foreground-muted)" }}>Click để chọn video (MP4, WebM, MOV, tối đa 500MB)</span>
                             </button>
                           )}
-                          <input ref={videoInputRef} type="file" accept="video/*" className="hidden"
+                          <input ref={videoInputRef} type="file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi" className="hidden"
                             onChange={(e) => { if (e.target.files?.[0]) setNewLessonVideo(e.target.files[0]); }} />
                         </div>
 
@@ -386,7 +430,9 @@ export default function TeacherCourseEditPage() {
                         {uploading && (
                           <div>
                             <div className="flex items-center justify-between text-xs mb-1">
-                              <span style={{ color: "var(--foreground-muted)" }}>Đang upload video...</span>
+                              <span style={{ color: "var(--foreground-muted)" }}>
+                                {uploadPhase === "processing" ? "Đang xử lý video..." : "Đang upload video..."}
+                              </span>
                               <span className="font-bold" style={{ color: "#7c3aed" }}>{uploadProgress}%</span>
                             </div>
                             <div className="progress-bar">
@@ -399,7 +445,7 @@ export default function TeacherCourseEditPage() {
                           <button onClick={() => addLesson(sec.id)} disabled={saving || uploading || !newLessonTitle.trim()}
                             className="btn-primary text-sm" style={{ opacity: saving || uploading || !newLessonTitle.trim() ? 0.5 : 1 }}>
                             {saving || uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                            {uploading ? "Đang upload..." : saving ? "Đang lưu..." : "Thêm bài học"}
+                            {uploading ? (uploadPhase === "processing" ? "Đang xử lý..." : "Đang upload...") : saving ? "Đang lưu..." : "Thêm bài học"}
                           </button>
                           <button onClick={() => { setShowNewLesson(null); setNewLessonTitle(""); setNewLessonContent(""); setNewLessonVideo(null); }}
                             className="btn-ghost text-sm">Hủy</button>
@@ -436,7 +482,7 @@ export default function TeacherCourseEditPage() {
           )}
 
           {/* Hidden file input for editing lesson videos */}
-          <input ref={editVideoRef} type="file" accept="video/*" className="hidden"
+          <input ref={editVideoRef} type="file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi" className="hidden"
             onChange={(e) => {
               if (e.target.files?.[0] && editingLesson) {
                 updateLessonVideo(editingLesson, e.target.files[0]);

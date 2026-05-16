@@ -4,6 +4,7 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   HeadObjectCommand,
   GetObjectCommand,
   CreateBucketCommand,
@@ -120,6 +121,29 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
+   * Delete multiple objects. Missing keys are ignored by S3-compatible stores.
+   */
+  async deleteObjects(keys: string[]): Promise<void> {
+    const uniqueKeys = [...new Set(keys)].filter(Boolean);
+    const batchSize = 1000;
+
+    for (let i = 0; i < uniqueKeys.length; i += batchSize) {
+      const batch = uniqueKeys.slice(i, i + batchSize);
+      if (batch.length === 0) continue;
+
+      await this.client.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: {
+            Objects: batch.map((key) => ({ Key: key })),
+            Quiet: true,
+          },
+        }),
+      );
+    }
+  }
+
+  /**
    * Check if an object exists.
    */
   async objectExists(key: string): Promise<boolean> {
@@ -156,7 +180,7 @@ export class StorageService implements OnModuleInit {
    * Generate a proxy URL for secured media.
    */
   getPublicUrl(key: string): string {
-    const baseUrl = process.env.API_URL || 'http://localhost:4000/api/v1';
+    const baseUrl = this.config.get<string>('API_URL', 'http://localhost:4000/api/v1');
     return `${baseUrl}/media/${key}`;
   }
 

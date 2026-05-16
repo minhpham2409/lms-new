@@ -75,6 +75,8 @@ import { ScheduleModule } from '@nestjs/schedule';
       { name: QueueNames.EMAIL },
       { name: QueueNames.CERTIFICATE },
       { name: QueueNames.NOTIFICATION },
+      { name: QueueNames.VIDEO },
+      { name: QueueNames.WALLET },
     ),
 
     // ─── Redis Cache ────────────────────────────────────────────────────────
