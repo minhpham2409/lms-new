@@ -429,4 +429,30 @@ export const adminApi = {
     api.put(`/admin/courses/${id}/reject`).then(r => r.data),
 };
 
+// ─── Wallets & Payouts ────────────────────────────────────────────────────────
+
+export const walletsApi = {
+  // Teacher endpoints
+  getMyWallet: () =>
+    api.get('/wallets/me').then(r => r.data),
+  updateBankInfo: (data: { bankName: string; bankAccount: string; bankOwner: string }) =>
+    api.put('/wallets/bank-info', data).then(r => r.data),
+  requestPayout: (amount: number) =>
+    api.post('/wallets/payouts', { amount }).then(r => r.data),
+  getMyPayouts: () =>
+    api.get('/wallets/payouts/me').then(r => r.data),
+
+  // Admin payout management
+  getAllPayouts: (params?: { page?: number; limit?: number; status?: string }) =>
+    api.get('/wallets/admin/payouts', { params }).then(r => r.data),
+  approvePayout: (id: string, data: { bankTransferRef?: string; adminNote?: string }) =>
+    api.patch(`/wallets/admin/payouts/${id}/approve`, data).then(r => r.data),
+  rejectPayout: (id: string, data: { adminNote: string }) =>
+    api.patch(`/wallets/admin/payouts/${id}/reject`, data).then(r => r.data),
+  getPlatformFee: () =>
+    api.get('/wallets/admin/configs/fee').then(r => r.data),
+  updatePlatformFee: (percentage: number) =>
+    api.put('/wallets/admin/configs/fee', { percentage }).then(r => r.data),
+};
+
 export default api;

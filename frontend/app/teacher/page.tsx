@@ -42,9 +42,10 @@ export default function TeacherPage() {
   const [bankSaving, setBankSaving] = useState(false);
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState("");
+  const [myPayouts, setMyPayouts] = useState<any[]>([]);
 
   useEffect(() => {
-    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); fetchWallet(); fetchBankInfo(); }
+    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); fetchWallet(); fetchBankInfo(); fetchMyPayouts(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -95,7 +96,7 @@ export default function TeacherPage() {
           if (eRes.ok) {
             const enrollments = await eRes.json();
             const pending = (Array.isArray(enrollments) ? enrollments : []).filter((e: any) => e.status === "pending");
-            pending.forEach((e: any) => allPending.push({ ...e, courseTitle: course.title, courseId: course.id }));
+            pending.forEach((e: any) => allPending.push({ ...e, courseTitle: course.title, courseId: course.id, coursePrice: Number(course.price || 0) }));
           }
         } catch {}
       }
@@ -185,6 +186,18 @@ export default function TeacherPage() {
       }
     } catch { toast.error("Lỗi kết nối"); }
     finally { setPayoutLoading(false); }
+  }
+
+  async function fetchMyPayouts() {
+    try {
+      const res = await fetch(`${API}/wallets/payouts/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMyPayouts(Array.isArray(data) ? data : []);
+      }
+    } catch {}
   }
 
   async function approveStudent(enrollmentId: string) {
@@ -640,7 +653,8 @@ export default function TeacherPage() {
                     <Users className="w-5 h-5 text-indigo-400" /> Xác nhận thanh toán & Duyệt học sinh
                   </h3>
                   <p className="text-sm text-indigo-200/60 mt-2">
-                    Kiểm tra tài khoản ngân hàng của bạn. Nếu đã nhận được tiền, hãy ấn <strong>Duyệt</strong> để cho phép học sinh vào học ngay lập tức.
+                    Đối với khóa <strong>miễn phí</strong>: Ấn Duyệt để cho phép học sinh vào học.
+                    Khóa <strong>trả phí</strong>: Hệ thống sẽ tự xác nhận khi nhận được thanh toán qua webhook.
                   </p>
                 </div>
                 
@@ -675,15 +689,31 @@ export default function TeacherPage() {
                         </div>
                         
                         <div className="flex items-center gap-3 md:ml-auto">
-                          <span className="badge bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 text-xs">
-                            ⏳ Đang chờ thanh toán
-                          </span>
-                          <button onClick={() => approveStudent(s.id)} className="btn-primary py-2 px-4 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 !bg-gradient-to-r !from-emerald-500 !to-teal-500 border-none">
-                            <CheckCircle2 className="w-4 h-4" /> Duyệt vào lớp
-                          </button>
-                          <button onClick={() => rejectStudent(s.id)} className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-red-400 transition-colors tooltip" data-tip="Từ chối">
-                            <X className="w-5 h-5" />
-                          </button>
+                          {s.coursePrice > 0 ? (
+                            <>
+                              <span className="badge bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 text-xs">
+                                💰 Khóa trả phí — {s.coursePrice.toLocaleString()} ₫
+                              </span>
+                              <span className="badge bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-3 py-1 text-xs">
+                                🔄 Chờ webhook xác nhận
+                              </span>
+                              <button onClick={() => rejectStudent(s.id)} className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-red-400 transition-colors tooltip" data-tip="Từ chối">
+                                <X className="w-5 h-5" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 text-xs">
+                                🆓 Khóa miễn phí
+                              </span>
+                              <button onClick={() => approveStudent(s.id)} className="btn-primary py-2 px-4 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 !bg-gradient-to-r !from-emerald-500 !to-teal-500 border-none">
+                                <CheckCircle2 className="w-4 h-4" /> Duyệt vào lớp
+                              </button>
+                              <button onClick={() => rejectStudent(s.id)} className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-red-400 transition-colors tooltip" data-tip="Từ chối">
+                                <X className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -787,6 +817,33 @@ export default function TeacherPage() {
                         {payoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                         Gửi yêu cầu rút
                       </button>
+
+                      {/* Payout History */}
+                      {myPayouts.length > 0 && (
+                        <div className="mt-5 pt-5 border-t border-white/10">
+                          <h4 className="text-sm font-bold text-white mb-3">Lịch sử rút tiền</h4>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {myPayouts.map((p: any) => {
+                              const statusColors: Record<string, string> = { PENDING: "#f59e0b", APPROVED: "#10b981", REJECTED: "#ef4444" };
+                              const statusLabels: Record<string, string> = { PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối" };
+                              const sc = statusColors[p.status] || "#6b7280";
+                              return (
+                                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                                  <div>
+                                    <p className="text-sm font-bold text-white">{Number(p.amount).toLocaleString()} ₫</p>
+                                    <p className="text-[10px] text-indigo-200/50">{new Date(p.createdAt).toLocaleDateString("vi-VN")}</p>
+                                    {p.bankTransferRef && <p className="text-[10px] font-mono text-indigo-200/40">Ref: {p.bankTransferRef}</p>}
+                                    {p.adminNote && <p className="text-[10px] text-indigo-200/40">{p.adminNote}</p>}
+                                  </div>
+                                  <span className="px-2 py-1 rounded-full text-[10px] font-bold" style={{ background: `${sc}15`, color: sc, border: `1px solid ${sc}30` }}>
+                                    {statusLabels[p.status] || p.status}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="glass-strong rounded-2xl p-6 border border-white/5">
