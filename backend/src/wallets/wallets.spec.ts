@@ -23,8 +23,10 @@ describe('WalletRepository', () => {
     },
     wallet: {
       findUnique: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
       upsert: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     walletTransaction: {
       create: jest.fn(),
@@ -288,19 +290,15 @@ describe('WalletRepository', () => {
       const prismaService = createPrismaService(mockTx);
       repo = new WalletRepository(prismaService);
 
-      mockTx.wallet.findUnique.mockResolvedValue({
-        id: 'wallet-1',
-        userId: 'teacher-1',
-        balance: new Prisma.Decimal('500.00'),
-        pendingBalance: new Prisma.Decimal('0'),
-      });
+      // Atomic conditional update succeeds (balance >= amount)
+      mockTx.wallet.updateMany.mockResolvedValue({ count: 1 });
 
       const updatedWallet = {
         id: 'wallet-1',
         balance: new Prisma.Decimal('400.00'),
         pendingBalance: new Prisma.Decimal('100.00'),
       };
-      mockTx.wallet.update.mockResolvedValue(updatedWallet);
+      mockTx.wallet.findUniqueOrThrow.mockResolvedValue(updatedWallet);
 
       const mockPayout = {
         id: 'payout-1',
@@ -337,6 +335,8 @@ describe('WalletRepository', () => {
       const prismaService = createPrismaService(mockTx);
       repo = new WalletRepository(prismaService);
 
+      // Atomic conditional update fails (balance < amount)
+      mockTx.wallet.updateMany.mockResolvedValue({ count: 0 });
       mockTx.wallet.findUnique.mockResolvedValue({
         id: 'wallet-1',
         userId: 'teacher-1',
@@ -355,8 +355,7 @@ describe('WalletRepository', () => {
         }),
       ).rejects.toThrow('Insufficient balance');
 
-      // Wallet should NOT be updated
-      expect(mockTx.wallet.update).not.toHaveBeenCalled();
+      // Payout should NOT be created
       expect(mockTx.payoutRequest.create).not.toHaveBeenCalled();
     });
 
@@ -365,6 +364,8 @@ describe('WalletRepository', () => {
       const prismaService = createPrismaService(mockTx);
       repo = new WalletRepository(prismaService);
 
+      // Atomic conditional update fails (wallet doesn't exist)
+      mockTx.wallet.updateMany.mockResolvedValue({ count: 0 });
       mockTx.wallet.findUnique.mockResolvedValue(null);
 
       await expect(

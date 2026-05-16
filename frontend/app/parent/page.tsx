@@ -729,7 +729,7 @@ export default function ParentPage() {
                                       }}
                                     >
                                       {e.status === "pending"
-                                        ? "Đang chờ giáo viên duyệt"
+                                        ? "Đang chờ xác nhận thanh toán"
                                         : "Tiến độ học tập"}
                                     </p>
                                   </div>

@@ -390,7 +390,7 @@ export default function CartPage() {
                   <CheckCircle2 className="w-10 h-10" style={{ color: "#10b981" }} />
                 </div>
                 <h2 className="text-xl font-extrabold mb-2">Đã gửi thành công!</h2>
-                <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>Mã QR đã gửi đến phụ huynh. Sau khi thanh toán, giáo viên sẽ duyệt để thêm bạn vào lớp.</p>
+                <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>Mã QR đã gửi đến phụ huynh. Sau khi thanh toán, hệ thống sẽ tự kích hoạt khóa học.</p>
                 <div className="space-y-2 mb-6">
                   <div className="flex items-center gap-2 justify-center px-4 py-2.5 rounded-xl" style={{ background: "rgba(245,158,11,0.1)" }}>
                     <Clock className="w-4 h-4" style={{ color: "#f59e0b" }} />
@@ -398,7 +398,7 @@ export default function CartPage() {
                   </div>
                   <div className="flex items-center gap-2 justify-center px-4 py-2.5 rounded-xl" style={{ background: "var(--muted)" }}>
                     <Clock className="w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
-                    <span className="text-sm" style={{ color: "var(--foreground-muted)" }}>Bước 2: Giáo viên duyệt vào lớp</span>
+                    <span className="text-sm" style={{ color: "var(--foreground-muted)" }}>Bước 2: Hệ thống tự kích hoạt khóa học</span>
                   </div>
                 </div>
                 <button onClick={() => { setShowPayment(false); setPaymentSent(false); router.push("/dashboard"); }} className="btn-primary w-full justify-center">

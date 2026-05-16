@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PaymentRepository, OrderRepository } from '../database/repositories';
+import { PaymentRepository, OrderRepository, EnrollmentRepository } from '../database/repositories';
 import { CreateQrDto, WebhookDto } from './dto';
 import { AppEvents } from '../shared/events';
 import {
@@ -25,6 +25,7 @@ export class PaymentsService {
   constructor(
     private readonly paymentRepository: PaymentRepository,
     private readonly orderRepository: OrderRepository,
+    private readonly enrollmentRepository: EnrollmentRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -78,7 +79,15 @@ export class PaymentsService {
   async createQr(dto: CreateQrDto, userId: string) {
     const order = await this.orderRepository.findByIdWithDetails(dto.orderId);
     if (!order) throw new NotFoundException('Order not found');
-    if (order.userId !== userId) throw new NotFoundException('Order not found');
+
+    // Allow order owner OR linked parent to generate QR
+    let authorized = order.userId === userId;
+    if (!authorized) {
+      const parentLink = await this.enrollmentRepository.findParentLinks(order.userId);
+      authorized = parentLink.some(link => link.parentId === userId);
+    }
+    if (!authorized) throw new NotFoundException('Order not found');
+
     if (order.status !== 'pending') throw new BadRequestException('Order is not pending');
 
     const existing = await this.paymentRepository.findByOrderId(dto.orderId);
@@ -154,9 +163,11 @@ export class PaymentsService {
    * 7. If status != success → fail atomically
    * 8. If success → complete atomically (payment + order + coupon + enrollments)
    */
-  async handleWebhook(dto: WebhookDto) {
-    // 1. Validate HMAC signature
-    this.verifyWebhookSignature(dto);
+  async handleWebhook(dto: WebhookDto, options?: { skipSignatureVerification?: boolean }) {
+    // 1. Validate HMAC signature (skipped for trusted providers like SePay)
+    if (!options?.skipSignatureVerification) {
+      this.verifyWebhookSignature(dto);
+    }
 
     const eventKey = this.buildWebhookEventKey(dto);
     const webhookEvent = await this.paymentRepository.createWebhookEvent({

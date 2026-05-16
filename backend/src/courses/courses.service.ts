@@ -7,6 +7,7 @@ import {
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { CourseRepository, EnrollmentRepository } from '../database/repositories';
+import { WalletRepository } from '../database/repositories';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
@@ -19,6 +20,7 @@ export class CoursesService {
   constructor(
     private readonly courseRepository: CourseRepository,
     private readonly enrollmentRepository: EnrollmentRepository,
+    private readonly walletRepository: WalletRepository,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
@@ -127,11 +129,29 @@ export class CoursesService {
     const [courses, enrollments, reviews, revenue, recentEnrollments] =
       await this.courseRepository.getTeacherStatsData(authorId);
 
+    // Use wallet transactions for accurate revenue (post-coupon, post-fee)
+    let totalRevenue = revenue.reduce((sum, item) => sum + Number(item.price), 0);
+    let walletEarnings: any[] = [];
+    try {
+      const wallet = await this.walletRepository.findWithTransactions(authorId);
+      if (wallet) {
+        walletEarnings = wallet.transactions.filter(
+          (t: any) => t.type === 'EARNING',
+        );
+        // If we have wallet data, use it as the source of truth for revenue
+        if (walletEarnings.length > 0) {
+          totalRevenue = walletEarnings.reduce(
+            (sum: number, t: any) => sum + Number(t.amount),
+            0,
+          );
+        }
+      }
+    } catch {}
+
     const totalStudents = new Set(enrollments.map((e) => e.userId)).size;
     const avgRating = reviews.length
       ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
       : 0;
-    const totalRevenue = revenue.reduce((sum, item) => sum + Number(item.price), 0);
     const publishedCourses = courses.filter((c) => c.status === 'published').length;
     const draftCourses = courses.filter((c) => c.status === 'draft').length;
 
@@ -146,13 +166,25 @@ export class CoursesService {
       };
     }).reverse();
 
-    revenue.forEach(item => {
-      if (!item.order?.createdAt) return;
-      const d = new Date(item.order.createdAt);
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const month = monthlyData.find(m => m.yearMonth === ym);
-      if (month) month.revenue += Number(item.price);
-    });
+    // Use wallet earnings for monthly revenue (accurate post-coupon amounts)
+    if (walletEarnings.length > 0) {
+      walletEarnings.forEach((t: any) => {
+        if (!t.createdAt) return;
+        const d = new Date(t.createdAt);
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const month = monthlyData.find(m => m.yearMonth === ym);
+        if (month) month.revenue += Number(t.amount);
+      });
+    } else {
+      // Fallback to order items if no wallet data
+      revenue.forEach(item => {
+        if (!item.order?.createdAt) return;
+        const d = new Date(item.order.createdAt);
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const month = monthlyData.find(m => m.yearMonth === ym);
+        if (month) month.revenue += Number(item.price);
+      });
+    }
 
     enrollments.forEach(item => {
       if (!item.createdAt) return;

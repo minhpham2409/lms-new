@@ -12,6 +12,10 @@ describe('PaymentRepository — Idempotency', () => {
     },
     order: {
       updateMany: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    orderItem: {
+      findMany: jest.fn(),
     },
     coupon: {
       findUnique: jest.fn(),
@@ -20,6 +24,7 @@ describe('PaymentRepository — Idempotency', () => {
     },
     enrollment: {
       upsert: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
 
@@ -111,6 +116,10 @@ describe('PaymentRepository — Idempotency', () => {
     it('should fail payment idempotently with conditional updates', async () => {
       mockTx.payment.updateMany.mockResolvedValue({ count: 1 });
       mockTx.order.updateMany.mockResolvedValue({ count: 1 });
+
+      mockTx.orderItem.findMany.mockResolvedValue([{ courseId: 'course-1' }]);
+      mockTx.order.findUnique.mockResolvedValue({ userId: 'user-1' });
+      mockTx.enrollment.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await repo.failPaymentTransaction({
         paymentId: 'payment-1',

@@ -104,6 +104,8 @@ export class PaymentsController {
       // No HMAC signature from SePay — verified via API key above
     };
 
-    return this.paymentsService.handleWebhook(webhookDto);
+    return this.paymentsService.handleWebhook(webhookDto, {
+      skipSignatureVerification: true, // Already verified via SEPAY_API_KEY
+    });
   }
 }

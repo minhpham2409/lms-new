@@ -23,11 +23,11 @@ export class OrdersService {
     const cartItems = await this.cartRepository.findByUser(userId);
     if (cartItems.length === 0) throw new BadRequestException('Cart is empty');
 
-    // Filter out courses user is already enrolled in (race condition guard)
+    // Filter out courses user is already actively enrolled in (skip pending/cancelled)
     const availableItems: typeof cartItems = [];
     for (const item of cartItems) {
       const enrolled = await this.enrollmentRepository.findByUserAndCourse(userId, item.courseId);
-      if (!enrolled) availableItems.push(item);
+      if (!enrolled || enrolled.status !== 'active') availableItems.push(item);
     }
 
     if (availableItems.length === 0) {

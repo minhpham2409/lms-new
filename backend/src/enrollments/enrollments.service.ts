@@ -11,6 +11,7 @@ import { AppEvents } from '../shared/events';
 import {
   EnrollmentCreatedPayload,
   EnrollmentApprovedPayload,
+  PaymentCompletedPayload,
 } from '../shared/events';
 
 @Injectable()
@@ -128,13 +129,34 @@ export class EnrollmentsService {
       courseId: enrollment.courseId,
     });
 
-    // Emit event — NotificationEventListener handles user notification
+    // Emit enrollment approved event for notifications
     this.eventEmitter.emit(AppEvents.ENROLLMENT_APPROVED, {
       enrollmentId,
       userId: enrollment.userId,
       courseId: enrollment.courseId,
       courseTitle: enrollment.course.title,
     } as EnrollmentApprovedPayload);
+
+    // For paid courses (admin manual confirm): emit PAYMENT_COMPLETED for wallet split
+    if (user.role === 'admin' && Number(enrollment.course.price) > 0) {
+      // Find the order to get amount for wallet split
+      const orderItems = await this.enrollmentRepository.findOrderItemsForEnrollment(
+        enrollment.userId,
+        enrollment.courseId,
+      );
+      if (orderItems.length > 0) {
+        const orderId = orderItems[0].orderId;
+        const order = orderItems[0].order;
+        this.eventEmitter.emit(AppEvents.PAYMENT_COMPLETED, {
+          paymentId: `admin-manual-${enrollmentId}`,
+          orderId,
+          userId: enrollment.userId,
+          amount: Number(order?.finalPrice || enrollment.course.price),
+          courseIds: [enrollment.courseId],
+          courseTitles: [enrollment.course.title],
+        });
+      }
+    }
 
     return updated;
   }

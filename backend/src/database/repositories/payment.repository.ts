@@ -169,7 +169,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
   }
 
   /**
-   * ATOMIC TRANSACTION: Fail a payment and optionally mark order as failed.
+   * ATOMIC TRANSACTION: Fail a payment, mark order as failed, cancel pending enrollments.
    */
   async failPaymentTransaction(params: { paymentId: string; orderId?: string }) {
     return this.prisma.$transaction(async (tx) => {
@@ -187,6 +187,28 @@ export class PaymentRepository extends BaseRepository<Payment> {
           where: { id: params.orderId, status: 'pending' },
           data: { status: 'failed' },
         });
+
+        // Cancel pending enrollments created with this order
+        const orderItems = await tx.orderItem.findMany({
+          where: { orderId: params.orderId },
+          select: { courseId: true },
+        });
+        const order = await tx.order.findUnique({
+          where: { id: params.orderId },
+          select: { userId: true },
+        });
+        if (order) {
+          for (const item of orderItems) {
+            await tx.enrollment.updateMany({
+              where: {
+                userId: order.userId,
+                courseId: item.courseId,
+                status: 'pending',
+              },
+              data: { status: 'cancelled' },
+            });
+          }
+        }
       }
 
       return { alreadyProcessed: false };

@@ -93,24 +93,29 @@ export class EnrollmentRepository extends BaseRepository<Enrollment> {
     return this.prisma.enrollment.delete({ where: { id } });
   }
 
-  /** Find order items linked to a user+course enrollment for revenue tracking */
-  findOrderItemsForEnrollment(userId: string, courseId: string) {
-    return this.prisma.orderItem.findMany({
-      where: {
-        courseId,
-        order: {
-          userId,
-          status: OrderStatus.pending,
-        },
-      },
-      include: { order: true },
-    });
-  }
+
+
 
   /** Find parent links for a user (accepted) */
   findParentLinks(childId: string) {
     return this.prisma.parentChild.findMany({
       where: { childId, status: 'accepted' },
+    });
+  }
+
+  /** Find order items for a user+course — used for admin manual confirm wallet integration */
+  findOrderItemsForEnrollment(userId: string, courseId: string) {
+    return this.prisma.orderItem.findMany({
+      where: {
+        courseId,
+        order: { userId, status: { in: ['pending', 'paid'] } },
+      },
+      select: {
+        orderId: true,
+        order: { select: { finalPrice: true, totalPrice: true } },
+      },
+      orderBy: { order: { createdAt: 'desc' } },
+      take: 1,
     });
   }
 

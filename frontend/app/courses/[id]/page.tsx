@@ -426,11 +426,11 @@ export default function CourseDetailPage() {
                       <span className="font-bold" style={{ color: "#f59e0b" }}>Đang chờ duyệt</span>
                     </div>
                     <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
-                      Mã QR đã được gửi cho phụ huynh. Sau khi phụ huynh chuyển tiền, giáo viên sẽ xác nhận và duyệt bạn vào lớp.
+                      Mã QR đã được gửi cho phụ huynh. Sau khi chuyển tiền, hệ thống sẽ tự kích hoạt khóa học.
                     </p>
                     <div className="p-4 rounded-xl mb-4" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>
                       <div className="flex items-center gap-2 text-sm" style={{ color: "#f59e0b" }}>
-                        <Clock className="w-4 h-4" /> Chờ phụ huynh thanh toán & giáo viên duyệt
+                        <Clock className="w-4 h-4" /> Chờ phụ huynh thanh toán & hệ thống xác nhận
                       </div>
                     </div>
                     <Link href="/dashboard" className="btn-secondary w-full justify-center py-3 text-sm">
@@ -605,7 +605,7 @@ export default function CourseDetailPage() {
                   Mã QR thanh toán đã được gửi đến phụ huynh.
                 </p>
                 <p className="text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>
-                  Sau khi thanh toán, giáo viên sẽ duyệt và bạn sẽ được tham gia lớp học.
+                  Sau khi thanh toán, hệ thống sẽ tự xác nhận và kích hoạt khóa học.
                 </p>
                 <div className="flex items-center gap-2 justify-center mb-6 px-4 py-3 rounded-xl" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>
                   <Clock className="w-4 h-4" style={{ color: "#f59e0b" }} />

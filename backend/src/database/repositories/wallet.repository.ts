@@ -276,28 +276,31 @@ export class WalletRepository extends BaseRepository<Wallet> {
     const amount = toDecimal(params.amount);
 
     return this.prisma.$transaction(async (tx) => {
-      const wallet = await tx.wallet.findUnique({
-        where: { userId: params.userId },
-      });
-
-      if (!wallet) {
-        throw new Error('Wallet not found');
-      }
-
-      const currentBalance = toDecimal(wallet.balance);
-      if (currentBalance.lt(amount)) {
-        throw new Error(
-          `Insufficient balance. Available: ${currentBalance.toString()}, Requested: ${amount.toString()}`,
-        );
-      }
-
-      // Deduct from balance, add to pending
-      const updatedWallet = await tx.wallet.update({
-        where: { userId: params.userId },
+      // Atomic conditional update: only deduct if balance >= amount (prevents race condition)
+      const walletUpdate = await tx.wallet.updateMany({
+        where: {
+          userId: params.userId,
+          balance: { gte: amount },
+        },
         data: {
           balance: { decrement: amount },
           pendingBalance: { increment: amount },
         },
+      });
+
+      if (walletUpdate.count === 0) {
+        // Either wallet doesn't exist or insufficient balance
+        const wallet = await tx.wallet.findUnique({
+          where: { userId: params.userId },
+        });
+        if (!wallet) throw new Error('Wallet not found');
+        throw new Error(
+          `Insufficient balance. Available: ${wallet.balance.toString()}, Requested: ${amount.toString()}`,
+        );
+      }
+
+      const updatedWallet = await tx.wallet.findUniqueOrThrow({
+        where: { userId: params.userId },
       });
 
       // Create payout request
@@ -313,7 +316,7 @@ export class WalletRepository extends BaseRepository<Wallet> {
       // Create withdrawal transaction log
       await tx.walletTransaction.create({
         data: {
-          walletId: wallet.id,
+          walletId: updatedWallet.id,
           amount,
           type: WalletTransactionType.WITHDRAWAL_REQUEST,
           referenceId: payout.id,
