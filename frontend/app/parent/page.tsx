@@ -22,6 +22,7 @@ import {
   RefreshCw,
   CreditCard,
   Clock,
+  QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -1387,53 +1388,73 @@ export default function ParentPage() {
                               ).toLocaleString()}{" "}
                               ₫
                             </p>
-                            <div
-                              className="w-48 h-48 mx-auto rounded-xl flex items-center justify-center mb-3 cursor-pointer hover:opacity-80 transition-opacity"
-                              style={{
-                                background: "white",
-                                border: "2px solid var(--border)",
-                              }}
-                              onClick={() => {
-                                const imgUrl = `https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${order.finalPrice || order.totalPrice || 0}&addInfo=${encodeURIComponent(`HL-${order.id?.substring(0, 8)}`)}&accountName=${encodeURIComponent("NGUYEN VAN MINH")}`;
-                                setQrPopup({
-                                  url: imgUrl,
-                                  amount:
-                                    order.finalPrice || order.totalPrice || 0,
-                                  id: order.id,
-                                });
-                              }}
-                            >
-                              <img
-                                src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${order.finalPrice || order.totalPrice || 0}&addInfo=${encodeURIComponent(`HL-${order.id?.substring(0, 8)}`)}&accountName=${encodeURIComponent("NGUYEN VAN MINH")}`}
-                                alt="QR"
-                                className="w-44 h-44 object-contain pointer-events-none"
-                                onError={(e) => {
-                                  e.currentTarget.onerror = null;
-                                  (e.target as HTMLImageElement).src =
-                                    `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`Thanh toan ${order.finalPrice || order.totalPrice} VND`)}`;
+                            {order._qrData ? (
+                              <>
+                                <div
+                                  className="w-48 h-48 mx-auto rounded-xl flex items-center justify-center mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                                  style={{
+                                    background: "white",
+                                    border: "2px solid var(--border)",
+                                  }}
+                                  onClick={() =>
+                                    setQrPopup({
+                                      url: order._qrData.vietQrUrl,
+                                      amount:
+                                        order.finalPrice || order.totalPrice || 0,
+                                      id: order.id,
+                                    })
+                                  }
+                                >
+                                  <img
+                                    src={order._qrData.vietQrUrl}
+                                    alt="VietQR"
+                                    className="w-44 h-44 object-contain pointer-events-none"
+                                  />
+                                </div>
+                                <p className="text-xs mb-1 font-mono px-2 py-1.5 rounded-lg inline-block" style={{ background: "var(--muted)" }}>
+                                  Nội dung CK: <span className="font-bold">{order._qrData.addInfo}</span>
+                                </p>
+                                <p className="text-[10px] mt-1 mb-2" style={{ color: "var(--foreground-muted)" }}>
+                                  ⚠️ Nội dung chuyển khoản phải chứa đúng mã trên
+                                </p>
+                              </>
+                            ) : (
+                              <button
+                                className="btn-primary mx-auto mb-3"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`${API}/payments/qr`, {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                                      body: JSON.stringify({ orderId: order.id }),
+                                    });
+                                    if (res.ok) {
+                                      const qr = await res.json();
+                                      setPendingOrders((prev: any[]) => prev.map((o: any) =>
+                                        o.id === order.id ? { ...o, _qrData: { vietQrUrl: qr.vietQrUrl, addInfo: qr.addInfo, txnRef: qr.txnRef } } : o
+                                      ));
+                                    } else {
+                                      toast.error("Không thể tạo mã QR");
+                                    }
+                                  } catch { toast.error("Lỗi kết nối"); }
                                 }}
-                              />
-                            </div>
-                            <p
-                              className="text-xs mb-2"
-                              style={{ color: "var(--foreground-muted)" }}
-                            >
-                              Nhấn vào mã QR để phóng to
-                            </p>
+                              >
+                                <QrCode className="w-4 h-4" /> Tạo mã QR thanh toán
+                              </button>
+                            )}
                             <div
                               className="p-3 rounded-xl mt-2"
                               style={{
-                                background: "rgba(245,158,11,0.08)",
-                                border: "1px solid rgba(245,158,11,0.2)",
+                                background: "rgba(16,185,129,0.08)",
+                                border: "1px solid rgba(16,185,129,0.2)",
                               }}
                             >
                               <p
                                 className="text-xs font-medium flex items-center gap-1.5"
-                                style={{ color: "#f59e0b" }}
+                                style={{ color: "#10b981" }}
                               >
-                                <Clock className="w-3.5 h-3.5" /> Sau khi chuyển
-                                tiền, giáo viên sẽ xác nhận và duyệt học sinh
-                                vào lớp
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Sau khi chuyển
+                                khoản đúng nội dung, hệ thống sẽ tự động kích hoạt khóa học
                               </p>
                             </div>
                           </div>

@@ -38,6 +38,7 @@ export default function CourseDetailPage() {
   const [qrSent, setQrSent] = useState(false);
   const [hasParent, setHasParent] = useState<boolean | null>(null);
   const [sendingQR, setSendingQR] = useState(false);
+  const [courseQrData, setCourseQrData] = useState<{ vietQrUrl: string; txnRef: string; addInfo: string; amount: number } | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
@@ -175,7 +176,48 @@ export default function CourseDetailPage() {
       toast.error("Bạn cần liên kết tài khoản phụ huynh trước khi mua khóa học!");
       return;
     }
+    // Show modal with loading state, create order + QR
     setShowQR(true);
+    setSendingQR(true);
+    setCourseQrData(null);
+    try {
+      // Add to cart first
+      await fetch(`${API}/cart/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ courseId: id }),
+      }).catch(() => {});
+
+      // Create order atomically (order + items + pending enrollments)
+      const orderRes = await fetch(`${API}/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      if (!orderRes.ok) {
+        const err = await orderRes.json().catch(() => ({}));
+        if (!err.message?.includes("already enrolled")) {
+          toast.error(err.message || "Không thể tạo đơn hàng");
+          setShowQR(false); setSendingQR(false);
+          return;
+        }
+      }
+      const order = await orderRes.json();
+
+      // Generate QR from API
+      const qrRes = await fetch(`${API}/payments/qr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      if (qrRes.ok) {
+        const qr = await qrRes.json();
+        setCourseQrData({ vietQrUrl: qr.vietQrUrl, txnRef: qr.txnRef, addInfo: qr.addInfo, amount: Number(qr.amount) });
+      } else {
+        toast.error("Không thể tạo mã QR");
+      }
+    } catch { toast.error("Lỗi kết nối"); }
+    finally { setSendingQR(false); }
   }
 
   async function handleAddToCart() {
@@ -201,55 +243,12 @@ export default function CourseDetailPage() {
     finally { setActionLoading(false); }
   }
 
-  async function handleSendQRToParent() {
-    setSendingQR(true);
-    try {
-      // 1. Add course to cart first (order service reads from cart)
-      await fetch(`${API}/cart/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ courseId: id }),
-      }).catch(() => {});
-
-      // 2. Create order from cart
-      const orderRes = await fetch(`${API}/orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
-      });
-      if (orderRes.ok) {
-        const order = await orderRes.json();
-        // 3. Generate QR payment
-        await fetch(`${API}/payments/qr`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ orderId: order.id }),
-        }).catch(() => {});
-      } else {
-        const err = await orderRes.json().catch(() => ({}));
-        // If already enrolled, just proceed
-        if (!err.message?.includes("already enrolled")) {
-          toast.error(err.message || "Không thể tạo đơn hàng");
-          setSendingQR(false);
-          return;
-        }
-      }
-
-      // 4. Create pending enrollment
-      await fetch(`${API}/enrollments/pending`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ courseId: id }),
-      }).catch(() => {});
-
-      setEnrolled(true);
-      setEnrollStatus("pending");
-      setQrSent(true);
-      toast.success("Đã gửi mã QR đến phụ huynh!");
-    } catch {
-      toast.error("Lỗi kết nối");
-    }
-    setSendingQR(false);
+  function handleConfirmSentToParent() {
+    // Order + QR already created in handleBuyNow
+    setEnrolled(true);
+    setEnrollStatus("pending");
+    setQrSent(true);
+    toast.success("Đã gửi mã QR đến phụ huynh!");
   }
 
   const toggleSection = (sId: string) => {
@@ -554,43 +553,47 @@ export default function CourseDetailPage() {
                   <button onClick={() => setShowQR(false)} className="btn-ghost px-2 py-2"><X className="w-5 h-5" /></button>
                 </div>
 
-                <div className="text-center mb-6">
-                  <p className="text-sm font-semibold mb-1">{course.title}</p>
-                  <p className="text-xs mb-4" style={{ color: "var(--foreground-muted)" }}>Quét mã QR hoặc gửi cho phụ huynh để thanh toán</p>
-
-                  <div className="w-56 h-56 mx-auto rounded-2xl flex items-center justify-center mb-4" style={{ background: "white", border: "2px solid var(--border)" }}>
-                    <img
-                      src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${course.price}&addInfo=${encodeURIComponent(`HL - ${course.title} - ${user?.username}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
-                      alt="QR Thanh toán"
-                      className="w-52 h-52 object-contain"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        const target = e.target as HTMLImageElement;
-                        target.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Thanh toan ${course.price} VND - ${course.title}`)}`;
-                      }}
-                    />
+                {sendingQR ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: "#7c3aed" }} />
+                    <p className="text-sm font-semibold">Đang tạo đơn hàng & mã QR...</p>
+                    <p className="text-xs mt-2" style={{ color: "var(--foreground-muted)" }}>Vui lòng chờ trong giây lát</p>
                   </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between px-4 py-2 rounded-lg" style={{ background: "var(--muted)" }}>
-                      <span style={{ color: "var(--foreground-muted)" }}>Số tiền</span>
-                      <span className="font-bold gradient-text">{course.price.toLocaleString()} ₫</span>
+                ) : courseQrData ? (
+                  <>
+                    <div className="text-center mb-6">
+                      <p className="text-sm font-semibold mb-1">{course.title}</p>
+                      <p className="text-xs mb-4" style={{ color: "var(--foreground-muted)" }}>Quét mã QR bên dưới để thanh toán</p>
+                      <div className="w-56 h-56 mx-auto rounded-2xl flex items-center justify-center mb-4" style={{ background: "white", border: "2px solid var(--border)" }}>
+                        <img src={courseQrData.vietQrUrl} alt="VietQR Payment" className="w-52 h-52 object-contain" />
+                      </div>
+                      <p className="text-xs mb-1 font-mono px-2 py-1.5 rounded-lg inline-block" style={{ background: "var(--muted)" }}>
+                        Nội dung CK: <span className="font-bold">{courseQrData.addInfo}</span>
+                      </p>
+                      <p className="text-[10px] mt-2 mb-3" style={{ color: "var(--foreground-muted)" }}>
+                        ⚠️ Nội dung chuyển khoản phải chứa đúng mã trên để hệ thống tự xác nhận
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between px-4 py-2 rounded-lg" style={{ background: "var(--muted)" }}>
+                          <span style={{ color: "var(--foreground-muted)" }}>Số tiền</span>
+                          <span className="font-bold gradient-text">{courseQrData.amount.toLocaleString()} ₫</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between px-4 py-2 rounded-lg" style={{ background: "var(--muted)" }}>
-                      <span style={{ color: "var(--foreground-muted)" }}>Khóa học</span>
-                      <span className="font-medium text-xs truncate max-w-[180px]">{course.title}</span>
+                    <div className="space-y-3">
+                      <button onClick={handleConfirmSentToParent} className="btn-primary w-full justify-center py-3">
+                        <Send className="w-4 h-4" /> Gửi cho phụ huynh thanh toán
+                      </button>
+                      <p className="text-xs text-center" style={{ color: "var(--foreground-muted)" }}>
+                        Hệ thống sẽ tự kích hoạt khóa học sau khi nhận được thanh toán
+                      </p>
                     </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-sm" style={{ color: "#ef4444" }}>Không thể tạo mã QR. Vui lòng đóng và thử lại.</p>
                   </div>
-                </div>
-
-                <div className="space-y-3">
-                  <button onClick={handleSendQRToParent} className="btn-primary w-full justify-center py-3">
-                    <Send className="w-4 h-4" /> Gửi cho phụ huynh thanh toán
-                  </button>
-                  <p className="text-xs text-center" style={{ color: "var(--foreground-muted)" }}>
-                    Sau khi thanh toán, giáo viên sẽ duyệt và bạn được tham gia lớp
-                  </p>
-                </div>
+                )}
               </>
             ) : (
               <div className="text-center py-8">
