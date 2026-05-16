@@ -49,6 +49,7 @@ export class LessonRepository extends BaseRepository<Lesson> {
     title: string;
     content?: string;
     videoUrl?: string;
+    mediaAssetId?: string;
     duration?: number;
     sectionId: string;
     order: number;

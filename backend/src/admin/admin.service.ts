@@ -6,8 +6,10 @@ import {
 } from '@nestjs/common';
 import { OnApplicationBootstrap } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { Queue } from 'bull';
 import {
   UserRepository,
   CourseRepository,
@@ -22,6 +24,7 @@ import { UpdateUserDto } from '../users/dto/update-user.dto';
 import { CreateCourseDto } from '../courses/dto/create-course.dto';
 import { CreateLessonDto } from '../lessons/dto/create-lesson.dto';
 import { PaginationQueryDto } from '../shared/dto';
+import { QueueNames } from '../shared/queues';
 
 @Injectable()
 export class AdminService implements OnApplicationBootstrap {
@@ -34,6 +37,11 @@ export class AdminService implements OnApplicationBootstrap {
     private readonly adminRepository: AdminRepository,
     private readonly passwordService: PasswordService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    @InjectQueue(QueueNames.EMAIL) private readonly emailQueue: Queue,
+    @InjectQueue(QueueNames.CERTIFICATE) private readonly certificateQueue: Queue,
+    @InjectQueue(QueueNames.NOTIFICATION) private readonly notificationQueue: Queue,
+    @InjectQueue(QueueNames.VIDEO) private readonly videoQueue: Queue,
+    @InjectQueue(QueueNames.WALLET) private readonly walletQueue: Queue,
   ) {}
 
   /** Run after DI is fully set up — safe for async logic */
@@ -341,6 +349,7 @@ export class AdminService implements OnApplicationBootstrap {
       title: dto.title,
       content: dto.content,
       videoUrl: dto.videoUrl,
+      mediaAssetId: dto.mediaAssetId,
       duration: dto.duration,
       sectionId: dto.sectionId,
       order: nextOrder,
@@ -358,6 +367,46 @@ export class AdminService implements OnApplicationBootstrap {
     const lesson = await this.lessonRepository.findById(id);
     if (!lesson) throw new NotFoundException('Lesson not found');
     await this.lessonRepository.delete(id);
+  }
+
+  async getQueueHealth() {
+    const queues = this.getQueueMap();
+    const entries = await Promise.all(
+      Object.entries(queues).map(async ([name, queue]) => ({
+        name,
+        counts: await queue.getJobCounts(),
+      })),
+    );
+    return entries;
+  }
+
+  async getFailedJobs(queueName: string, limit = 20) {
+    const queue = this.getQueueMap()[queueName];
+    if (!queue) {
+      throw new BadRequestException(`Unknown queue: ${queueName}`);
+    }
+
+    const jobs = await queue.getFailed(0, Math.max(0, limit - 1));
+    return jobs.map((job) => ({
+      id: job.id,
+      name: job.name,
+      data: job.data,
+      failedReason: job.failedReason,
+      attemptsMade: job.attemptsMade,
+      timestamp: job.timestamp,
+      processedOn: job.processedOn,
+      finishedOn: job.finishedOn,
+    }));
+  }
+
+  private getQueueMap(): Record<string, Queue> {
+    return {
+      [QueueNames.EMAIL]: this.emailQueue,
+      [QueueNames.CERTIFICATE]: this.certificateQueue,
+      [QueueNames.NOTIFICATION]: this.notificationQueue,
+      [QueueNames.VIDEO]: this.videoQueue,
+      [QueueNames.WALLET]: this.walletQueue,
+    };
   }
 
   // ─── Dashboard & Analytics ────────────────────────────────────────────────

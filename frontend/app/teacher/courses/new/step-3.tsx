@@ -10,7 +10,7 @@ function UploadButton({
   lesId, type, token, onUploaded, uploading, setUploading, accept, label, color
 }: {
   lesId: string; type: "video" | "image" | "file"; token: string;
-  onUploaded: (url: string) => void; uploading: Record<string, boolean>;
+  onUploaded: (url: string, mediaAssetId?: string) => void; uploading: Record<string, boolean>;
   setUploading: (fn: (prev: any) => any) => void;
   accept: string; label: string; color: string;
 }) {
@@ -59,7 +59,7 @@ function UploadButton({
           return;
         }
 
-        onUploaded(url);
+        onUploaded(url, data.mediaAssetId);
         toast.success(type === "video" ? "Video đã xử lý xong!" : "Tải lên thành công!");
       } else {
         const err = await res.json().catch(() => ({}));
@@ -117,7 +117,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
   const addLesson = (secId: string) => {
     setSections((prev: any[]) => prev.map(s => s.id === secId ? {
       ...s, expanded: true,
-      lessons: [...s.lessons, { id: `les-${Date.now()}`, title: "", videoUrl: "", documentUrl: "", documentOriginalName: "", assignmentImageUrl: "" }]
+      lessons: [...s.lessons, { id: `les-${Date.now()}`, title: "", videoUrl: "", mediaAssetId: "", documentUrl: "", documentOriginalName: "", assignmentImageUrl: "" }]
     } : s));
   };
 
@@ -206,7 +206,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                           ) : (
                             <UploadButton
                               lesId={les.id} type="video" token={token}
-                              onUploaded={(url) => updateLesson(sec.id, les.id, { videoUrl: url })}
+                              onUploaded={(url, mediaAssetId) => updateLesson(sec.id, les.id, { videoUrl: url, mediaAssetId })}
                               uploading={uploading} setUploading={setUploading}
                               accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
                               label="Tải video từ máy" color="#ef4444"

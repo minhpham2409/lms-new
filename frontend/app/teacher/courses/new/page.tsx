@@ -108,6 +108,7 @@ export default function CourseWizardPage() {
             title: les.title.trim(),
             sectionId: savedSection.id,
             ...(les.videoUrl ? { videoUrl: les.videoUrl } : {}),
+            ...(les.mediaAssetId ? { mediaAssetId: les.mediaAssetId } : {}),
           };
 
           const lesRes = await fetch(`${API}/lessons`, {

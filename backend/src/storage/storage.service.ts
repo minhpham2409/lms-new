@@ -5,6 +5,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
+  ListObjectsV2Command,
   HeadObjectCommand,
   GetObjectCommand,
   CreateBucketCommand,
@@ -141,6 +142,37 @@ export class StorageService implements OnModuleInit {
         }),
       );
     }
+  }
+
+  /**
+   * Delete all objects under a prefix. Used for HLS segment cleanup.
+   */
+  async deletePrefix(prefix: string): Promise<number> {
+    let continuationToken: string | undefined;
+    let deleted = 0;
+
+    do {
+      const response = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      const keys = (response.Contents ?? [])
+        .map((object) => object.Key)
+        .filter((key): key is string => !!key);
+
+      if (keys.length > 0) {
+        await this.deleteObjects(keys);
+        deleted += keys.length;
+      }
+
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return deleted;
   }
 
   /**

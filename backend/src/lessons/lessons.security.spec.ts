@@ -4,6 +4,7 @@ import { LessonsService } from './lessons.service';
 import { LessonRepository } from '../database/repositories/lesson.repository';
 import { SectionRepository } from '../database/repositories/section.repository';
 import { EnrollmentRepository } from '../database/repositories/enrollment.repository';
+import { PrismaService } from '../prisma/prisma.service';
 
 const mockLesson = {
   id: 'lesson-1',
@@ -51,6 +52,14 @@ describe('LessonsService — Content Access Security', () => {
         { provide: LessonRepository, useValue: lessonRepo },
         { provide: SectionRepository, useValue: sectionRepo },
         { provide: EnrollmentRepository, useValue: enrollmentRepo },
+        {
+          provide: PrismaService,
+          useValue: {
+            mediaAsset: {
+              findUnique: jest.fn(),
+            },
+          },
+        },
       ],
     }).compile();
 

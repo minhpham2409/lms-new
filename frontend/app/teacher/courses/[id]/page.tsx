@@ -59,7 +59,7 @@ export default function TeacherCourseEditPage() {
     } catch {} finally { setLoading(false); }
   }
 
-  async function uploadVideo(file: File): Promise<string | null> {
+  async function uploadVideo(file: File): Promise<{ url: string; mediaAssetId?: string } | null> {
     setUploading(true);
     setUploadPhase("uploading");
     setUploadProgress(0);
@@ -82,7 +82,7 @@ export default function TeacherCourseEditPage() {
             const data = JSON.parse(xhr.responseText);
             if (data.url) {
               setUploading(false);
-              resolve(data.url);
+              resolve({ url: data.url, mediaAssetId: data.mediaAssetId });
               return;
             }
 
@@ -91,7 +91,7 @@ export default function TeacherCourseEditPage() {
               setUploadProgress(100);
               const url = await waitForVideoJob(data.jobId);
               setUploading(false);
-              resolve(url);
+              resolve(url ? { url, mediaAssetId: data.mediaAssetId } : null);
               return;
             }
 
@@ -170,9 +170,13 @@ export default function TeacherCourseEditPage() {
     setSaving(true);
     try {
       let videoUrl: string | undefined;
+      let mediaAssetId: string | undefined;
       if (newLessonVideo) {
-        const url = await uploadVideo(newLessonVideo);
-        if (url) videoUrl = url;
+        const upload = await uploadVideo(newLessonVideo);
+        if (upload) {
+          videoUrl = upload.url;
+          mediaAssetId = upload.mediaAssetId;
+        }
       }
       const section = course?.sections?.find((s: any) => s.id === sectionId);
       const order = (section?.lessons?.length || 0) + 1;
@@ -183,6 +187,7 @@ export default function TeacherCourseEditPage() {
           title: newLessonTitle.trim(),
           content: newLessonContent.trim() || undefined,
           videoUrl,
+          mediaAssetId,
           sectionId,
           order,
         }),
@@ -203,12 +208,12 @@ export default function TeacherCourseEditPage() {
   async function updateLessonVideo(lessonId: string, file: File) {
     setUploading(true);
     try {
-      const url = await uploadVideo(file);
-      if (!url) return;
+      const upload = await uploadVideo(file);
+      if (!upload) return;
       const res = await fetch(`${API}/lessons/${lessonId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ videoUrl: url }),
+        body: JSON.stringify({ videoUrl: upload.url, mediaAssetId: upload.mediaAssetId }),
       });
       if (res.ok) {
         toast.success("Đã cập nhật video!");

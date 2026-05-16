@@ -157,6 +157,7 @@ model Lesson {
   title         String
   content       String?
   videoUrl      String?
+  mediaAssetId  String?         @unique
   duration      Int?
   order         Int
   sectionId     String
@@ -164,12 +165,14 @@ model Lesson {
   updatedAt     DateTime        @updatedAt
   assignments   Assignment[]
   comments      Comment[]
+  mediaAsset    MediaAsset?     @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
   section       Section         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   materials     Material[]
   videoProgress VideoProgress[]
 
   @@unique([sectionId, order])
   @@index([sectionId])
+  @@index([mediaAssetId])
 }
 
 model MediaAsset {
@@ -189,6 +192,7 @@ model MediaAsset {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  lesson         Lesson?
 
   @@index([ownerId, status])
   @@index([storageKey])

@@ -24,4 +24,9 @@ export class CreateLessonDto {
   @IsOptional()
   @IsString()
   videoUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mediaAssetId?: string;
 }

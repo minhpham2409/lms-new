@@ -147,4 +147,17 @@ export class AdminController {
   getStatsCourses() {
     return this.adminService.getStatsCourses();
   }
+
+  @Get('queues/health')
+  getQueueHealth() {
+    return this.adminService.getQueueHealth();
+  }
+
+  @Get('queues/:name/failed')
+  getFailedJobs(
+    @Param('name') name: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.adminService.getFailedJobs(name, limit ? Number(limit) : 20);
+  }
 }
