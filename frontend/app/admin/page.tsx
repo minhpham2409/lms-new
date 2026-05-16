@@ -8,8 +8,8 @@ import { useAuth } from "@/components/auth/auth-state";
 import {
   Users, BookOpen, DollarSign, TrendingUp, Shield, BarChart3, Search,
   Eye, Trash2, UserCheck, UserX,
-  Tag, Package, RefreshCw, Activity,
-  CheckCircle2, Clock, XCircle, Loader2,
+  Tag, Package, RefreshCw, Activity, Wallet,
+  CheckCircle2, Clock, XCircle, Loader2, BanknoteIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,7 +23,7 @@ const statusIcons: Record<string, { color: string; Icon: any }> = {
   active: { color: "#10b981", Icon: CheckCircle2 }, expired: { color: "#ef4444", Icon: XCircle },
 };
 
-type Tab = "overview" | "users" | "courses" | "orders" | "coupons";
+type Tab = "overview" | "users" | "courses" | "orders" | "coupons" | "payouts";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -36,6 +36,7 @@ export default function AdminPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
+  const [payouts, setPayouts] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any>(null);
   const [courseStats, setCourseStats] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -58,7 +59,7 @@ export default function AdminPage() {
     setDataLoading(true);
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const [statsR, usersR, coursesR, ordersR, couponsR, revR, csR] = await Promise.all([
+      const [statsR, usersR, coursesR, ordersR, couponsR, revR, csR, payoutsR] = await Promise.all([
         fetch(`${API}/admin/dashboard`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/admin/users`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/courses`, { headers }).then(r => r.ok ? r.json() : []),
@@ -66,12 +67,14 @@ export default function AdminPage() {
         fetch(`${API}/coupons`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/stats/revenue`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/admin/stats/courses`, { headers }).then(r => r.ok ? r.json() : []),
+        fetch(`${API}/wallets/admin/payouts`, { headers }).then(r => r.ok ? r.json() : { data: [] }),
       ]);
       setStats(statsR);
       setUsers(Array.isArray(usersR) ? usersR : Array.isArray(usersR?.data) ? usersR.data : []);
       setCourses(Array.isArray(coursesR) ? coursesR : Array.isArray(coursesR?.data) ? coursesR.data : []);
       setOrders(Array.isArray(ordersR) ? ordersR : Array.isArray(ordersR?.data) ? ordersR.data : []);
       setCoupons(Array.isArray(couponsR) ? couponsR : Array.isArray(couponsR?.data) ? couponsR.data : []);
+      setPayouts(Array.isArray(payoutsR) ? payoutsR : Array.isArray(payoutsR?.data) ? payoutsR.data : []);
       setRevenueData(revR);
       setCourseStats(Array.isArray(csR) ? csR : Array.isArray(csR?.data) ? csR.data : []);
     } catch {} finally { setDataLoading(false); }
@@ -131,6 +134,45 @@ export default function AdminPage() {
     } catch { toast.error("Lỗi"); }
   }
 
+  async function approvePayout(payoutId: string) {
+    const bankTransferRef = prompt("Nhập mã giao dịch chuyển khoản (VD: VCB123456):");
+    if (bankTransferRef === null) return;
+    const adminNote = prompt("Ghi chú (tùy chọn):") || undefined;
+    try {
+      const res = await fetch(`${API}/wallets/admin/payouts/${payoutId}/approve`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bankTransferRef: bankTransferRef || undefined, adminNote }),
+      });
+      if (res.ok) {
+        setPayouts(payouts.map(p => p.id === payoutId ? { ...p, status: "APPROVED", bankTransferRef } : p));
+        toast.success("Đã duyệt yêu cầu rút tiền");
+      } else {
+        const d = await res.json();
+        toast.error(d.message || "Lỗi");
+      }
+    } catch { toast.error("Lỗi kết nối"); }
+  }
+
+  async function rejectPayout(payoutId: string) {
+    const adminNote = prompt("Lý do từ chối:");
+    if (!adminNote) return;
+    try {
+      const res = await fetch(`${API}/wallets/admin/payouts/${payoutId}/reject`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ adminNote }),
+      });
+      if (res.ok) {
+        setPayouts(payouts.map(p => p.id === payoutId ? { ...p, status: "REJECTED", adminNote } : p));
+        toast.success("Đã từ chối yêu cầu rút tiền");
+      } else {
+        const d = await res.json();
+        toast.error(d.message || "Lỗi");
+      }
+    } catch { toast.error("Lỗi kết nối"); }
+  }
+
   if (authLoading || !user || user.role !== "admin") {
     return (<div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
       <div className="w-8 h-8 border-2 border-[#ef4444] border-t-transparent rounded-full animate-spin" />
@@ -143,6 +185,7 @@ export default function AdminPage() {
     { id: "courses", label: "Khóa học", icon: BookOpen },
     { id: "orders", label: "Đơn hàng", icon: Package },
     { id: "coupons", label: "Mã giảm giá", icon: Tag },
+    { id: "payouts", label: "Rút tiền", icon: Wallet },
   ];
 
   const filteredUsers = users.filter(u => !search || u.username?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
@@ -532,6 +575,59 @@ export default function AdminPage() {
                     </div>
                   )}
                 </>
+              )}
+
+              {/* PAYOUTS */}
+              {tab === "payouts" && (
+                <div className="card-base overflow-hidden">
+                  <div className="p-5 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
+                    <h2 className="font-bold">Yêu cầu rút tiền <span className="text-xs font-normal" style={{ color: "var(--foreground-muted)" }}>({payouts.length})</span></h2>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr style={{ borderBottom: "1px solid var(--border)" }}>
+                        {["Giáo viên", "Số tiền", "Ngân hàng", "Số TK", "Chủ TK", "Trạng thái", "Ngày", "Thao tác"].map(h => (
+                          <th key={h} className="text-left px-4 py-3 text-xs font-semibold whitespace-nowrap" style={{ color: "var(--foreground-muted)" }}>{h}</th>
+                        ))}
+                      </tr></thead>
+                      <tbody>
+                        {payouts.length === 0 ? (
+                          <tr><td colSpan={8} className="px-4 py-8 text-center text-sm" style={{ color: "var(--foreground-muted)" }}>Chưa có yêu cầu rút tiền nào</td></tr>
+                        ) : payouts.map((p: any) => {
+                          const bank = p.bankDetails || {};
+                          const statusColors: Record<string, string> = { PENDING: "#f59e0b", APPROVED: "#10b981", REJECTED: "#ef4444", CANCELLED: "#6b7280" };
+                          const statusLabels: Record<string, string> = { PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối", CANCELLED: "Đã hủy" };
+                          const sc = statusColors[p.status] || "#6b7280";
+                          return (
+                            <tr key={p.id} className="transition-colors hover:bg-[var(--muted)]" style={{ borderBottom: "1px solid var(--border)" }}>
+                              <td className="px-4 py-3.5 font-semibold">{p.user?.username || p.user?.firstName || "—"}</td>
+                              <td className="px-4 py-3.5 font-bold" style={{ color: "#ef4444" }}>{Number(p.amount).toLocaleString()} ₫</td>
+                              <td className="px-4 py-3.5" style={{ color: "var(--foreground-muted)" }}>{bank.bankName || p.user?.bankName || "—"}</td>
+                              <td className="px-4 py-3.5 font-mono text-xs">{bank.bankAccount || p.user?.bankAccount || "—"}</td>
+                              <td className="px-4 py-3.5">{bank.bankOwner || p.user?.bankOwner || "—"}</td>
+                              <td className="px-4 py-3.5">
+                                <span className="px-2 py-1 rounded-full text-[10px] font-bold" style={{ background: `${sc}15`, color: sc, border: `1px solid ${sc}30` }}>
+                                  {statusLabels[p.status] || p.status}
+                                </span>
+                                {p.bankTransferRef && <p className="text-[10px] mt-1 font-mono" style={{ color: "var(--foreground-muted)" }}>Ref: {p.bankTransferRef}</p>}
+                                {p.adminNote && <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>{p.adminNote}</p>}
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap" style={{ color: "var(--foreground-muted)" }}>{new Date(p.createdAt).toLocaleDateString("vi-VN")}</td>
+                              <td className="px-4 py-3.5">
+                                {p.status === "PENDING" && (
+                                  <div className="flex gap-1">
+                                    <button onClick={() => approvePayout(p.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#10b981" }}>Duyệt</button>
+                                    <button onClick={() => rejectPayout(p.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#ef4444" }}>Từ chối</button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </>
           )}

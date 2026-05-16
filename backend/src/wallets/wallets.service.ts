@@ -166,10 +166,14 @@ export class WalletsService {
     };
   }
 
-  async approvePayout(payoutId: string) {
+  async approvePayout(payoutId: string, adminId: string, bankTransferRef?: string, adminNote?: string) {
     try {
-      const result = await this.walletRepository.approvePayoutAtomic(payoutId);
-      this.logger.log(`[Payout] Admin approved payout ${payoutId}`);
+      const result = await this.walletRepository.approvePayoutAtomic(payoutId, {
+        adminId,
+        bankTransferRef,
+        adminNote,
+      });
+      this.logger.log(`[Payout] Admin ${adminId} approved payout ${payoutId}`);
       return {
         ...result,
         amount: result.amount.toString(),
@@ -180,14 +184,14 @@ export class WalletsService {
     }
   }
 
-  async rejectPayout(payoutId: string, adminNote?: string) {
+  async rejectPayout(payoutId: string, adminId: string, adminNote?: string) {
     try {
       const result = await this.walletRepository.rejectPayoutAtomic(
         payoutId,
-        adminNote,
+        { adminId, adminNote },
       );
       this.logger.log(
-        `[Payout] Admin rejected payout ${payoutId}: ${adminNote ?? ''}`,
+        `[Payout] Admin ${adminId} rejected payout ${payoutId}: ${adminNote ?? ''}`,
       );
       return {
         ...result,
@@ -197,6 +201,14 @@ export class WalletsService {
       const message = err instanceof Error ? err.message : String(err);
       throw new BadRequestException(message);
     }
+  }
+
+  async getMyPayouts(userId: string) {
+    const payouts = await this.walletRepository.findPayoutsByUser(userId);
+    return payouts.map((p) => ({
+      ...p,
+      amount: p.amount.toString(),
+    }));
   }
 
   // ─── System Config ─────────────────────────────────────────────────

@@ -86,6 +86,11 @@ export class PaymentsService {
       throw new BadRequestException('Order has already been paid');
     }
 
+    // Bank config — read from env or use defaults
+    const bankCode = process.env.BANK_CODE || 'MB';
+    const bankAccount = process.env.BANK_ACCOUNT || '0389999999';
+    const accountName = process.env.BANK_ACCOUNT_NAME || 'NGUYEN VAN MINH';
+
     const reusePending =
       !dto.forceRegenerate &&
       existing &&
@@ -94,27 +99,48 @@ export class PaymentsService {
       existing.txnRef;
 
     if (reusePending) {
-      return existing;
+      const addInfo = `HL ${existing.txnRef}`;
+      const amount = Number(order.finalPrice);
+      return {
+        ...existing,
+        bankCode,
+        bankAccount,
+        accountName,
+        addInfo,
+        vietQrUrl: `https://img.vietqr.io/image/${bankCode}-${bankAccount}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accountName)}`,
+      };
     }
 
     const txnRef = randomUUID();
     const finalPrice = Number(order.finalPrice);
-    const qrData = `VIETQR|${txnRef}|${finalPrice}|LMS Payment ${order.id}`;
+    const addInfo = `HL ${txnRef}`;
+    const vietQrUrl = `https://img.vietqr.io/image/${bankCode}-${bankAccount}-compact2.png?amount=${finalPrice}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accountName)}`;
+    const qrData = `VIETQR|${txnRef}|${finalPrice}|${addInfo}`;
 
+    let payment;
     if (existing) {
-      return this.paymentRepository.update(existing.id, {
+      payment = await this.paymentRepository.update(existing.id, {
         txnRef,
         qrData,
         status: 'pending',
       });
+    } else {
+      payment = await this.paymentRepository.create({
+        orderId: dto.orderId,
+        amount: order.finalPrice,
+        txnRef,
+        qrData,
+      });
     }
 
-    return this.paymentRepository.create({
-      orderId: dto.orderId,
-      amount: order.finalPrice,
-      txnRef,
-      qrData,
-    });
+    return {
+      ...payment,
+      bankCode,
+      bankAccount,
+      accountName,
+      addInfo,
+      vietQrUrl,
+    };
   }
 
   /**

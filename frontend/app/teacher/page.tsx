@@ -44,7 +44,7 @@ export default function TeacherPage() {
   const [payoutAmount, setPayoutAmount] = useState("");
 
   useEffect(() => {
-    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); fetchWallet(); }
+    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); fetchWallet(); fetchBankInfo(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -124,6 +124,20 @@ export default function TeacherPage() {
       });
       if (res.ok) setWallet(await res.json());
     } catch {} finally { setWalletLoading(false); }
+  }
+
+  async function fetchBankInfo() {
+    try {
+      const res = await fetch(`${API}/auth/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const profile = await res.json();
+        if (profile.bankName) setBankName(profile.bankName);
+        if (profile.bankAccount) setBankAccount(profile.bankAccount);
+        if (profile.bankOwner) setBankOwner(profile.bankOwner);
+      }
+    } catch {}
   }
 
   async function saveBankInfo() {

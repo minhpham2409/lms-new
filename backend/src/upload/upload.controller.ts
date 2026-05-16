@@ -11,9 +11,9 @@ import { UploadService } from './upload.service';
 import { HlsService } from '../hls/hls.service';
 import { StorageService } from '../storage/storage.service';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { extname, join } from 'path';
 import { getContentType } from '../storage/storage.constants';
-import { createReadStream, unlinkSync, existsSync } from 'fs';
+import { createReadStream, unlinkSync, existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
@@ -32,6 +32,27 @@ function cleanupUploadedFile(path?: string) {
   } catch {
     // Best-effort cleanup only.
   }
+}
+
+/**
+ * Static helpers for multer diskStorage config.
+ * We cannot use NestJS DI inside multer's static config,
+ * so these replicate the minimal logic from UploadService.
+ */
+const UPLOAD_BASE = join(process.cwd(), 'uploads');
+
+function ensureDir(dir: string): string {
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function getUploadDestination(type: string) {
+  return ensureDir(join(UPLOAD_BASE, type));
+}
+
+function generateFilename(originalName: string): string {
+  const ext = extname(originalName).toLowerCase();
+  return `${randomUUID()}${ext}`;
 }
 
 @ApiTags('Upload')
@@ -61,12 +82,10 @@ export class UploadController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          const uploadService = new UploadService();
-          cb(null, uploadService.getUploadDir('videos'));
+          cb(null, getUploadDestination('videos'));
         },
         filename: (_req, file, cb) => {
-          const uploadService = new UploadService();
-          cb(null, uploadService.generateFilename(file.originalname));
+          cb(null, generateFilename(file.originalname));
         },
       }),
       limits: { fileSize: MAX_VIDEO_SIZE },
@@ -106,7 +125,8 @@ export class UploadController {
           mimetype: file.mimetype,
         };
       } catch (error) {
-        // Fail hard if HLS conversion fails
+        // Cleanup the uploaded temp file on HLS failure
+        cleanupUploadedFile(file.path);
         throw new InternalServerErrorException(
           `HLS conversion failed: ${(error as Error).message}`
         );
@@ -153,12 +173,10 @@ export class UploadController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          const uploadService = new UploadService();
-          cb(null, uploadService.getUploadDir('images'));
+          cb(null, getUploadDestination('images'));
         },
         filename: (_req, file, cb) => {
-          const uploadService = new UploadService();
-          cb(null, uploadService.generateFilename(file.originalname));
+          cb(null, generateFilename(file.originalname));
         },
       }),
       limits: { fileSize: MAX_IMAGE_SIZE },
@@ -224,12 +242,10 @@ export class UploadController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          const uploadService = new UploadService();
-          cb(null, uploadService.getUploadDir('files'));
+          cb(null, getUploadDestination('files'));
         },
         filename: (_req, file, cb) => {
-          const uploadService = new UploadService();
-          cb(null, uploadService.generateFilename(file.originalname));
+          cb(null, generateFilename(file.originalname));
         },
       }),
       limits: { fileSize: MAX_FILE_SIZE },

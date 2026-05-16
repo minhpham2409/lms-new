@@ -60,8 +60,8 @@ export class OrderRepository extends BaseRepository<Order> {
   }
 
   /**
-   * ATOMIC: Create order + items + clear cart in a single transaction.
-   * Prevents partial state (e.g., order created but cart not cleared).
+   * ATOMIC: Create order + items + pending enrollments + clear cart in a single transaction.
+   * Prevents partial state (e.g., order created but enrollment/cart not handled).
    */
   createOrderTransaction(data: {
     userId: string;
@@ -84,6 +84,25 @@ export class OrderRepository extends BaseRepository<Order> {
           coupon: { select: { code: true, discount: true } },
         },
       });
+
+      // Create pending enrollments for paid courses (idempotent upsert)
+      for (const item of data.items) {
+        await tx.enrollment.upsert({
+          where: {
+            userId_courseId: {
+              userId: data.userId,
+              courseId: item.courseId,
+            },
+          },
+          create: {
+            userId: data.userId,
+            courseId: item.courseId,
+            status: 'pending',
+            progress: 0,
+          },
+          update: {}, // If already exists (e.g. free course active), don't overwrite
+        });
+      }
 
       // Clear cart atomically with order creation
       await tx.cartItem.deleteMany({ where: { userId: data.userId } });

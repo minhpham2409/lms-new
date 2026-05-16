@@ -58,6 +58,14 @@ export class WalletsController {
     return this.walletsService.requestPayout(user.id, body.amount);
   }
 
+  /** Get teacher's own payout history */
+  @Get('payouts/me')
+  @UseGuards(RolesGuard)
+  @Roles('teacher')
+  getMyPayouts(@GetUser() user: { id: string }) {
+    return this.walletsService.getMyPayouts(user.id);
+  }
+
   // ─── Admin endpoints ────────────────────────────────────────────────
 
   /** Get all payout requests (paginated) */
@@ -76,12 +84,16 @@ export class WalletsController {
     });
   }
 
-  /** Approve a payout request */
+  /** Approve a payout request (with audit info) */
   @Patch('admin/payouts/:id/approve')
   @UseGuards(RolesGuard)
   @Roles('admin')
-  approvePayout(@Param('id') id: string) {
-    return this.walletsService.approvePayout(id);
+  approvePayout(
+    @Param('id') id: string,
+    @GetUser() user: { id: string },
+    @Body() body: { bankTransferRef?: string; adminNote?: string },
+  ) {
+    return this.walletsService.approvePayout(id, user.id, body.bankTransferRef, body.adminNote);
   }
 
   /** Reject a payout request */
@@ -90,9 +102,10 @@ export class WalletsController {
   @Roles('admin')
   rejectPayout(
     @Param('id') id: string,
+    @GetUser() user: { id: string },
     @Body() body: RejectPayoutDto,
   ) {
-    return this.walletsService.rejectPayout(id, body.adminNote);
+    return this.walletsService.rejectPayout(id, user.id, body.adminNote);
   }
 
   /** Get current platform fee */

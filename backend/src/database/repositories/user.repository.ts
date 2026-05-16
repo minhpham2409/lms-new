@@ -99,6 +99,9 @@ export class UserRepository extends BaseRepository<User> {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        bankName: true,
+        bankAccount: true,
+        bankOwner: true,
         childLinks: {
           where: { status: 'accepted' },
           select: { id: true, parentId: true, status: true },

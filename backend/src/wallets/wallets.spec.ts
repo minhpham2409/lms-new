@@ -64,6 +64,8 @@ describe('WalletRepository', () => {
       mockTx.order.findUnique.mockResolvedValue({
         id: 'order-1',
         status: 'paid',
+        totalPrice: new Prisma.Decimal('100.00'),
+        finalPrice: new Prisma.Decimal('100.00'),
         items: [
           {
             id: 'item-1',
@@ -122,6 +124,8 @@ describe('WalletRepository', () => {
       mockTx.order.findUnique.mockResolvedValue({
         id: 'order-1',
         status: 'paid',
+        totalPrice: new Prisma.Decimal('100.00'),
+        finalPrice: new Prisma.Decimal('100.00'),
         items: [
           {
             id: 'item-1',
@@ -170,6 +174,8 @@ describe('WalletRepository', () => {
       mockTx.order.findUnique.mockResolvedValue({
         id: 'order-1',
         status: 'paid',
+        totalPrice: new Prisma.Decimal('100.00'),
+        finalPrice: new Prisma.Decimal('100.00'),
         items: [
           {
             id: 'item-1',
@@ -230,6 +236,8 @@ describe('WalletRepository', () => {
       mockTx.order.findUnique.mockResolvedValue({
         id: 'order-1',
         status: 'paid',
+        totalPrice: new Prisma.Decimal('300.00'),
+        finalPrice: new Prisma.Decimal('300.00'),
         items: [
           {
             id: 'item-1',
@@ -403,7 +411,7 @@ describe('WalletRepository', () => {
       });
       mockTx.walletTransaction.create.mockResolvedValue({});
 
-      const result = await repo.approvePayoutAtomic('payout-1');
+      const result = await repo.approvePayoutAtomic('payout-1', { adminId: 'admin-1' });
 
       expect(result.status).toBe(PayoutStatus.APPROVED);
 
@@ -437,7 +445,7 @@ describe('WalletRepository', () => {
         amount: new Prisma.Decimal('100.00'),
       });
 
-      await expect(repo.approvePayoutAtomic('payout-1')).rejects.toThrow(
+      await expect(repo.approvePayoutAtomic('payout-1', { adminId: 'admin-1' })).rejects.toThrow(
         'only PENDING can be approved',
       );
     });
@@ -453,7 +461,7 @@ describe('WalletRepository', () => {
         amount: new Prisma.Decimal('100.00'),
       });
 
-      await expect(repo.approvePayoutAtomic('payout-1')).rejects.toThrow(
+      await expect(repo.approvePayoutAtomic('payout-1', { adminId: 'admin-1' })).rejects.toThrow(
         'only PENDING can be approved',
       );
     });
@@ -491,7 +499,7 @@ describe('WalletRepository', () => {
 
       const result = await repo.rejectPayoutAtomic(
         'payout-1',
-        'Invalid bank info',
+        { adminId: 'admin-1', adminNote: 'Invalid bank info' },
       );
 
       expect(result.status).toBe(PayoutStatus.REJECTED);
@@ -530,7 +538,7 @@ describe('WalletRepository', () => {
       });
 
       await expect(
-        repo.rejectPayoutAtomic('payout-1', 'note'),
+        repo.rejectPayoutAtomic('payout-1', { adminId: 'admin-1', adminNote: 'note' }),
       ).rejects.toThrow('only PENDING can be rejected');
     });
 
@@ -546,7 +554,7 @@ describe('WalletRepository', () => {
       });
 
       await expect(
-        repo.rejectPayoutAtomic('payout-1'),
+        repo.rejectPayoutAtomic('payout-1', { adminId: 'admin-1' }),
       ).rejects.toThrow('only PENDING can be rejected');
     });
   });

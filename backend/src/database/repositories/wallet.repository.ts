@@ -175,6 +175,9 @@ export class WalletRepository extends BaseRepository<Wallet> {
         );
       }
 
+      const orderTotalPrice = toDecimal(order.totalPrice);
+      const orderFinalPrice = toDecimal(order.finalPrice);
+
       let credited = 0;
       let skippedDuplicate = 0;
       let totalTeacherEarning = toDecimal(0);
@@ -182,9 +185,20 @@ export class WalletRepository extends BaseRepository<Wallet> {
       for (const item of order.items) {
         if (!item.course) continue;
 
+        // Proportional revenue: actualItemRevenue = finalPrice * (item.price / totalPrice)
+        // This correctly accounts for coupons/discounts
         const itemPrice = toDecimal(item.price ?? item.course.price);
-        const platformCut = itemPrice.mul(feePercent).div(hundred);
-        const teacherEarning = itemPrice.minus(platformCut);
+        let actualItemRevenue: Prisma.Decimal;
+
+        if (orderTotalPrice.gt(0)) {
+          const itemShare = itemPrice.div(orderTotalPrice);
+          actualItemRevenue = orderFinalPrice.mul(itemShare);
+        } else {
+          actualItemRevenue = toDecimal(0);
+        }
+
+        const platformCut = actualItemRevenue.mul(feePercent).div(hundred);
+        const teacherEarning = actualItemRevenue.minus(platformCut);
 
         if (teacherEarning.lte(0)) continue;
 
@@ -317,7 +331,11 @@ export class WalletRepository extends BaseRepository<Wallet> {
    * ATOMIC: Approve payout — clear pendingBalance permanently.
    * Only processes PENDING payouts. Prevents double-approve.
    */
-  async approvePayoutAtomic(payoutId: string) {
+  async approvePayoutAtomic(payoutId: string, audit: {
+    adminId: string;
+    bankTransferRef?: string;
+    adminNote?: string;
+  }) {
     return this.prisma.$transaction(async (tx) => {
       const payout = await tx.payoutRequest.findUnique({
         where: { id: payoutId },
@@ -332,10 +350,16 @@ export class WalletRepository extends BaseRepository<Wallet> {
 
       const payoutAmount = toDecimal(payout.amount);
 
-      // Update status atomically
+      // Update status atomically with audit fields
       const updatedPayout = await tx.payoutRequest.update({
         where: { id: payoutId },
-        data: { status: PayoutStatus.APPROVED },
+        data: {
+          status: PayoutStatus.APPROVED,
+          processedByAdminId: audit.adminId,
+          processedAt: new Date(),
+          bankTransferRef: audit.bankTransferRef,
+          adminNote: audit.adminNote,
+        },
       });
 
       // Decrement pending balance
@@ -357,7 +381,7 @@ export class WalletRepository extends BaseRepository<Wallet> {
             amount: payoutAmount,
             type: WalletTransactionType.WITHDRAWAL_APPROVED,
             referenceId: payoutId,
-            description: `Payout approved #${payoutId.substring(0, 8)}`,
+            description: `Payout approved #${payoutId.substring(0, 8)}${audit.bankTransferRef ? ` — Ref: ${audit.bankTransferRef}` : ''}`,
           },
         });
       }
@@ -372,7 +396,10 @@ export class WalletRepository extends BaseRepository<Wallet> {
    * ATOMIC: Reject payout — return pending to available balance.
    * Only processes PENDING payouts. Prevents double-reject.
    */
-  async rejectPayoutAtomic(payoutId: string, adminNote?: string) {
+  async rejectPayoutAtomic(payoutId: string, audit: {
+    adminId: string;
+    adminNote?: string;
+  }) {
     return this.prisma.$transaction(async (tx) => {
       const payout = await tx.payoutRequest.findUnique({
         where: { id: payoutId },
@@ -387,10 +414,15 @@ export class WalletRepository extends BaseRepository<Wallet> {
 
       const payoutAmount = toDecimal(payout.amount);
 
-      // Update status with admin note
+      // Update status with admin note + audit
       const updatedPayout = await tx.payoutRequest.update({
         where: { id: payoutId },
-        data: { status: PayoutStatus.REJECTED, adminNote },
+        data: {
+          status: PayoutStatus.REJECTED,
+          adminNote: audit.adminNote,
+          processedByAdminId: audit.adminId,
+          processedAt: new Date(),
+        },
       });
 
       // Refund: pendingBalance → balance
@@ -413,12 +445,21 @@ export class WalletRepository extends BaseRepository<Wallet> {
             amount: payoutAmount,
             type: WalletTransactionType.WITHDRAWAL_REJECTED,
             referenceId: payoutId,
-            description: `Payout rejected #${payoutId.substring(0, 8)}${adminNote ? ` — ${adminNote}` : ''}`,
+            description: `Payout rejected #${payoutId.substring(0, 8)}${audit.adminNote ? ` — ${audit.adminNote}` : ''}`,
           },
         });
       }
 
       return updatedPayout;
+    });
+  }
+
+  // ─── Teacher: My Payouts ─────────────────────────────────────────────
+
+  async findPayoutsByUser(userId: string) {
+    return this.prisma.payoutRequest.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
     });
   }
 }

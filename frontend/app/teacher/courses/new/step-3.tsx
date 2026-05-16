@@ -72,6 +72,18 @@ function UploadButton({
   );
 }
 
+/** Check if a videoUrl is a YouTube link */
+function isYouTubeUrl(url: string): boolean {
+  if (!url) return false;
+  return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(url);
+}
+
+/** Check if a videoUrl was set by the upload callback (not a YouTube link) */
+function isUploadedVideo(url: string): boolean {
+  if (!url) return false;
+  return !isYouTubeUrl(url);
+}
+
 export function Step3Lessons({ sections, setSections, token }: any) {
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
 
@@ -149,7 +161,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                           {/* YouTube input */}
                           <input
                             placeholder="Link YouTube (https://youtube.com/...)"
-                            value={les.videoUrl.startsWith("/uploads") ? "" : les.videoUrl}
+                            value={isUploadedVideo(les.videoUrl) ? "" : les.videoUrl}
                             onChange={(e) => updateLesson(sec.id, les.id, { videoUrl: e.target.value })}
                             className="input-base text-xs py-1.5 w-full"
                           />
@@ -157,7 +169,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                           <div className="text-[10px] text-center" style={{ color: "var(--foreground-muted)" }}>— hoặc —</div>
 
                           {/* File upload */}
-                          {les.videoUrl.startsWith("/uploads") ? (
+                          {isUploadedVideo(les.videoUrl) ? (
                             <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
                               <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#ef4444" }} />
                               <span className="text-[10px] truncate flex-1" style={{ color: "#ef4444" }}>Video đã tải lên</span>

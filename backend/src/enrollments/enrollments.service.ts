@@ -102,7 +102,8 @@ export class EnrollmentsService {
 
   /**
    * Teacher/admin: approve a pending enrollment.
-   * Uses atomic transaction: Enrollment ✓ → Orders ✓ → Payments ✓
+   * Teachers can only approve FREE course enrollments.
+   * Paid course enrollments must be activated by webhook or admin.
    */
   async approveEnrollment(enrollmentId: string, user: any) {
     const enrollment = await this.enrollmentRepository.findByIdWithCourse(enrollmentId);
@@ -111,6 +112,13 @@ export class EnrollmentsService {
     // Check ownership
     if (user.role === 'teacher' && enrollment.course.authorId !== user.id) {
       throw new ForbiddenException('Not your course');
+    }
+
+    // Teachers cannot approve paid course enrollments — only admin/webhook can
+    if (user.role === 'teacher' && Number(enrollment.course.price) > 0) {
+      throw new ForbiddenException(
+        'Không thể duyệt khóa học trả phí. Chỉ admin hoặc hệ thống thanh toán mới có quyền xác nhận.',
+      );
     }
 
     // Atomic transaction: activate enrollment + mark orders/payments as paid

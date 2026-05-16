@@ -37,7 +37,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Create a course' })
   @ApiResponse({ status: 201, description: 'Course created' })
   create(@Body() dto: CreateCourseDto, @GetUser() user: any) {
-    return this.coursesService.create(dto, user.id);
+    return this.coursesService.create(dto, user.id, user.role);
   }
 
   @Get('search')
@@ -123,6 +123,6 @@ export class CoursesController {
   @ApiOperation({ summary: 'Delete course' })
   @ApiResponse({ status: 200, description: 'Course deleted' })
   remove(@Param('id') id: string, @GetUser() user: any) {
-    return this.coursesService.remove(id, user.id);
+    return this.coursesService.remove(id, { id: user.id, role: user.role });
   }
 }

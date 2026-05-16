@@ -7,7 +7,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { useAuth } from "@/components/auth/auth-state";
 import {
   ArrowLeft, Plus, Trash2, BookOpen, Upload,
-  FileText, Eye, Loader2, CheckCircle2, Film, X,
+  FileText, Eye, Loader2, CheckCircle2, Film, X, Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +38,12 @@ export default function TeacherCourseEditPage() {
   const [editingLesson, setEditingLesson] = useState<string | null>(null);
   const [_editVideoFile, setEditVideoFile] = useState<File | null>(null);
   const editVideoRef = useRef<HTMLInputElement>(null);
+
+  // Inline lesson edit
+  const [editLessonId, setEditLessonId] = useState<string | null>(null);
+  const [editLessonTitle, setEditLessonTitle] = useState("");
+  const [editLessonContent, setEditLessonContent] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     if (token && id) fetchCourse();
@@ -193,6 +199,31 @@ export default function TeacherCourseEditPage() {
     } catch { toast.error("Lỗi"); }
   }
 
+  function startEditLesson(lesson: any) {
+    setEditLessonId(lesson.id);
+    setEditLessonTitle(lesson.title || "");
+    setEditLessonContent(lesson.content || "");
+  }
+
+  async function saveEditLesson() {
+    if (!editLessonId || !editLessonTitle.trim()) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`${API}/lessons/${editLessonId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title: editLessonTitle.trim(), content: editLessonContent.trim() || undefined }),
+      });
+      if (res.ok) {
+        toast.success("Đã cập nhật bài học!");
+        setEditLessonId(null);
+        fetchCourse();
+      } else {
+        const d = await res.json(); toast.error(d.message || "Lỗi cập nhật");
+      }
+    } catch { toast.error("Lỗi kết nối"); } finally { setEditSaving(false); }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
@@ -258,33 +289,60 @@ export default function TeacherCourseEditPage() {
                 {/* Lessons list */}
                 <div className="space-y-2 ml-2">
                   {sec.lessons?.sort((a: any, b: any) => a.order - b.order).map((l: any) => (
-                    <div key={l.id} className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all group" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
-                      {l.videoUrl ? (
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
-                          <Film className="w-3.5 h-3.5" style={{ color: "#10b981" }} />
+                    <div key={l.id} className="rounded-xl transition-all group" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
+                      {editLessonId === l.id ? (
+                        /* ─── Inline Edit Mode ─── */
+                        <div className="p-4 space-y-3">
+                          <input value={editLessonTitle} onChange={(e) => setEditLessonTitle(e.target.value)}
+                            placeholder="Tên bài học" className="input-base text-sm w-full" />
+                          <textarea value={editLessonContent} onChange={(e) => setEditLessonContent(e.target.value)}
+                            placeholder="Nội dung bài học (tùy chọn)" rows={3} className="input-base text-sm resize-none w-full" />
+                          <div className="flex gap-2">
+                            <button onClick={saveEditLesson} disabled={editSaving || !editLessonTitle.trim()}
+                              className="btn-primary text-xs" style={{ opacity: editSaving || !editLessonTitle.trim() ? 0.5 : 1 }}>
+                              {editSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                              Lưu
+                            </button>
+                            <button onClick={() => setEditLessonId(null)} className="btn-ghost text-xs">Hủy</button>
+                          </div>
                         </div>
                       ) : (
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(245,158,11,0.15)" }}>
-                          <FileText className="w-3.5 h-3.5" style={{ color: "#f59e0b" }} />
+                        /* ─── Normal Display Mode ─── */
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          {l.videoUrl ? (
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
+                              <Film className="w-3.5 h-3.5" style={{ color: "#10b981" }} />
+                            </div>
+                          ) : (
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(245,158,11,0.15)" }}>
+                              <FileText className="w-3.5 h-3.5" style={{ color: "#f59e0b" }} />
+                            </div>
+                          )}
+                          <span className="text-sm flex-1 font-medium">{l.title}</span>
+
+                          {l.videoUrl ? (
+                            <span className="badge text-[10px] badge-success">Có video</span>
+                          ) : (
+                            <span className="badge text-[10px] badge-warning">Chưa có video</span>
+                          )}
+
+                          {/* Edit lesson button */}
+                          <button onClick={() => startEditLesson(l)}
+                            className="btn-ghost px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#f59e0b" }}>
+                            <Edit className="w-3 h-3" /> Sửa
+                          </button>
+
+                          {/* Upload/replace video button */}
+                          <button onClick={() => { setEditingLesson(l.id); editVideoRef.current?.click(); }}
+                            className="btn-ghost px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#0891b2" }}>
+                            <Upload className="w-3 h-3" /> {l.videoUrl ? "Đổi video" : "Up video"}
+                          </button>
+
+                          <button onClick={() => deleteLesson(l.id)} className="btn-ghost px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Trash2 className="w-3 h-3" style={{ color: "#ef4444" }} />
+                          </button>
                         </div>
                       )}
-                      <span className="text-sm flex-1 font-medium">{l.title}</span>
-
-                      {l.videoUrl ? (
-                        <span className="badge text-[10px] badge-success">Có video</span>
-                      ) : (
-                        <span className="badge text-[10px] badge-warning">Chưa có video</span>
-                      )}
-
-                      {/* Upload/replace video button */}
-                      <button onClick={() => { setEditingLesson(l.id); editVideoRef.current?.click(); }}
-                        className="btn-ghost px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#0891b2" }}>
-                        <Upload className="w-3 h-3" /> {l.videoUrl ? "Đổi video" : "Up video"}
-                      </button>
-
-                      <button onClick={() => deleteLesson(l.id)} className="btn-ghost px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Trash2 className="w-3 h-3" style={{ color: "#ef4444" }} />
-                      </button>
                     </div>
                   ))}
 

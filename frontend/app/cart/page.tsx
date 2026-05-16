@@ -26,6 +26,7 @@ export default function CartPage() {
   const [sending, setSending] = useState(false);
   const [myCoupons, setMyCoupons] = useState<any[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; savings: number } | null>(null);
+  const [qrPayment, setQrPayment] = useState<{ vietQrUrl: string; txnRef: string; addInfo: string; amount: number } | null>(null);
 
   useEffect(() => {
     if (!loading && isLoggedIn && user?.role !== "student") router.push("/dashboard");
@@ -137,6 +138,7 @@ export default function CartPage() {
     setSending(true);
     try {
       // 1. Create order from cart (with coupon if applied)
+      //    This atomically creates: order + items + pending enrollments + clears cart
       const orderRes = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -150,24 +152,24 @@ export default function CartPage() {
       }
       const order = await orderRes.json();
 
-      // 2. Generate QR for the order
-      await fetch(`${API}/payments/qr`, {
+      // 2. Generate QR for the order — API returns vietQrUrl with correct txnRef
+      const qrRes = await fetch(`${API}/payments/qr`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ orderId: order.id }),
-      }).catch(() => {});
-
-      // 3. Create pending enrollments for each course
-      for (const item of items) {
-        await fetch(`${API}/enrollments/pending`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ courseId: item.course?.id || item.courseId }),
-        }).catch(() => {});
+      });
+      if (qrRes.ok) {
+        const qrData = await qrRes.json();
+        setQrPayment({
+          vietQrUrl: qrData.vietQrUrl,
+          txnRef: qrData.txnRef,
+          addInfo: qrData.addInfo,
+          amount: Number(qrData.amount),
+        });
       }
 
-      // 4. Send notification to parent (the backend handles this via the order/payment flow)
-      // The parent will see the pending order with QR on their dashboard
+      // Pending enrollments are already created atomically in the order transaction
+      // No separate POST /enrollments/pending needed
 
       setPaymentSent(true);
       setItems([]);
@@ -322,11 +324,14 @@ export default function CartPage() {
                   <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>Mã QR sẽ được gửi đến phụ huynh của bạn</p>
                   <div className="w-56 h-56 mx-auto rounded-2xl flex items-center justify-center mb-4" style={{ background: "white", border: "2px solid var(--border)" }}>
                     <img
-                      src={`https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${finalTotal}&addInfo=${encodeURIComponent(`HL - ${user?.username}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
+                      src={qrPayment?.vietQrUrl || `https://img.vietqr.io/image/MB-0389999999-compact2.png?amount=${finalTotal}&addInfo=${encodeURIComponent(`HL - ${user?.username}`)}&accountName=${encodeURIComponent('NGUYEN VAN MINH')}`}
                       alt="QR" className="w-52 h-52 object-contain"
                       onError={(e) => { e.currentTarget.onerror = null; (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Thanh toan ${finalTotal} VND`)}`; }}
                     />
                   </div>
+                  {qrPayment?.addInfo && (
+                    <p className="text-xs mb-2 font-mono" style={{ color: "var(--foreground-muted)" }}>Nội dung CK: <span className="font-semibold">{qrPayment.addInfo}</span></p>
+                  )}
                   <div className="flex justify-between px-4 py-2 rounded-lg text-sm" style={{ background: "var(--muted)" }}>
                     <span style={{ color: "var(--foreground-muted)" }}>Tổng</span>
                     <span className="font-bold gradient-text">{finalTotal.toLocaleString()} ₫</span>

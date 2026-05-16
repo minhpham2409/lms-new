@@ -22,9 +22,11 @@ export class CoursesService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
-  async create(dto: CreateCourseDto, authorId: string) {
+  async create(dto: CreateCourseDto, authorId: string, role?: string) {
+    // Only admin can set status directly — teachers always start as draft
+    const status = role === 'admin' && dto.status ? dto.status : 'draft';
     const result = await this.courseRepository.createWithAuthor(
-      { ...dto, status: dto.status ?? 'draft' },
+      { ...dto, status },
       authorId,
     );
     await this.invalidateCourseCaches();
@@ -88,12 +90,13 @@ export class CoursesService {
     });
   }
 
-  async remove(id: string, authorId: string) {
+  async remove(id: string, user: { id: string; role: string }) {
     const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
-    if (course.authorId !== authorId)
+    const isAdmin = user.role === 'admin';
+    if (course.authorId !== user.id && !isAdmin)
       throw new ForbiddenException('You can only delete your own courses');
-    if (course.status !== 'draft')
+    if (course.status !== 'draft' && !isAdmin)
       throw new ForbiddenException('Only draft courses can be deleted');
     const result = await this.courseRepository.delete(id);
     await this.invalidateCourseCaches(id);
