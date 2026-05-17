@@ -97,7 +97,7 @@ function CoursesPageContent() {
            </h1>
            <p className="text-foreground-muted mb-6">Khám phá hàng trăm khóa học trực tuyến từ cơ bản đến nâng cao.</p>
            
-           <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
+           <div className="flex flex-wrap gap-4 pb-2">
              <div className="flex items-center gap-2 border border-border px-4 py-2 rounded-full cursor-pointer hover:bg-muted font-bold whitespace-nowrap">
                 <Filter className="w-4 h-4" /> Bộ lọc
              </div>

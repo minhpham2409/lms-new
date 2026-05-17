@@ -335,7 +335,7 @@ export default function TeacherPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Tabs */}
-          <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex flex-wrap gap-2 mb-8 pb-2">
             {tabs.map((t) => {
               const isActive = tab === t.id;
               return (

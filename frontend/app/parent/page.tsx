@@ -395,7 +395,7 @@ export default function ParentPage() {
                   >
                     <Users className="w-4 h-4" /> Học sinh của bạn
                   </h3>
-                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                  <div className="flex flex-wrap gap-4 pb-4">
                     {children.map((c) => {
                       const kid = c.child || c;
                       const isActive = child?.id === kid.id;
@@ -433,7 +433,7 @@ export default function ParentPage() {
 
               {/* Tabs */}
               <div
-                className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide border-b"
+                className="flex flex-wrap gap-2 mb-8 pb-2 border-b"
                 style={{ borderColor: "var(--border)" }}
               >
                 {tabs.map((t) => (

@@ -135,7 +135,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <h1 className="text-3xl sm:text-4xl font-bold mb-8">Học tập của tôi</h1>
            
-           <div className="flex gap-6 overflow-x-auto hide-scrollbar border-b border-gray-700">
+           <div className="flex flex-wrap gap-6 border-b border-gray-700">
              <button onClick={() => setActiveTab("courses")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "courses" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
                 Tất cả khóa học
              </button>

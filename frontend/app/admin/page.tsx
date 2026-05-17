@@ -320,7 +320,7 @@ export default function AdminPage() {
             <button onClick={fetchAll} className="btn-secondary text-sm"><RefreshCw className="w-4 h-4" /> Làm mới</button>
           </div>
 
-          <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1">
+          <div className="flex flex-wrap gap-1.5 mb-6 pb-1">
             {tabs.map((t) => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap"
