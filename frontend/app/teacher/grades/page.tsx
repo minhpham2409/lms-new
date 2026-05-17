@@ -101,12 +101,12 @@ export default function TeacherGradesPage() {
           <Link href="/teacher" className="btn-ghost px-2 py-2"><ArrowLeft className="w-4 h-4" /></Link>
           <h1 className="text-2xl font-extrabold">📝 Chấm bài tập</h1>
         </div>
-        <p className="text-sm mb-8 ml-11" style={{ color: "var(--foreground-muted)" }}>
+        <p className="text-sm mb-8 ml-11" style={{ color: "#6a6f73" }}>
           Chọn khóa học để xem và chấm bài nộp của học sinh
         </p>
 
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "#7c3aed" }} /></div>
+          <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "#5624d0" }} /></div>
         ) : !selectedCourse ? (
           /* ===== COURSE LIST ===== */
           <>
@@ -114,25 +114,25 @@ export default function TeacherGradesPage() {
               <div className="card-base text-center py-16">
                 <CheckCircle2 className="w-14 h-14 mx-auto mb-4" style={{ color: "#10b981", opacity: 0.4 }} />
                 <h3 className="font-bold text-lg mb-1">Không có bài nào cần chấm</h3>
-                <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Tất cả bài nộp đã được chấm điểm 🎉</p>
+                <p className="text-sm" style={{ color: "#6a6f73" }}>Tất cả bài nộp đã được chấm điểm 🎉</p>
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs font-semibold mb-1" style={{ color: "var(--foreground-muted)" }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: "#6a6f73" }}>
                   {courseGroups.length} khóa học có bài chờ chấm · Tổng {pending.length} bài
                 </p>
                 {courseGroups.map(group => (
                   <button key={group.courseId}
                     onClick={() => setSelectedCourse(group.courseId)}
                     className="card-base card-hover w-full text-left flex items-center gap-4 transition-all"
-                    style={{ borderLeft: "3px solid #7c3aed" }}>
+                    style={{ borderLeft: "3px solid #a435f0" }}>
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: "rgba(124,58,237,0.12)" }}>
-                      <BookOpen className="w-6 h-6" style={{ color: "#7c3aed" }} />
+                      <BookOpen className="w-6 h-6" style={{ color: "#5624d0" }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-sm truncate">{group.courseTitle}</h3>
-                      <p className="text-xs mt-0.5" style={{ color: "var(--foreground-muted)" }}>
+                      <p className="text-xs mt-0.5" style={{ color: "#6a6f73" }}>
                         {group.submissions.length} bài chờ chấm
                       </p>
                     </div>
@@ -141,7 +141,7 @@ export default function TeacherGradesPage() {
                         style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
                         <Bell className="w-3 h-3" /> {group.submissions.length}
                       </span>
-                      <ChevronDown className="w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+                      <ChevronDown className="w-4 h-4" style={{ color: "#6a6f73" }} />
                     </div>
                   </button>
                 ))}
@@ -158,10 +158,10 @@ export default function TeacherGradesPage() {
 
             <div className="mb-6">
               <h2 className="text-lg font-extrabold flex items-center gap-2">
-                <BookOpen className="w-5 h-5" style={{ color: "#7c3aed" }} />
+                <BookOpen className="w-5 h-5" style={{ color: "#5624d0" }} />
                 {activeCourse?.courseTitle || "Khóa học"}
               </h2>
-              <p className="text-xs mt-1" style={{ color: "var(--foreground-muted)" }}>
+              <p className="text-xs mt-1" style={{ color: "#6a6f73" }}>
                 {activeCourse?.submissions.length || 0} bài chờ chấm điểm
               </p>
             </div>
@@ -194,7 +194,7 @@ export default function TeacherGradesPage() {
                         onClick={() => setExpanded(isOpen ? null : sub.id)}>
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
-                            style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}>
+                            style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
                             {name.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -205,10 +205,10 @@ export default function TeacherGradesPage() {
                                 ⏳ Chờ chấm
                               </span>
                             </div>
-                            <p className="text-xs truncate" style={{ color: "var(--foreground-muted)" }}>
+                            <p className="text-xs truncate" style={{ color: "#6a6f73" }}>
                               {aTitle} {lTitle ? `· ${lTitle}` : ""}
                             </p>
-                            <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>
+                            <p className="text-[10px]" style={{ color: "#6a6f73" }}>
                               Nộp: {new Date(sub.createdAt).toLocaleString("vi-VN")}
                             </p>
                           </div>
@@ -222,7 +222,7 @@ export default function TeacherGradesPage() {
                           {/* Assignment image */}
                           {descUrl && (descUrl.startsWith("/uploads") || descUrl.startsWith("http")) && (
                             <div>
-                              <p className="text-xs font-semibold mb-2" style={{ color: "var(--foreground-muted)" }}>📄 Đề bài:</p>
+                              <p className="text-xs font-semibold mb-2" style={{ color: "#6a6f73" }}>📄 Đề bài:</p>
                               <div className="relative w-full max-w-lg h-64 border border-white/10 rounded-xl overflow-hidden">
                                 <Image src={imgUrl(descUrl)} alt="Đề" fill className="object-contain" />
                               </div>
@@ -231,7 +231,7 @@ export default function TeacherGradesPage() {
                           {/* Student work */}
                           {sub.fileUrl && (
                             <div>
-                              <p className="text-xs font-semibold mb-2" style={{ color: "var(--foreground-muted)" }}>🖼️ Bài làm:</p>
+                              <p className="text-xs font-semibold mb-2" style={{ color: "#6a6f73" }}>🖼️ Bài làm:</p>
                               <div className="relative w-full max-w-lg h-80 border border-white/10 rounded-xl overflow-hidden">
                                 <Image src={imgUrl(sub.fileUrl)} alt="Bài làm" fill className="object-contain" />
                               </div>
@@ -255,7 +255,7 @@ export default function TeacherGradesPage() {
                                 onChange={e => setGrading(prev => ({ ...prev, [sub.id]: { ...prev[sub.id], score: e.target.value } }))}
                                 placeholder={`0 – ${maxScore}`}
                                 className="input-base w-32 text-center text-lg font-bold" />
-                              <span className="text-sm self-center" style={{ color: "var(--foreground-muted)" }}>/ {maxScore} điểm</span>
+                              <span className="text-sm self-center" style={{ color: "#6a6f73" }}>/ {maxScore} điểm</span>
                             </div>
                             <textarea
                               value={g.feedback}

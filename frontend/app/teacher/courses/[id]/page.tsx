@@ -178,8 +178,6 @@ export default function TeacherCourseEditPage() {
           mediaAssetId = upload.mediaAssetId;
         }
       }
-      const section = course?.sections?.find((s: any) => s.id === sectionId);
-      const order = (section?.lessons?.length || 0) + 1;
       const res = await fetch(`${API}/lessons`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -189,7 +187,6 @@ export default function TeacherCourseEditPage() {
           videoUrl,
           mediaAssetId,
           sectionId,
-          order,
         }),
       });
       if (res.ok) {
@@ -276,7 +273,7 @@ export default function TeacherCourseEditPage() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#7c3aed" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#5624d0" }} />
       </div>
     );
   }
@@ -291,12 +288,12 @@ export default function TeacherCourseEditPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <Link href="/teacher" className="flex items-center gap-1 text-sm hover:text-[#a78bfa] transition-colors" style={{ color: "#8892a4" }}>
+              <Link href="/teacher" className="flex items-center gap-1 text-sm hover:text-[#a78bfa] transition-colors" style={{ color: "#6a6f73" }}>
                 <ArrowLeft className="w-4 h-4" />
               </Link>
               <div>
                 <h1 className="text-xl font-extrabold">{course?.title || "Khóa học"}</h1>
-                <p className="text-xs" style={{ color: "var(--foreground-muted)" }}>Quản lý nội dung và video bài giảng</p>
+                <p className="text-xs" style={{ color: "#6a6f73" }}>Quản lý nội dung và video bài giảng</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -310,7 +307,7 @@ export default function TeacherCourseEditPage() {
                            await fetch(`${API}/courses/${id}`, {
                              method: "PUT",
                              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                             body: JSON.stringify({ allowPlatformPromotions: val }),
+                             body: JSON.stringify({ status: course?.status }),
                            });
                            toast.success(val ? "Đã bật chạy khuyến mãi nền tảng" : "Đã tắt khuyến mãi nền tảng");
                          } catch { toast.error("Lỗi cập nhật"); }
@@ -328,10 +325,10 @@ export default function TeacherCourseEditPage() {
               <div key={sec.id} className="card-base card-spotlight">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(124,58,237,0.15)" }}>
-                    <BookOpen className="w-4 h-4" style={{ color: "#a78bfa" }} />
+                    <BookOpen className="w-4 h-4" style={{ color: "#a435f0" }} />
                   </div>
                   <h3 className="font-bold flex-1">{sec.title}</h3>
-                  <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>{sec.lessons?.length || 0} bài</span>
+                  <span className="text-xs" style={{ color: "#6a6f73" }}>{sec.lessons?.length || 0} bài</span>
                   <button onClick={() => deleteSection(sec.id)} className="btn-ghost px-2 py-1"><Trash2 className="w-3.5 h-3.5" style={{ color: "#ef4444" }} /></button>
                 </div>
 
@@ -387,6 +384,10 @@ export default function TeacherCourseEditPage() {
                             <Upload className="w-3 h-3" /> {l.videoUrl ? "Đổi video" : "Up video"}
                           </button>
 
+                          <button onClick={() => _router.push(`/teacher/lessons/${l.id}/quiz`)} className="btn-ghost px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#a435f0" }}>
+                            <FileText className="w-3 h-3" /> Bài tập/Quiz
+                          </button>
+
                           <button onClick={() => deleteLesson(l.id)} className="btn-ghost px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Trash2 className="w-3 h-3" style={{ color: "#ef4444" }} />
                           </button>
@@ -399,7 +400,7 @@ export default function TeacherCourseEditPage() {
                   {showNewLesson === sec.id ? (
                     <div className="p-4 rounded-xl" style={{ background: "rgba(124,58,237,0.05)", border: "1px solid rgba(124,58,237,0.15)" }}>
                       <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-                        <Plus className="w-3.5 h-3.5" style={{ color: "#7c3aed" }} /> Thêm bài học mới
+                        <Plus className="w-3.5 h-3.5" style={{ color: "#5624d0" }} /> Thêm bài học mới
                       </h4>
                       <div className="space-y-3">
                         <input value={newLessonTitle} onChange={(e) => setNewLessonTitle(e.target.value)}
@@ -409,22 +410,22 @@ export default function TeacherCourseEditPage() {
 
                         {/* Video upload */}
                         <div>
-                          <label className="text-xs font-medium mb-1 block" style={{ color: "var(--foreground-muted)" }}>Video bài giảng</label>
+                          <label className="text-xs font-medium mb-1 block" style={{ color: "#6a6f73" }}>Video bài giảng</label>
                           {newLessonVideo ? (
                             <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
                               <Film className="w-5 h-5" style={{ color: "#10b981" }} />
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">{newLessonVideo.name}</p>
-                                <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>{(newLessonVideo.size / (1024 * 1024)).toFixed(1)} MB</p>
+                                <p className="text-[10px]" style={{ color: "#6a6f73" }}>{(newLessonVideo.size / (1024 * 1024)).toFixed(1)} MB</p>
                               </div>
                               <button onClick={() => setNewLessonVideo(null)} className="btn-ghost px-1.5 py-1"><X className="w-3 h-3" style={{ color: "#ef4444" }} /></button>
                             </div>
                           ) : (
                             <button onClick={() => videoInputRef.current?.click()}
-                              className="w-full py-4 rounded-xl border-2 border-dashed flex flex-col items-center gap-2 transition-all hover:border-[#7c3aed] hover:bg-[rgba(124,58,237,0.04)]"
+                              className="w-full py-4 rounded-xl border-2 border-dashed flex flex-col items-center gap-2 transition-all hover:border-[#a435f0] hover:bg-[rgba(124,58,237,0.04)]"
                               style={{ borderColor: "var(--border)" }}>
-                              <Upload className="w-6 h-6" style={{ color: "var(--foreground-muted)" }} />
-                              <span className="text-xs font-medium" style={{ color: "var(--foreground-muted)" }}>Click để chọn video (MP4, WebM, MOV, tối đa 500MB)</span>
+                              <Upload className="w-6 h-6" style={{ color: "#6a6f73" }} />
+                              <span className="text-xs font-medium" style={{ color: "#6a6f73" }}>Click để chọn video (MP4, WebM, MOV, tối đa 500MB)</span>
                             </button>
                           )}
                           <input ref={videoInputRef} type="file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi" className="hidden"
@@ -435,10 +436,10 @@ export default function TeacherCourseEditPage() {
                         {uploading && (
                           <div>
                             <div className="flex items-center justify-between text-xs mb-1">
-                              <span style={{ color: "var(--foreground-muted)" }}>
+                              <span style={{ color: "#6a6f73" }}>
                                 {uploadPhase === "processing" ? "Đang xử lý video..." : "Đang upload video..."}
                               </span>
-                              <span className="font-bold" style={{ color: "#7c3aed" }}>{uploadProgress}%</span>
+                              <span className="font-bold" style={{ color: "#5624d0" }}>{uploadProgress}%</span>
                             </div>
                             <div className="progress-bar">
                               <div className="progress-fill transition-all" style={{ width: `${uploadProgress}%` }} />
@@ -459,7 +460,7 @@ export default function TeacherCourseEditPage() {
                     </div>
                   ) : (
                     <button onClick={() => setShowNewLesson(sec.id)}
-                      className="btn-ghost text-xs w-full justify-center py-2.5 mt-1" style={{ color: "#a78bfa", border: "1px dashed rgba(124,58,237,0.3)", borderRadius: "12px" }}>
+                      className="btn-ghost text-xs w-full justify-center py-2.5 mt-1" style={{ color: "#a435f0", border: "1px dashed rgba(124,58,237,0.3)", borderRadius: "12px" }}>
                       <Plus className="w-3 h-3" /> Thêm bài học
                     </button>
                   )}

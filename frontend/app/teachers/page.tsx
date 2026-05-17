@@ -43,72 +43,54 @@ export default function TeachersPage() {
   const totalCourses = teachers.reduce((sum, t) => sum + t._count.courses, 0);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      {/* Hero Section */}
-      <div className="pt-28 pb-20 relative overflow-hidden">
-        {/* Decorative background */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(8,145,178,0.04) 50%, rgba(236,72,153,0.03) 100%)" }} />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full opacity-20"
-             style={{ background: "radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)" }} />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full opacity-10"
-             style={{ background: "radial-gradient(circle, rgba(8,145,178,0.3) 0%, transparent 70%)" }} />
+      {/* Udemy-style Dark Hero Section */}
+      <div className="bg-[#f7f9fa] dark:bg-[#2d2f31] pt-24 pb-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              Giảng viên của chúng tôi
+            </h1>
+            <p className="text-lg text-gray-300 mb-8">
+              Học hỏi từ những chuyên gia hàng đầu. Đội ngũ giảng viên tâm huyết và giàu kinh nghiệm sẽ đồng hành cùng bạn trên con đường chinh phục tri thức.
+            </p>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 backdrop-blur-sm"
-               style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.15)", color: "#a78bfa" }}>
-            <Award className="w-4 h-4" />
-            <span className="text-xs font-semibold uppercase tracking-wider">Đội ngũ giảng viên chất lượng cao</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight leading-tight">
-            Gặp Gỡ Các <span className="gradient-text">Chuyên Gia</span>
-            <br className="hidden sm:block" />
-            Của Chúng Tôi
-          </h1>
-          <p className="text-lg max-w-2xl mx-auto mb-10" style={{ color: "var(--foreground-muted)" }}>
-            Những giáo viên tâm huyết và giàu kinh nghiệm sẽ đồng hành cùng bạn trên con đường chinh phục tri thức.
-          </p>
-
-          {/* Stats Bar */}
-          <div className="inline-flex items-center gap-6 sm:gap-10 px-8 py-4 rounded-2xl backdrop-blur-md"
-               style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.1)" }}>
-            <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-extrabold" style={{ color: "#7c3aed" }}>{teachers.length}</p>
-              <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--foreground-muted)" }}>Giảng viên</p>
-            </div>
-            <div className="w-px h-10" style={{ background: "var(--border)" }} />
-            <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-extrabold" style={{ color: "#0891b2" }}>{totalCourses}</p>
-              <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--foreground-muted)" }}>Khóa học</p>
-            </div>
-            <div className="w-px h-10" style={{ background: "var(--border)" }} />
-            <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-extrabold" style={{ color: "#f59e0b" }}>⭐ 4.9</p>
-              <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--foreground-muted)" }}>Đánh giá TB</p>
+            {/* Search Bar in Hero */}
+            <div className="relative max-w-xl">
+              <input
+                type="text"
+                placeholder="Tìm giảng viên theo tên..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-4 pr-12 py-4 rounded-full text-black outline-none border-2 border-transparent focus:border-primary transition-colors"
+              />
+              <button className="absolute right-2 top-2 bottom-2 w-10 bg-primary rounded-full flex items-center justify-center text-white hover:bg-primary/90">
+                <Search className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search & Filter */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full -mt-6 relative z-20">
-        <div className="card-base p-2 flex items-center gap-3" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
-          <Search className="w-5 h-5 ml-3 flex-shrink-0" style={{ color: "var(--foreground-muted)" }} />
-          <input
-            type="text"
-            placeholder="Tìm giáo viên theo tên hoặc email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent border-none outline-none text-sm py-2.5 placeholder:text-gray-400"
-            style={{ color: "var(--foreground)" }}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-xs px-3 py-1.5 rounded-lg hover:opacity-80 transition-opacity"
-                    style={{ background: "var(--muted)", color: "var(--foreground-muted)" }}>
-              Xóa
-            </button>
-          )}
+      {/* Stats Bar */}
+      <div className="bg-white border-b border-border shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center gap-8 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-xl">{teachers.length}</span>
+            <span className="text-foreground-muted">Giảng viên chuyên môn</span>
+          </div>
+          <div className="hidden sm:block w-px h-6 bg-border" />
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-xl">{totalCourses}</span>
+            <span className="text-foreground-muted">Khóa học chất lượng</span>
+          </div>
+          <div className="hidden sm:block w-px h-6 bg-border" />
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-xl flex items-center gap-1"><Star className="w-5 h-5 text-yellow-500 fill-yellow-500" /> 4.9</span>
+            <span className="text-foreground-muted">Đánh giá trung bình</span>
+          </div>
         </div>
       </div>
 
@@ -117,133 +99,74 @@ export default function TeachersPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "#7c3aed" }} />
-              <p style={{ color: "var(--foreground-muted)" }}>Đang tải danh sách giáo viên...</p>
+              <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
+              <p className="text-foreground-muted">Đang tải danh sách giáo viên...</p>
             </div>
           ) : filteredTeachers.length === 0 ? (
-            <div className="text-center py-20 card-base max-w-md mx-auto">
-              <Users className="w-16 h-16 mx-auto mb-4" style={{ color: "var(--foreground-muted)", opacity: 0.5 }} />
+            <div className="text-center py-20">
+              <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <h3 className="text-xl font-bold mb-2">
-                {searchQuery ? "Không tìm thấy giáo viên" : "Chưa có giáo viên nào"}
+                {searchQuery ? "Không tìm thấy giảng viên" : "Chưa có giảng viên nào"}
               </h3>
-              <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>
-                {searchQuery ? `Không có kết quả cho "${searchQuery}". Hãy thử từ khóa khác.` : "Hệ thống đang cập nhật danh sách giáo viên."}
+              <p className="text-sm text-foreground-muted">
+                {searchQuery ? `Không có kết quả cho "${searchQuery}". Hãy thử từ khóa khác.` : "Hệ thống đang cập nhật danh sách giảng viên."}
               </p>
             </div>
           ) : (
-            <>
-              <p className="text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>
-                Hiển thị <span className="font-semibold" style={{ color: "var(--foreground)" }}>{filteredTeachers.length}</span> giáo viên
-                {searchQuery && <span> cho từ khóa &quot;{searchQuery}&quot;</span>}
-              </p>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredTeachers.map((teacher, index) => {
-                  const fullName = teacher.firstName
-                    ? `${teacher.firstName} ${teacher.lastName || ""}`.trim()
-                    : teacher.username;
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 md:grid-cols-4 gap-6">
+              {filteredTeachers.map((teacher, index) => {
+                const fullName = teacher.firstName
+                  ? `${teacher.firstName} ${teacher.lastName || ""}`.trim()
+                  : teacher.username;
 
-                  const gradients = [
-                    "linear-gradient(135deg, #7c3aed, #0891b2)",
-                    "linear-gradient(135deg, #f59e0b, #ef4444)",
-                    "linear-gradient(135deg, #10b981, #0891b2)",
-                    "linear-gradient(135deg, #ec4899, #7c3aed)",
-                    "linear-gradient(135deg, #6366f1, #a855f7)",
-                    "linear-gradient(135deg, #14b8a6, #3b82f6)",
-                  ];
-                  const bgGradient = gradients[index % gradients.length];
-                  const initial = fullName.charAt(0).toUpperCase();
+                const initial = fullName.charAt(0).toUpperCase();
 
-                  return (
-                    <Link href={`/teachers/${teacher.id}`} key={teacher.id}
-                          className="card-base card-hover flex flex-col p-0 overflow-hidden group relative">
-                      {/* Cover gradient */}
-                      <div className="h-28 relative" style={{ background: bgGradient }}>
-                        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.2) 100%)" }} />
-                        {/* Decorative dots */}
-                        <div className="absolute top-4 right-4 grid grid-cols-3 gap-1 opacity-30">
-                          {[...Array(9)].map((_, i) => (
-                            <div key={i} className="w-1.5 h-1.5 rounded-full bg-white" />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Avatar */}
-                      <div className="absolute top-[68px] left-6 w-24 h-24 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-xl transition-transform duration-300 group-hover:scale-105"
-                           style={{ background: bgGradient, border: "4px solid var(--card)" }}>
+                return (
+                  <Link href={`/teachers/${teacher.id}`} key={teacher.id} className="group border border-border bg-card p-6 flex flex-col hover:shadow-md transition-shadow cursor-pointer">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary shrink-0 border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors">
                         {initial}
                       </div>
-
-                      <div className="pt-16 pb-6 px-6 flex-1 flex flex-col">
-                        <h3 className="text-xl font-bold mb-1 group-hover:text-primary transition-colors">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-base truncate group-hover:text-primary transition-colors">
                           {fullName}
                         </h3>
-                        <div className="flex items-center gap-2 mb-1" style={{ color: "var(--foreground-muted)" }}>
-                          <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                          <p className="text-xs truncate">{teacher.email}</p>
-                        </div>
-                        <div className="flex items-center gap-2 mb-4" style={{ color: "var(--foreground-muted)" }}>
-                          <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" />
-                          <p className="text-xs">Giảng viên</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-5">
-                          <div className="p-3 rounded-xl flex items-center gap-2.5 transition-colors"
-                               style={{ background: "var(--muted)" }}>
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                 style={{ background: "rgba(124,58,237,0.1)" }}>
-                              <BookOpen className="w-4 h-4" style={{ color: "#7c3aed" }} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-medium" style={{ color: "var(--foreground-muted)" }}>Khóa học</p>
-                              <p className="font-bold text-sm">{teacher._count.courses}</p>
-                            </div>
-                          </div>
-                          <div className="p-3 rounded-xl flex items-center gap-2.5 transition-colors"
-                               style={{ background: "var(--muted)" }}>
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                 style={{ background: "rgba(245,158,11,0.1)" }}>
-                              <Star className="w-4 h-4" style={{ color: "#f59e0b" }} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-medium" style={{ color: "var(--foreground-muted)" }}>Đánh giá</p>
-                              <p className="font-bold text-sm">4.9/5</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-auto">
-                          <div className="w-full flex justify-center items-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300"
-                               style={{ background: "rgba(124,58,237,0.08)", color: "#7c3aed" }}>
-                            Xem hồ sơ <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                          </div>
-                        </div>
+                        <p className="text-sm text-foreground-muted truncate" title={teacher.email}>{teacher.email}</p>
                       </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </>
+                    </div>
+                    
+                    <div className="mb-4 text-sm text-foreground-muted line-clamp-2">
+                       {teacher.bio || "Giảng viên tại HọcLộ Trình."}
+                    </div>
+
+                    <div className="mt-auto border-t border-border pt-4 flex items-center justify-between">
+                       <div className="flex flex-col">
+                          <span className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Khóa học</span>
+                          <span className="font-bold text-primary">{teacher._count.courses}</span>
+                       </div>
+                       <div className="flex flex-col text-right">
+                          <span className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Đánh giá</span>
+                          <span className="font-bold flex items-center gap-1 justify-end"><Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" /> 4.9</span>
+                       </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Contact CTA Section */}
-      <div className="py-16" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.04), rgba(8,145,178,0.04))" }}>
+      {/* Udemy-style CTA Section */}
+      <div className="bg-muted border-t border-border py-16">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold mb-3">Bạn muốn trở thành giảng viên?</h2>
-          <p className="text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>
-            Chia sẻ kiến thức của bạn với hàng ngàn học sinh trên nền tảng HọcLộ Trình. Liên hệ ngay với chúng tôi để bắt đầu hành trình giảng dạy.
+          <h2 className="text-3xl font-bold mb-4">Trở thành giảng viên ngay hôm nay</h2>
+          <p className="text-lg text-foreground-muted mb-8">
+            Hàng ngàn học viên đang chờ đón những kiến thức quý báu từ bạn. Tham gia giảng dạy tại HọcLộ Trình để tạo ra nguồn thu nhập thụ động và lan tỏa tri thức.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="mailto:providminh24092004@gmail.com"
-               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/25"
-               style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
-              <Mail className="w-4 h-4" /> providminh24092004@gmail.com
-            </a>
-            <a href="tel:0916869648"
-               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300"
-               style={{ background: "var(--muted)", color: "var(--foreground)" }}>
-              <Phone className="w-4 h-4" style={{ color: "#7c3aed" }} /> 0916 869 648
+            <a href="mailto:providminh24092004@gmail.com" className="bg-primary text-white font-bold py-4 px-8 w-full sm:w-auto text-center hover:bg-primary/90 transition-colors">
+              Liên hệ đăng ký
             </a>
           </div>
         </div>

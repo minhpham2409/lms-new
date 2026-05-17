@@ -57,7 +57,7 @@ export default function QuizPage() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#7c3aed" }} />
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#5624d0" }} />
     </div>
   );
 
@@ -66,7 +66,7 @@ export default function QuizPage() {
       <Navbar />
       <div className="pt-20 pb-24">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <button onClick={() => router.back()} className="flex items-center gap-1 text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>
+          <button onClick={() => router.back()} className="flex items-center gap-1 text-sm mb-6" style={{ color: "#6a6f73" }}>
             <ArrowLeft className="w-4 h-4" /> Quay lại
           </button>
 
@@ -79,7 +79,7 @@ export default function QuizPage() {
               </div>
               <h1 className="text-2xl font-extrabold mb-2">{result.passed ? "Đạt!" : "Chưa đạt"}</h1>
               <p className="text-4xl font-extrabold gradient-text mb-2">{result.score ?? result.percentage ?? "—"}%</p>
-              <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
+              <p className="text-sm mb-4" style={{ color: "#6a6f73" }}>
                 Đúng: {result.correctCount ?? "—"}/{result.totalQuestions ?? quiz?.questions?.length ?? "—"}
               </p>
               <div className="flex gap-3 justify-center">
@@ -106,8 +106,8 @@ export default function QuizPage() {
             <div>
               <div className="card-base mb-6">
                 <h1 className="text-xl font-extrabold mb-1">{quiz.title}</h1>
-                {quiz.description && <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>{quiz.description}</p>}
-                <div className="flex gap-4 mt-3 text-xs" style={{ color: "var(--foreground-muted)" }}>
+                {quiz.description && <p className="text-sm" style={{ color: "#6a6f73" }}>{quiz.description}</p>}
+                <div className="flex gap-4 mt-3 text-xs" style={{ color: "#6a6f73" }}>
                   <span className="flex items-center gap-1"><Award className="w-3 h-3" /> {quiz.questions?.length || 0} câu hỏi</span>
                   {quiz.timeLimit && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {quiz.timeLimit} phút</span>}
                 </div>
@@ -126,11 +126,11 @@ export default function QuizPage() {
                             className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm"
                             style={{
                               background: isSelected ? "rgba(124,58,237,0.12)" : "var(--muted)",
-                              border: `1.5px solid ${isSelected ? "#7c3aed" : "var(--border)"}`,
+                              border: `1.5px solid ${isSelected ? "#a435f0" : "var(--border)"}`,
                             }}>
                             <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                              style={{ borderColor: isSelected ? "#7c3aed" : "var(--border)" }}>
-                              {isSelected && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#7c3aed" }} />}
+                              style={{ borderColor: isSelected ? "#a435f0" : "var(--border)" }}>
+                              {isSelected && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#a435f0" }} />}
                             </div>
                             {optValue}
                           </button>
@@ -148,7 +148,7 @@ export default function QuizPage() {
             </div>
           ) : (
             <div className="card-base text-center py-12">
-              <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Không tìm thấy quiz</p>
+              <p className="text-sm" style={{ color: "#6a6f73" }}>Không tìm thấy quiz</p>
             </div>
           )}
         </div>

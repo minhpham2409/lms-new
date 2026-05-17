@@ -81,7 +81,6 @@ export default function CourseWizardPage() {
           description: description.trim(),
           price: Number(price) || 0,
           status: publish ? "published" : "draft",
-          allowPlatformPromotions,
         }),
       });
       if (!courseRes.ok) throw new Error("Lỗi tạo khóa học");
@@ -156,6 +155,17 @@ export default function CourseWizardPage() {
           }
         }
         if (lessonErrors > 0) toast.warning(`${lessonErrors} bài học không lưu được`);
+      }
+
+      if (publish) {
+        const reviewRes = await fetch(`${API}/courses/${course.id}/submit-review`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!reviewRes.ok) {
+          const errorData = await reviewRes.json().catch(() => ({}));
+          throw new Error(errorData.message || "Đã lưu khóa học nhưng chưa gửi duyệt được");
+        }
       }
 
       toast.success(publish ? "Khóa học đã xuất bản!" : "Đã lưu nháp!");

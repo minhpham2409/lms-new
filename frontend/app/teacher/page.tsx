@@ -19,7 +19,7 @@ import {
 } from "recharts";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-const courseColors = ["#7c3aed", "#3b82f6", "#f59e0b", "#10b981", "#ec4899", "#0891b2"];
+const courseColors = ["#a435f0", "#3b82f6", "#f59e0b", "#10b981", "#ec4899", "#0891b2"];
 
 type Tab = "overview" | "courses" | "students" | "analytics" | "wallet" | "reviews" | "settings";
 
@@ -287,16 +287,13 @@ export default function TeacherPage() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       <Navbar />
       
-      {/* Hero Section */}
-      <div className="pt-24 pb-12 relative overflow-hidden shrink-0 border-b border-white/5 bg-gradient-to-br from-indigo-950/40 via-[#0d1322] to-cyan-950/20">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none -translate-x-1/3 translate-y-1/3" />
+      <div className="pt-24 pb-12 relative shrink-0 border-b border-border bg-[#1c1d1f] text-white">
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="flex items-center gap-6">
               <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-extrabold text-white shadow-2xl relative group"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}>
+                style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
                 {(user?.firstName || user?.username || "?").charAt(0).toUpperCase()}
                 <div className="absolute inset-0 rounded-2xl border-2 border-white/20" />
                 <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
@@ -309,15 +306,14 @@ export default function TeacherPage() {
                 <h1 className="text-3xl font-extrabold text-white tracking-tight">
                   Chào mừng trở lại, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{user?.firstName || user?.username || "Giáo viên"}</span> 👋
                 </h1>
-                <p className="text-sm mt-2 flex items-center gap-2" style={{ color: "var(--foreground-muted)" }}>
+                <p className="text-sm mt-2 flex items-center gap-2" style={{ color: "#6a6f73" }}>
                   <Calendar className="w-4 h-4" /> Hôm nay là {new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
               </div>
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
-              <Link href="/teacher/grades" className="btn-secondary relative overflow-hidden group">
-                <div className="absolute inset-0 bg-indigo-500/10 translate-y-full group-hover:translate-y-0 transition-transform" />
+              <Link href="/teacher/grades" className="bg-muted text-foreground px-4 py-2 rounded font-bold hover:bg-border transition-colors flex items-center gap-2">
                 <span className="relative z-10 flex items-center gap-2">
                   📝 Chấm bài tập
                   {pendingSubmissionCount > 0 && (
@@ -327,7 +323,7 @@ export default function TeacherPage() {
                   )}
                 </span>
               </Link>
-              <Link href="/teacher/courses/new" className="btn-primary shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40">
+              <Link href="/teacher/courses/new" className="bg-primary text-white px-4 py-2 rounded font-bold hover:bg-primary/90 transition-colors flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Tạo khóa học mới
               </Link>
             </div>
@@ -350,8 +346,7 @@ export default function TeacherPage() {
                     background: isActive ? "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(8,145,178,0.15))" : "transparent",
                     border: `1px solid ${isActive ? "rgba(124,58,237,0.3)" : "transparent"}`,
                   }}>
-                  {isActive && <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-indigo-500 to-cyan-500" />}
-                  <t.icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : ''}`} /> {t.label}
+                  <t.icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} /> {t.label}
                   {t.badge ? <span className="w-5 h-5 rounded-full text-[10px] flex items-center justify-center bg-red-500 text-white shadow-lg">{t.badge}</span> : null}
                 </button>
               );
@@ -365,25 +360,24 @@ export default function TeacherPage() {
                 {/* Top Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: "Khóa học", value: String(stats?.totalCourses || myCourses.length), icon: BookOpen, color: "#7c3aed", sub: `${stats?.publishedCourses || 0} đã xuất bản`, grad: "from-indigo-500 to-purple-500" },
+                    { label: "Khóa học", value: String(stats?.totalCourses || myCourses.length), icon: BookOpen, color: "#5624d0", sub: `${stats?.publishedCourses || 0} đã xuất bản`, grad: "from-indigo-500 to-purple-500" },
                     { label: "Tổng học sinh", value: String(stats?.totalStudents || 0), icon: Users, color: "#0891b2", sub: "tích lũy", grad: "from-cyan-500 to-blue-500" },
                     { label: "Doanh thu", value: stats?.totalRevenue ? `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫` : "0 ₫", icon: DollarSign, color: "#10b981", sub: "tổng cộng", grad: "from-emerald-500 to-teal-500" },
                     { label: "Đánh giá TB", value: stats?.avgRating ? `⭐ ${stats.avgRating}` : "—", icon: Star, color: "#f59e0b", sub: stats?.totalReviews ? `${stats.totalReviews} lượt đánh giá` : "chưa có", grad: "from-amber-500 to-orange-500" },
                   ].map(({ label, value, icon: Icon, color, sub, grad }, _i) => (
-                    <div key={label} className="glass-card rounded-2xl p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${grad} opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity`} />
-                      <div className="flex items-start justify-between mb-4 relative z-10">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ background: `${color}15` }}>
+                    <div key={label} className="bg-card border border-border rounded-lg p-5">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 rounded flex items-center justify-center" style={{ background: `${color}15` }}>
                           <Icon className="w-6 h-6" style={{ color }} />
                         </div>
                         <div className="p-1.5 rounded-lg bg-white/5 backdrop-blur-md border border-white/10">
                           <TrendingUp className="w-3.5 h-3.5" style={{ color }} />
                         </div>
                       </div>
-                      <div className="relative z-10">
-                        <p className="text-3xl font-extrabold text-white tracking-tight">{value}</p>
-                        <p className="text-sm font-medium mt-1 text-indigo-100/70">{label}</p>
-                        <p className="text-xs mt-1 font-medium" style={{ color: color }}>{sub}</p>
+                      <div>
+                        <p className="text-3xl font-bold">{value}</p>
+                        <p className="text-sm font-medium mt-1 text-foreground-muted">{label}</p>
+                        <p className="text-xs mt-1 font-bold" style={{ color: color }}>{sub}</p>
                       </div>
                     </div>
                   ))}
@@ -391,9 +385,9 @@ export default function TeacherPage() {
 
                 <div className="grid lg:grid-cols-3 gap-6">
                   {/* Recent Activity / Courses */}
-                  <div className="lg:col-span-2 glass-strong rounded-2xl p-6 border border-white/5">
+                  <div className="lg:col-span-2 bg-card rounded-lg p-6 border border-border">
                     <div className="flex items-center justify-between mb-6">
-                      <h3 className="font-bold text-lg flex items-center gap-2 text-white">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
                         <Play className="w-5 h-5 text-indigo-400" /> Khóa học hoạt động gần đây
                       </h3>
                       <button onClick={() => setTab("courses")} className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
@@ -437,9 +431,8 @@ export default function TeacherPage() {
                     )}
                   </div>
 
-                  {/* Quick Actions Panel */}
-                  <div className="glass-strong rounded-2xl p-6 border border-white/5 bg-gradient-to-b from-indigo-950/20 to-transparent">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-white">
+                  <div className="bg-card rounded-lg p-6 border border-border">
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-cyan-400" /> Thao tác nhanh
                     </h3>
                     <div className="space-y-3">
@@ -495,9 +488,9 @@ export default function TeacherPage() {
             )}
 
             {tab === "courses" && (
-              <div className="glass-strong rounded-2xl border border-white/5 overflow-hidden">
-                <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                  <h3 className="font-bold text-lg text-white">Tất cả khóa học</h3>
+              <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="p-6 border-b border-border flex items-center justify-between">
+                  <h3 className="font-bold text-lg">Tất cả khóa học</h3>
                   <Link href="/teacher/courses/new" className="btn-primary py-2 text-xs"><Plus className="w-4 h-4"/> Thêm mới</Link>
                 </div>
                 {coursesLoading ? (
@@ -585,9 +578,8 @@ export default function TeacherPage() {
             {tab === "analytics" && (
               <div className="space-y-6">
                 <div className="grid lg:grid-cols-2 gap-6">
-                  {/* Revenue Chart */}
-                  <div className="glass-strong rounded-2xl p-6 border border-white/5">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-white">
+                  <div className="bg-card border border-border rounded-lg p-6">
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
                       <DollarSign className="w-5 h-5 text-emerald-400" /> Biểu đồ doanh thu 6 tháng qua
                     </h3>
                     {stats?.monthlyData && stats.monthlyData.length > 0 ? (
@@ -614,9 +606,8 @@ export default function TeacherPage() {
                     )}
                   </div>
 
-                  {/* Enrollment Chart */}
-                  <div className="glass-strong rounded-2xl p-6 border border-white/5">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-white">
+                  <div className="bg-card border border-border rounded-lg p-6">
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
                       <Users className="w-5 h-5 text-cyan-400" /> Biểu đồ học sinh mới
                     </h3>
                     {stats?.monthlyData && stats.monthlyData.length > 0 ? (
@@ -647,9 +638,9 @@ export default function TeacherPage() {
             )}
 
             {tab === "students" && (
-              <div className="glass-strong rounded-2xl border border-white/5 overflow-hidden">
-                <div className="p-6 border-b border-white/10 bg-indigo-950/20">
-                  <h3 className="font-bold text-lg text-white flex items-center gap-2">
+              <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="p-6 border-b border-border bg-muted/50">
+                  <h3 className="font-bold text-lg flex items-center gap-2">
                     <Users className="w-5 h-5 text-indigo-400" /> Xác nhận thanh toán & Duyệt học sinh
                   </h3>
                   <p className="text-sm text-indigo-200/60 mt-2">
@@ -674,7 +665,7 @@ export default function TeacherPage() {
                       <div key={s.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-lg"
-                            style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}>
+                            style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
                             {(s.user?.firstName || s.user?.username || "?").charAt(0).toUpperCase()}
                           </div>
                           <div>
@@ -730,9 +721,9 @@ export default function TeacherPage() {
                     { label: "Đang chờ rút", value: money(wallet?.pendingBalance), color: "#f59e0b", icon: CreditCard },
                     { label: "Tổng đã kiếm", value: money(wallet?.totalEarned), color: "#0891b2", icon: TrendingUp },
                   ].map(({ label, value, color, icon: Icon }) => (
-                    <div key={label} className="glass-card rounded-2xl p-5 border border-white/5">
+                    <div key={label} className="bg-card border border-border rounded-lg p-5">
                       <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
+                        <div className="w-12 h-12 rounded flex items-center justify-center" style={{ background: `${color}18` }}>
                           <Icon className="w-6 h-6" style={{ color }} />
                         </div>
                         {walletLoading && <Loader2 className="w-4 h-4 animate-spin text-indigo-300" />}
@@ -744,10 +735,10 @@ export default function TeacherPage() {
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 glass-strong rounded-2xl border border-white/5 overflow-hidden">
-                    <div className="p-6 border-b border-white/10 bg-indigo-950/20 flex items-center justify-between gap-4">
+                  <div className="lg:col-span-2 bg-card border border-border rounded-lg overflow-hidden">
+                    <div className="p-6 border-b border-border bg-muted/50 flex items-center justify-between gap-4">
                       <div>
-                        <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
                           <DollarSign className="w-5 h-5 text-emerald-400" /> Lịch sử ví
                         </h3>
                         <p className="text-sm text-indigo-200/60 mt-1">Doanh thu được cộng sau khi thanh toán được xác nhận.</p>

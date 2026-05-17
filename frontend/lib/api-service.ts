@@ -18,6 +18,24 @@ const api = axios.create({
   withCredentials: true, // Send cookies (refresh_token) with every request
 });
 
+function toCoursePayload(data: Partial<CreateCourseData & UpdateCourseData> & {
+  thumbnail?: string;
+  status?: string;
+  authorId?: string;
+  instructorId?: string;
+}) {
+  const payload: Record<string, unknown> = {};
+  if (data.title !== undefined) payload.title = data.title;
+  if (data.description !== undefined) payload.description = data.description;
+  if (data.price !== undefined) payload.price = data.price;
+  if (data.imageUrl !== undefined) payload.thumbnail = data.imageUrl;
+  if (data.thumbnail !== undefined) payload.thumbnail = data.thumbnail;
+  if (data.status !== undefined) payload.status = data.status;
+  if (data.authorId !== undefined) payload.authorId = data.authorId;
+  if (data.instructorId !== undefined) payload.authorId = data.instructorId;
+  return payload;
+}
+
 // ─── In-memory access token (not in localStorage) ─────────────────────────────
 let _accessToken: string | null = null;
 
@@ -104,8 +122,11 @@ api.interceptors.response.use(
 export const authApi = {
   register: (data: { username: string; email: string; password: string; firstName?: string; lastName?: string; role?: string }) =>
     api.post('/auth/register', data).then(r => r.data),
-  login: (data: { email: string; password: string }) =>
-    api.post('/auth/login', data).then(r => r.data),
+  login: (data: { email?: string; username?: string; password: string }) =>
+    api.post('/auth/login', {
+      username: data.username ?? data.email,
+      password: data.password,
+    }).then(r => r.data),
   getProfile: (): Promise<User> =>
     api.get('/auth/profile').then(r => r.data),
   updateProfile: (data: Partial<User>) =>
@@ -130,9 +151,9 @@ export const coursesApi = {
   getById: (id: string): Promise<Course> =>
     api.get(`/courses/${id}`).then(r => r.data),
   create: (data: CreateCourseData): Promise<Course> =>
-    api.post('/courses', data).then(r => r.data),
+    api.post('/courses', toCoursePayload(data)).then(r => r.data),
   update: (id: string, data: UpdateCourseData): Promise<Course> =>
-    api.put(`/courses/${id}`, data).then(r => r.data),
+    api.put(`/courses/${id}`, toCoursePayload(data)).then(r => r.data),
   delete: (id: string) =>
     api.delete(`/courses/${id}`).then(r => r.data),
   submitForReview: (id: string) =>
@@ -418,9 +439,9 @@ export const adminApi = {
   getCourses: (): Promise<Course[]> =>
     api.get('/admin/courses').then(r => r.data),
   createCourse: (data: CreateCourseData & { authorId?: string }): Promise<Course> =>
-    api.post('/admin/courses', data).then(r => r.data),
+    api.post('/admin/courses', toCoursePayload(data)).then(r => r.data),
   updateCourse: (id: string, data: UpdateCourseData): Promise<Course> =>
-    api.patch(`/admin/courses/${id}`, data).then(r => r.data),
+    api.patch(`/admin/courses/${id}`, toCoursePayload(data)).then(r => r.data),
   deleteCourse: (id: string) =>
     api.delete(`/admin/courses/${id}`).then(r => r.data),
   publishCourse: (id: string) =>

@@ -88,12 +88,20 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    if (token) {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/auth/logout`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch {}
+    }
     setAccessToken(null);
     localStorage.removeItem("refreshToken");
     setToken(null);
     setUser(null);
-  }, []);
+  }, [token]);
 
   return (
     <AuthContext.Provider value={{ user, token, isLoggedIn: !!user, login, logout, loading }}>

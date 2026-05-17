@@ -26,9 +26,9 @@ export function Step2Sections({ sections, setSections }: any) {
 
       {sections.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed rounded-2xl" style={{ borderColor: "var(--border)" }}>
-          <Layers className="w-12 h-12 mx-auto mb-3" style={{ color: "var(--foreground-muted)" }} />
+          <Layers className="w-12 h-12 mx-auto mb-3" style={{ color: "#6a6f73" }} />
           <p className="font-semibold mb-1">Chưa có chương nào</p>
-          <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>Khóa học cần ít nhất 1 chương để thêm bài giảng</p>
+          <p className="text-sm mb-4" style={{ color: "#6a6f73" }}>Khóa học cần ít nhất 1 chương để thêm bài giảng</p>
           <button onClick={addSection} className="btn-primary"><Plus className="w-4 h-4" /> Bắt đầu tạo chương</button>
         </div>
       ) : (

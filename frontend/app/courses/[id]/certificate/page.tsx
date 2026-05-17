@@ -58,7 +58,7 @@ export default function CourseCertificatePage() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#7c3aed" }} />
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#5624d0" }} />
     </div>
   );
 
@@ -68,17 +68,17 @@ export default function CourseCertificatePage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: "var(--background)" }}>
       <div className="max-w-2xl w-full">
         <div className="text-center mb-6">
-          <Link href={`/courses/${id}`} className="inline-flex items-center gap-1 text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
+          <Link href={`/courses/${id}`} className="inline-flex items-center gap-1 text-sm mb-4" style={{ color: "#6a6f73" }}>
             <ArrowLeft className="w-4 h-4" /> Quay lại khóa học
           </Link>
         </div>
 
         <div className="cert-card relative rounded-3xl overflow-hidden" style={{ border: "2px solid rgba(124,58,237,0.3)", boxShadow: "0 40px 100px rgba(124,58,237,0.2)" }}>
-          <div className="h-2" style={{ background: "linear-gradient(to right, #7c3aed, #0891b2)" }} />
+          <div className="h-2" style={{ background: "linear-gradient(to right, #a435f0, #0891b2)" }} />
 
           <div className="p-10 sm:p-14 text-center" style={{ background: "linear-gradient(135deg, rgba(19,26,46,0.95), rgba(124,58,237,0.08))" }}>
             <div className="flex items-center justify-center gap-2 mb-6">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-lg gradient-text">HọcLộ Trình</span>
@@ -86,27 +86,27 @@ export default function CourseCertificatePage() {
 
             <div className="divider mb-6" />
 
-            <p className="text-xs uppercase tracking-[0.2em] mb-2" style={{ color: "var(--foreground-muted)" }}>Chứng nhận hoàn thành</p>
+            <p className="text-xs uppercase tracking-[0.2em] mb-2" style={{ color: "#6a6f73" }}>Chứng nhận hoàn thành</p>
 
             <Award className="w-20 h-20 mx-auto mb-4" style={{ color: "#f59e0b" }} />
 
             <h1 className="text-2xl sm:text-3xl font-extrabold mb-3">{displayName}</h1>
-            <p className="text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>đã hoàn thành xuất sắc khóa học</p>
+            <p className="text-sm mb-6" style={{ color: "#6a6f73" }}>đã hoàn thành xuất sắc khóa học</p>
 
             <h2 className="text-xl font-bold mb-6 gradient-text">{course?.title || "Khóa học"}</h2>
 
-            <div className="flex items-center justify-center gap-4 mb-6 text-xs" style={{ color: "var(--foreground-muted)" }}>
+            <div className="flex items-center justify-center gap-4 mb-6 text-xs" style={{ color: "#6a6f73" }}>
               <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {cert?.issuedAt ? new Date(cert.issuedAt).toLocaleDateString("vi-VN") : new Date().toLocaleDateString("vi-VN")}</span>
             </div>
 
             <div className="divider mb-6" />
 
-            <div className="flex items-center justify-center gap-3 text-xs" style={{ color: "var(--foreground-muted)" }}>
-              <span>Mã chứng chỉ: <strong style={{ color: "#a78bfa" }}>{cert?.code || cert?.id?.substring(0, 12) || "—"}</strong></span>
+            <div className="flex items-center justify-center gap-3 text-xs" style={{ color: "#6a6f73" }}>
+              <span>Mã chứng chỉ: <strong style={{ color: "#a435f0" }}>{cert?.code || cert?.id?.substring(0, 12) || "—"}</strong></span>
             </div>
           </div>
 
-          <div className="h-2" style={{ background: "linear-gradient(to right, #0891b2, #7c3aed)" }} />
+          <div className="h-2" style={{ background: "linear-gradient(to right, #0891b2, #a435f0)" }} />
         </div>
 
         <div className="flex items-center justify-center gap-3 mt-8">

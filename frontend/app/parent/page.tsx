@@ -279,7 +279,7 @@ export default function ParentPage() {
           onClick={() => setQrPopup(null)}
         >
           <div
-            className="card-base max-w-sm w-full text-center relative p-8 animate-scale-in"
+            className="bg-card border border-border shadow-md max-w-sm w-full text-center relative p-8 animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -291,10 +291,10 @@ export default function ParentPage() {
             <h2 className="text-xl font-bold mb-2">Quét mã thanh toán</h2>
             <p
               className="text-sm mb-6"
-              style={{ color: "var(--foreground-muted)" }}
+              style={{ color: "#6a6f73" }}
             >
               Đơn hàng{" "}
-              <span className="font-mono" style={{ color: "#7c3aed" }}>
+              <span className="font-mono" style={{ color: "#5624d0" }}>
                 #{qrPopup.id?.substring(0, 8)}
               </span>
             </p>
@@ -322,46 +322,27 @@ export default function ParentPage() {
 
       <div className="pt-20 pb-24">
         {/* Hero Header */}
-        <div
-          className="relative overflow-hidden mb-8"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(124,58,237,0.05) 0%, rgba(8,145,178,0.05) 100%)",
-            borderBottom: "1px solid var(--border)",
-          }}
-        >
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+        <div className="bg-[#f7f9fa] dark:bg-[#2d2f31] pt-24 pb-16 mb-8 border-b border-border">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative z-10">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
-                <h1
-                  className="text-3xl font-extrabold mb-2 bg-clip-text text-transparent"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(135deg, #7c3aed, #0891b2)",
-                  }}
-                >
+                <h1 className="text-3xl font-bold mb-2">
                   Phụ huynh Dashboard
                 </h1>
-                <p
-                  className="text-base font-medium"
-                  style={{ color: "var(--foreground-muted)" }}
-                >
+                <p className="text-base font-medium text-gray-300">
                   Đồng hành cùng bước tiến học tập của con bạn mỗi ngày.
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={fetchAll}
-                  className="btn-secondary px-5 py-2.5 shadow-sm hover:shadow transition-all"
+                  className="bg-white text-black px-5 py-2.5 shadow-sm hover:bg-gray-100 transition-all font-bold flex items-center gap-2 rounded"
                 >
                   <RefreshCw className="w-4 h-4" /> Làm mới dữ liệu
                 </button>
               </div>
             </div>
           </div>
-          {/* Decorative shapes */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-          <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl translate-y-1/2"></div>
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -369,35 +350,22 @@ export default function ParentPage() {
             <div className="flex justify-center py-20">
               <Loader2
                 className="w-10 h-10 animate-spin"
-                style={{ color: "#7c3aed" }}
+                style={{ color: "#5624d0" }}
               />
             </div>
           ) : (
             <>
               {/* Link child input */}
-              <div
-                className="card-base mb-8 border-none shadow-lg relative overflow-hidden"
-                style={{ background: "var(--card)" }}
-              >
-                <div
-                  className="absolute inset-0 opacity-20 pointer-events-none"
-                  style={{
-                    background:
-                      "linear-gradient(90deg, transparent, rgba(124,58,237,0.1), transparent)",
-                  }}
-                ></div>
-                <div className="flex flex-col sm:flex-row gap-4 items-center relative z-10">
+              <div className="bg-card border border-border p-6 shadow-sm mb-8 flex flex-col sm:flex-row gap-4 items-center">
                   <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-inner"
-                    style={{ background: "rgba(124,58,237,0.1)" }}
+                    className="w-12 h-12 rounded flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary"
                   >
                     <UserPlus
                       className="w-6 h-6"
-                      style={{ color: "#7c3aed" }}
                     />
                   </div>
                   <div className="flex-1 w-full">
-                    <h3 className="font-bold text-sm mb-1">
+                    <h3 className="font-bold text-sm mb-2">
                       Kết nối tài khoản học sinh
                     </h3>
                     <div className="flex gap-2">
@@ -406,21 +374,16 @@ export default function ParentPage() {
                         onChange={(e) => setLinkUsername(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && linkChild()}
                         placeholder="Nhập email hoặc username của con..."
-                        className="input-base flex-1 bg-transparent"
-                        style={{
-                          border: "2px solid var(--border)",
-                          boxShadow: "inset 0 2px 4px rgba(0,0,0,0.02)",
-                        }}
+                        className="w-full pl-4 pr-4 py-3 border border-border outline-none focus:border-primary transition-colors text-black dark:text-white bg-transparent"
                       />
                       <button
                         onClick={linkChild}
-                        className="btn-primary px-6 shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 transition-all"
+                        className="bg-primary text-white font-bold px-6 flex items-center gap-2 hover:bg-primary/90 transition-colors whitespace-nowrap"
                       >
                         <Send className="w-4 h-4" /> Gửi yêu cầu
                       </button>
                     </div>
                   </div>
-                </div>
               </div>
 
               {/* Children selector */}
@@ -428,7 +391,7 @@ export default function ParentPage() {
                 <div className="mb-8">
                   <h3
                     className="text-sm font-bold mb-4 flex items-center gap-2"
-                    style={{ color: "var(--foreground-muted)" }}
+                    style={{ color: "#6a6f73" }}
                   >
                     <Users className="w-4 h-4" /> Học sinh của bạn
                   </h3>
@@ -440,32 +403,10 @@ export default function ParentPage() {
                         <button
                           key={c.id}
                           onClick={() => selectChild(c)}
-                          className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all whitespace-nowrap min-w-[200px] relative overflow-hidden group ${isActive ? "shadow-lg shadow-purple-500/10" : "hover:shadow-md"}`}
-                          style={{
-                            background: isActive
-                              ? "var(--card)"
-                              : "var(--muted)",
-                            border: `2px solid ${isActive ? "#7c3aed" : "transparent"}`,
-                            transform: isActive ? "scale(1.02)" : "scale(1)",
-                          }}
+                          className={`flex items-center gap-4 px-5 py-4 border transition-all whitespace-nowrap min-w-[200px] ${isActive ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground-muted"}`}
                         >
-                          {isActive && (
-                            <div
-                              className="absolute inset-0 opacity-10"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg, #7c3aed, #0891b2)",
-                              }}
-                            ></div>
-                          )}
                           <div
-                            className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white shadow-inner relative z-10"
-                            style={{
-                              background: isActive
-                                ? "linear-gradient(135deg, #7c3aed, #0891b2)"
-                                : "var(--border)",
-                              color: isActive ? "white" : "var(--foreground)",
-                            }}
+                            className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${isActive ? "bg-primary text-white" : "bg-muted text-foreground"}`}
                           >
                             {(kid.firstName || kid.username || "?")
                               .charAt(0)
@@ -473,13 +414,12 @@ export default function ParentPage() {
                           </div>
                           <div className="text-left relative z-10">
                             <p
-                              className={`font-bold text-base ${isActive ? "text-[var(--primary)]" : ""}`}
+                              className={`font-bold text-base ${isActive ? "text-primary" : ""}`}
                             >
                               {kid.firstName || kid.username}
                             </p>
                             <p
-                              className="text-xs"
-                              style={{ color: "var(--foreground-muted)" }}
+                              className="text-xs text-foreground-muted"
                             >
                               {kid.email}
                             </p>
@@ -510,7 +450,7 @@ export default function ParentPage() {
                     }}
                   >
                     <t.icon
-                      className={`w-4 h-4 ${tab === t.id ? "text-[#7c3aed]" : ""}`}
+                      className={`w-4 h-4 ${tab === t.id ? "text-[#a435f0]" : ""}`}
                     />{" "}
                     {t.label}
                     {(t as any).badge > 0 && (
@@ -535,7 +475,7 @@ export default function ParentPage() {
                       <div
                         className="absolute bottom-0 left-0 right-0 h-0.5"
                         style={{
-                          background: "#7c3aed",
+                          background: "#a435f0",
                           boxShadow: "0 -2px 10px rgba(124,58,237,0.5)",
                         }}
                       ></div>
@@ -547,23 +487,9 @@ export default function ParentPage() {
               {/* Overview */}
               {tab === "overview" && child && (
                 <>
-                  {/* Child profile card */}
-                  <div
-                    className="card-base mb-6"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(8,145,178,0.05))",
-                    }}
-                  >
-                    <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="bg-card border border-border p-6 shadow-sm mb-6 flex items-center justify-between flex-wrap gap-4">
                       <div className="flex items-center gap-4">
-                        <div
-                          className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, #7c3aed, #0891b2)",
-                          }}
-                        >
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold bg-primary text-white">
                           {(child.firstName || child.username || "?")
                             .charAt(0)
                             .toUpperCase()}
@@ -576,7 +502,7 @@ export default function ParentPage() {
                           </h2>
                           <p
                             className="text-sm"
-                            style={{ color: "var(--foreground-muted)" }}
+                            style={{ color: "#6a6f73" }}
                           >
                             {child.email}
                           </p>
@@ -595,7 +521,7 @@ export default function ParentPage() {
                             {child.createdAt && (
                               <span
                                 className="text-[10px] flex items-center gap-1"
-                                style={{ color: "var(--foreground-muted)" }}
+                                style={{ color: "#6a6f73" }}
                               >
                                 <Calendar className="w-3 h-3" /> Tham gia{" "}
                                 {new Date(child.createdAt).toLocaleDateString(
@@ -608,13 +534,11 @@ export default function ParentPage() {
                       </div>
                       <button
                         onClick={() => unlinkChild(child.id)}
-                        className="btn-ghost text-xs"
-                        style={{ color: "#ef4444" }}
+                        className="text-xs font-bold text-red-500 hover:underline flex items-center gap-1"
                       >
                         <UserMinus className="w-3 h-3" /> Hủy liên kết
                       </button>
                     </div>
-                  </div>
 
                   {/* Stats grid */}
                   <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
@@ -625,7 +549,7 @@ export default function ParentPage() {
                           childDashboard?.enrollments?.length ??
                           childCourses.length,
                         icon: BookOpen,
-                        color: "#7c3aed",
+                        color: "#5624d0",
                         sub: "đã đăng ký",
                       },
                       {
@@ -659,7 +583,7 @@ export default function ParentPage() {
                         sub: "đã nhận",
                       },
                     ].map(({ label, value, icon: Icon, color, sub }) => (
-                      <div key={label} className="card-base text-center py-4">
+                      <div key={label} className="bg-card border border-border p-4 shadow-sm text-center">
                         <div
                           className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2"
                           style={{ background: `${color}18` }}
@@ -669,7 +593,7 @@ export default function ParentPage() {
                         <p className="text-2xl font-extrabold">{value}</p>
                         <p
                           className="text-[10px] mt-0.5"
-                          style={{ color: "var(--foreground-muted)" }}
+                          style={{ color: "#6a6f73" }}
                         >
                           {sub}
                         </p>
@@ -679,11 +603,9 @@ export default function ParentPage() {
 
                   <div className="grid lg:grid-cols-2 gap-6">
                     {/* Enrollments with progress */}
-                    <div className="card-base border-none shadow-md">
-                      <h3 className="font-extrabold text-base mb-5 flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-purple-500/10">
-                          <BookOpen className="w-5 h-5 text-purple-500" />
-                        </div>{" "}
+                    <div className="bg-card border border-border p-6 shadow-sm">
+                      <h3 className="font-bold text-base mb-5 flex items-center gap-2">
+                        <BookOpen className="w-5 h-5 text-primary" />
                         Tiến độ môn học
                       </h3>
                       {(childDashboard?.enrollments || childCourses || [])
@@ -725,7 +647,7 @@ export default function ParentPage() {
                                     <p
                                       className="text-xs mt-1"
                                       style={{
-                                        color: "var(--foreground-muted)",
+                                        color: "#6a6f73",
                                       }}
                                     >
                                       {e.status === "pending"
@@ -740,7 +662,7 @@ export default function ParentPage() {
                                         pct >= 100
                                           ? "#10b981"
                                           : pct > 0
-                                            ? "#7c3aed"
+                                            ? "#a435f0"
                                             : "var(--muted)",
                                     }}
                                   >
@@ -760,7 +682,7 @@ export default function ParentPage() {
                                       background:
                                         pct >= 100
                                           ? "#10b981"
-                                          : "linear-gradient(90deg, #7c3aed, #c084fc)",
+                                          : "linear-gradient(90deg, #a435f0, #c084fc)",
                                     }}
                                   >
                                     {pct > 0 && pct < 100 && (
@@ -770,7 +692,7 @@ export default function ParentPage() {
                                 </div>
                                 <div
                                   className="flex justify-between text-[11px] font-semibold mt-2"
-                                  style={{ color: "var(--foreground-muted)" }}
+                                  style={{ color: "#6a6f73" }}
                                 >
                                   <span>
                                     {doneL} / {totalL} Bài
@@ -792,11 +714,9 @@ export default function ParentPage() {
 
                     {/* Right column: Activity & Certs */}
                     <div className="space-y-6">
-                      <div className="card-base border-none shadow-md bg-gradient-to-br from-indigo-500/5 to-purple-500/5">
-                        <h3 className="font-extrabold text-base mb-5 flex items-center gap-2">
-                          <div className="p-1.5 rounded-lg bg-blue-500/10">
-                            <BarChart3 className="w-5 h-5 text-blue-500" />
-                          </div>{" "}
+                      <div className="bg-card border border-border p-6 shadow-sm">
+                        <h3 className="font-bold text-base mb-5 flex items-center gap-2">
+                          <BarChart3 className="w-5 h-5 text-primary" />
                           Tổng quan Hoạt động
                         </h3>
                         <div className="grid grid-cols-2 gap-3">
@@ -848,7 +768,7 @@ export default function ParentPage() {
                       </div>
 
                       {/* Certificates */}
-                      <div className="card-base border-none shadow-md">
+                      <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-extrabold text-base mb-4 flex items-center gap-2">
                           <div className="p-1.5 rounded-lg bg-amber-500/10">
                             <Award className="w-5 h-5 text-amber-500" />
@@ -909,15 +829,15 @@ export default function ParentPage() {
               )}
 
               {tab === "overview" && !child && children.length === 0 && (
-                <div className="card-base text-center py-12">
+                <div className="bg-card border border-border p-6 shadow-sm text-center py-12">
                   <Users
                     className="w-12 h-12 mx-auto mb-4"
-                    style={{ color: "var(--foreground-muted)" }}
+                    style={{ color: "#6a6f73" }}
                   />
                   <h3 className="font-bold mb-2">Chưa liên kết con em</h3>
                   <p
                     className="text-sm"
-                    style={{ color: "var(--foreground-muted)" }}
+                    style={{ color: "#6a6f73" }}
                   >
                     Nhập username ở trên để bắt đầu theo dõi
                   </p>
@@ -934,7 +854,7 @@ export default function ParentPage() {
                     Khóa học đang theo học
                   </h3>
                   {childCourses.length === 0 ? (
-                    <div className="card-base text-center py-16 border-dashed border-2 border-gray-200 dark:border-gray-800 bg-transparent">
+                    <div className="bg-card p-6 shadow-sm text-center py-16 border-dashed border-2 border-gray-200 dark:border-gray-800 bg-transparent">
                       <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-700" />
                       <p className="text-base font-semibold text-gray-500">
                         Con chưa tham gia khóa học nào
@@ -949,11 +869,10 @@ export default function ParentPage() {
                           Number(enrollment.progress || 0),
                         );
                         return (
-                          <div
-                            key={enrollment.id}
-                            className="card-base group hover:-translate-y-1 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
-                            style={{ border: "1px solid var(--border)" }}
-                          >
+                            <div
+                              key={enrollment.id}
+                              className="bg-card p-6 border border-border group hover:shadow-md transition-all duration-300 relative overflow-hidden"
+                            >
                             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-150 transition-transform duration-700">
                               <BookOpen className="w-32 h-32" />
                             </div>
@@ -987,7 +906,7 @@ export default function ParentPage() {
                                     background:
                                       pct >= 100
                                         ? "#10b981"
-                                        : "linear-gradient(90deg, #7c3aed, #4f46e5)",
+                                        : "linear-gradient(90deg, #a435f0, #5624d0)",
                                   }}
                                 />
                               </div>
@@ -1014,7 +933,7 @@ export default function ParentPage() {
                   </div>
 
                   {childGrades.length === 0 ? (
-                    <div className="card-base text-center py-20 border-dashed border-2 border-gray-200 dark:border-gray-800 bg-transparent">
+                    <div className="bg-card p-6 shadow-sm text-center py-20 border-dashed border-2 border-gray-200 dark:border-gray-800 bg-transparent">
                       <Award className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-700" />
                       <h3 className="font-bold text-lg mb-2 text-gray-400">
                         Chưa có bài tập nào được chấm
@@ -1064,7 +983,7 @@ export default function ParentPage() {
                               return (
                                 <div
                                   key={courseId}
-                                  className="card-base border-none shadow-lg overflow-hidden p-0 relative"
+                                  className="bg-card border border-border shadow-sm overflow-hidden p-0 relative"
                                 >
                                   <div
                                     className="absolute top-0 left-0 right-0 h-1"
@@ -1221,11 +1140,7 @@ export default function ParentPage() {
                             (g: any) => g.status === "graded",
                           ) && (
                             <div
-                              className="card-base"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(8,145,178,0.05))",
-                              }}
+                              className="bg-card border border-border p-6 shadow-sm"
                             >
                               <h4 className="text-sm font-bold mb-3">
                                 📊 Tổng kết chung
@@ -1234,13 +1149,13 @@ export default function ParentPage() {
                                 <div>
                                   <p
                                     className="text-xl font-extrabold"
-                                    style={{ color: "#7c3aed" }}
+                                    style={{ color: "#5624d0" }}
                                   >
                                     {courses.length}
                                   </p>
                                   <p
                                     className="text-[10px]"
-                                    style={{ color: "var(--foreground-muted)" }}
+                                    style={{ color: "#6a6f73" }}
                                   >
                                     Khóa học
                                   </p>
@@ -1258,7 +1173,7 @@ export default function ParentPage() {
                                   </p>
                                   <p
                                     className="text-[10px]"
-                                    style={{ color: "var(--foreground-muted)" }}
+                                    style={{ color: "#6a6f73" }}
                                   >
                                     Đã chấm
                                   </p>
@@ -1285,7 +1200,7 @@ export default function ParentPage() {
                                   </p>
                                   <p
                                     className="text-[10px]"
-                                    style={{ color: "var(--foreground-muted)" }}
+                                    style={{ color: "#6a6f73" }}
                                   >
                                     Điểm TB
                                   </p>
@@ -1303,7 +1218,7 @@ export default function ParentPage() {
                                   </p>
                                   <p
                                     className="text-[10px]"
-                                    style={{ color: "var(--foreground-muted)" }}
+                                    style={{ color: "#6a6f73" }}
                                   >
                                     Chờ chấm
                                   </p>
@@ -1324,12 +1239,12 @@ export default function ParentPage() {
                   <h3 className="text-lg font-extrabold mb-4 flex items-center gap-2">
                     <CreditCard
                       className="w-5 h-5"
-                      style={{ color: "#7c3aed" }}
+                      style={{ color: "#5624d0" }}
                     />{" "}
                     Thanh toán chờ xử lý
                   </h3>
                   {pendingOrders.length === 0 ? (
-                    <div className="card-base text-center py-12">
+                    <div className="bg-card border border-border p-6 shadow-sm text-center py-12">
                       <CheckCircle2
                         className="w-12 h-12 mx-auto mb-3"
                         style={{ color: "#10b981" }}
@@ -1339,7 +1254,7 @@ export default function ParentPage() {
                       </h3>
                       <p
                         className="text-sm"
-                        style={{ color: "var(--foreground-muted)" }}
+                        style={{ color: "#6a6f73" }}
                       >
                         Tất cả đơn hàng đã được xử lý
                       </p>
@@ -1347,7 +1262,7 @@ export default function ParentPage() {
                   ) : (
                     <div className="space-y-4">
                       {pendingOrders.map((order: any) => (
-                        <div key={order.id} className="card-base">
+                        <div key={order.id} className="bg-card border border-border p-6 shadow-sm">
                           <div className="flex items-center justify-between mb-4">
                             <div>
                               <p className="text-sm font-semibold">
@@ -1355,7 +1270,7 @@ export default function ParentPage() {
                               </p>
                               <p
                                 className="text-xs"
-                                style={{ color: "var(--foreground-muted)" }}
+                                style={{ color: "#6a6f73" }}
                               >
                                 Từ: <strong>{order.childName || "Con"}</strong>{" "}
                                 •{" "}
@@ -1374,7 +1289,7 @@ export default function ParentPage() {
                             <p
                               key={item.id}
                               className="text-sm mb-1"
-                              style={{ color: "var(--foreground-muted)" }}
+                              style={{ color: "#6a6f73" }}
                             >
                               • {item.course?.title || "Khóa học"}
                             </p>
@@ -1414,7 +1329,7 @@ export default function ParentPage() {
                                 <p className="text-xs mb-1 font-mono px-2 py-1.5 rounded-lg inline-block" style={{ background: "var(--muted)" }}>
                                   Nội dung CK: <span className="font-bold">{order._qrData.addInfo}</span>
                                 </p>
-                                <p className="text-[10px] mt-1 mb-2" style={{ color: "var(--foreground-muted)" }}>
+                                <p className="text-[10px] mt-1 mb-2" style={{ color: "#6a6f73" }}>
                                   ⚠️ Nội dung chuyển khoản phải chứa đúng mã trên
                                 </p>
                               </>
@@ -1469,7 +1384,7 @@ export default function ParentPage() {
               {tab === "requests" && (
                 <div className="space-y-6">
                   {incomingRequests.length > 0 && (
-                    <div className="card-base">
+                    <div className="bg-card border border-border p-6 shadow-sm">
                       <h3 className="font-bold mb-4">
                         Yêu cầu đến ({incomingRequests.length})
                       </h3>
@@ -1505,7 +1420,7 @@ export default function ParentPage() {
                   )}
 
                   {outgoingRequests.length > 0 && (
-                    <div className="card-base">
+                    <div className="bg-card border border-border p-6 shadow-sm">
                       <h3 className="font-bold mb-4">
                         Yêu cầu đã gửi ({outgoingRequests.length})
                       </h3>
@@ -1539,14 +1454,14 @@ export default function ParentPage() {
 
                   {incomingRequests.length === 0 &&
                     outgoingRequests.length === 0 && (
-                      <div className="card-base text-center py-8">
+                      <div className="bg-card border border-border p-6 shadow-sm text-center py-8">
                         <UserPlus
                           className="w-10 h-10 mx-auto mb-2"
-                          style={{ color: "var(--foreground-muted)" }}
+                          style={{ color: "#6a6f73" }}
                         />
                         <p
                           className="text-sm"
-                          style={{ color: "var(--foreground-muted)" }}
+                          style={{ color: "#6a6f73" }}
                         >
                           Không có yêu cầu liên kết nào
                         </p>

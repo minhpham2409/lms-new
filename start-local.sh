@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Chạy API (3001) + Next (3000) trong một terminal. Ctrl+C dừng cả hai.
+# Chạy API (4000) + Next (3000) trong một terminal. Ctrl+C dừng cả hai.
 set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
@@ -15,11 +15,11 @@ free_port() {
   fi
 }
 
-echo "Giải phóng cổng 3000 / 3001 nếu đang bận..."
+echo "Giải phóng cổng 3000 / 4000 nếu đang bận..."
 free_port 3000
-free_port 3001
+free_port 4000
 if ! command -v fuser >/dev/null 2>&1 && ! command -v lsof >/dev/null 2>&1; then
-  echo "Gợi ý: cài psmisc (fuser) hoặc lsof, hoặc tự đóng process đang dùng cổng 3000/3001."
+  echo "Gợi ý: cài psmisc (fuser) hoặc lsof, hoặc tự đóng process đang dùng cổng 3000/4000."
 fi
 sleep 1
 
@@ -37,7 +37,7 @@ BACK_PID=$!
 FRONT_PID=$!
 
 echo ""
-echo "Backend PID: $BACK_PID  → http://localhost:3001"
+echo "Backend PID: $BACK_PID  → http://localhost:4000"
 echo "Frontend PID: $FRONT_PID → http://localhost:3000"
 echo "Mở trình duyệt: http://localhost:3000"
 echo ""

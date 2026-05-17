@@ -11,7 +11,7 @@ export function Step4Review({ title, category, level, price, sections }: any) {
 
       <div className="grid md:grid-cols-2 gap-8">
         <div>
-          <h4 className="font-semibold text-sm mb-3" style={{ color: "var(--foreground-muted)" }}>Thông tin cơ bản</h4>
+          <h4 className="font-semibold text-sm mb-3" style={{ color: "#6a6f73" }}>Thông tin cơ bản</h4>
           <div className="space-y-3 p-4 rounded-xl" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
             <p><strong>Tên:</strong> {title || <span className="text-red-500 text-xs">Chưa nhập</span>}</p>
             <p><strong>Danh mục:</strong> {category || "—"}</p>
@@ -21,7 +21,7 @@ export function Step4Review({ title, category, level, price, sections }: any) {
         </div>
 
         <div>
-          <h4 className="font-semibold text-sm mb-3" style={{ color: "var(--foreground-muted)" }}>Thống kê nội dung</h4>
+          <h4 className="font-semibold text-sm mb-3" style={{ color: "#6a6f73" }}>Thống kê nội dung</h4>
           <div className="space-y-3 p-4 rounded-xl" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
             <p><strong>Tổng số chương:</strong> <span className="font-bold text-[#0891b2]">{sections.length}</span></p>
             <p><strong>Tổng số bài giảng:</strong> <span className="font-bold text-[#f59e0b]">{totalLessons}</span></p>
@@ -30,7 +30,7 @@ export function Step4Review({ title, category, level, price, sections }: any) {
       </div>
 
       <div className="mt-8">
-        <h4 className="font-semibold text-sm mb-3" style={{ color: "var(--foreground-muted)" }}>Cấu trúc chi tiết</h4>
+        <h4 className="font-semibold text-sm mb-3" style={{ color: "#6a6f73" }}>Cấu trúc chi tiết</h4>
         {sections.length === 0 ? (
           <p className="text-sm text-red-500">Chưa có nội dung nào được thêm!</p>
         ) : (

@@ -7,7 +7,7 @@ export function Step1BasicInfo({ title, setTitle, description, setDescription, c
   return (
     <div className="card-base animate-scale-in">
       <h3 className="font-bold mb-6 flex items-center gap-2 text-lg">
-        <BookOpen className="w-5 h-5" style={{ color: "#7c3aed" }} /> Bước 1: Thông tin cơ bản
+        <BookOpen className="w-5 h-5" style={{ color: "#5624d0" }} /> Bước 1: Thông tin cơ bản
       </h3>
       <div className="space-y-5">
         <div>
@@ -54,7 +54,7 @@ export function Step1BasicInfo({ title, setTitle, description, setDescription, c
             </div>
             <div>
               <p className="text-sm font-semibold mb-0.5">Cho phép Nền tảng chạy khuyến mãi</p>
-              <p className="text-xs" style={{ color: "var(--foreground-muted)" }}>
+              <p className="text-xs" style={{ color: "#6a6f73" }}>
                 Đồng ý cho học viên áp dụng Voucher của hệ thống (ví dụ: thưởng Bảng xếp hạng) vào khóa học này.
               </p>
             </div>

@@ -8,7 +8,7 @@ import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
   ShoppingCart, Trash2, Tag, BookOpen, ArrowRight, ShieldCheck,
-  QrCode, CheckCircle2, X, Clock, Send, Loader2, AlertTriangle, UserPlus, Gift,
+  QrCode, CheckCircle2, X, Clock, Send, Loader2, AlertTriangle, UserPlus, Gift, PlayCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,17 +45,14 @@ export default function CartPage() {
 
   async function checkParent() {
     try {
-      // Check if the student has any accepted parent-child link
       const profileRes = await fetch(`${API}/auth/profile`, { headers: { Authorization: `Bearer ${token}` } });
       if (profileRes.ok) {
         const profile = await profileRes.json();
-        // childLinks = student's accepted parent links
         if (profile.childLinks?.length > 0) {
           setHasParent(true);
           return;
         }
       }
-      // Check incoming requests (pending = parent sent request)
       const res = await fetch(`${API}/parents/link-requests/incoming`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
@@ -64,7 +61,7 @@ export default function CartPage() {
           return;
         }
       }
-      setHasParent(false); // No parent — block
+      setHasParent(false);
     } catch {
       setHasParent(false);
     }
@@ -84,7 +81,7 @@ export default function CartPage() {
     try {
       await fetch(`${API}/cart/item/${itemId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       setItems(items.filter(i => i.id !== itemId));
-      setAppliedCoupon(null); // Reset applied coupon since total changed
+      setAppliedCoupon(null);
       toast.success("Đã xóa khỏi giỏ hàng");
     } catch { toast.error("Không thể xóa"); }
   }
@@ -124,25 +121,17 @@ export default function CartPage() {
 
   const total = items.reduce((s, i) => s + (i.course?.price || 0), 0);
   const finalTotal = appliedCoupon ? total * (1 - appliedCoupon.discount / 100) : total;
-  const colors = ["#7c3aed", "#3b82f6", "#f59e0b", "#10b981", "#ec4899"];
 
-  /**
-   * Step 1: Create order + generate QR from backend.
-   * This runs when user clicks "Thanh toán" — before showing the modal QR.
-   */
   async function handleCheckout() {
     if (user?.role === "student" && hasParent !== true) {
       toast.error("Bạn cần liên kết tài khoản phụ huynh trước khi thanh toán!");
       return;
     }
-
-    // Show modal immediately with loading state
     setShowPayment(true);
     setSending(true);
     setQrPayment(null);
 
     try {
-      // 1. Create order atomically (order + items + pending enrollments + clear cart)
       const orderRes = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -157,7 +146,6 @@ export default function CartPage() {
       }
       const order = await orderRes.json();
 
-      // 2. Generate QR — API returns vietQrUrl with correct txnRef baked in
       const qrRes = await fetch(`${API}/payments/qr`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -170,14 +158,25 @@ export default function CartPage() {
         return;
       }
       const qrData = await qrRes.json();
+      await Promise.all(
+        (order.items || [])
+          .map((item: any) => item.courseId)
+          .filter(Boolean)
+          .map((courseId: string) =>
+            fetch(`${API}/enrollments/pending`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ courseId }),
+            }).catch(() => null)
+          )
+      );
       setQrPayment({
         vietQrUrl: qrData.vietQrUrl,
         txnRef: qrData.txnRef,
         addInfo: qrData.addInfo,
         amount: Number(qrData.amount),
       });
-
-      setItems([]); // Clear cart (already cleared atomically on backend)
+      setItems([]);
     } catch {
       toast.error("Lỗi tạo đơn hàng");
       setShowPayment(false);
@@ -186,145 +185,130 @@ export default function CartPage() {
     }
   }
 
-  /**
-   * Step 2: Mark as "sent to parent" — order + QR already created.
-   */
   function handleConfirmSent() {
     setPaymentSent(true);
     toast.success("Đã gửi mã QR đến phụ huynh!");
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--background)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       <Navbar />
-      <div className="pt-20 pb-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-extrabold mb-6 flex items-center gap-2">
-            <ShoppingCart className="w-6 h-6" style={{ color: "#7c3aed" }} /> Giỏ hàng
-            <span className="text-sm font-normal" style={{ color: "var(--foreground-muted)" }}>({items.length} khóa học)</span>
-          </h1>
+      
+      <section className="bg-[#f7f9fa] dark:bg-[#2d2f31] pt-24 pb-8 border-b border-gray-700">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+           <h1 className="text-4xl font-bold">Giỏ hàng của bạn</h1>
+        </div>
+      </section>
+
+      <section className="flex-1 py-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+           
+           <p className="font-bold text-lg mb-4">{items.length} Khóa học trong giỏ hàng</p>
 
           {/* No parent warning */}
           {hasParent !== true && user?.role === "student" && items.length > 0 && (
-            <div className="card-base mb-4 flex items-center gap-3" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)" }}>
-              <AlertTriangle className="w-5 h-5 flex-shrink-0" style={{ color: "#f59e0b" }} />
+            <div className="border border-yellow-500/50 bg-yellow-500/10 rounded-lg p-4 mb-6 flex items-start gap-4">
+              <AlertTriangle className="w-6 h-6 shrink-0 text-yellow-500" />
               <div className="flex-1">
-                <p className="text-sm font-semibold" style={{ color: "#f59e0b" }}>Chưa liên kết phụ huynh</p>
-                <p className="text-xs" style={{ color: "var(--foreground-muted)" }}>Bạn cần liên kết tài khoản phụ huynh để phụ huynh thanh toán cho bạn.</p>
+                <p className="font-bold text-yellow-500 mb-1">Cần liên kết phụ huynh</p>
+                <p className="text-sm text-foreground-muted">Tài khoản học sinh không thể tự thanh toán trực tiếp. Vui lòng liên kết với phụ huynh để gửi hóa đơn.</p>
               </div>
-              <Link href="/dashboard" className="btn-secondary text-xs px-3 flex-shrink-0">
-                <UserPlus className="w-3 h-3" /> Liên kết
+              <Link href="/dashboard" className="px-4 py-2 border border-border bg-card text-sm font-bold hover:bg-muted transition-colors rounded">
+                Liên kết ngay
               </Link>
             </div>
           )}
 
           {cartLoading ? (
-            <div className="card-base flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin" style={{ color: "#7c3aed" }} />
-            </div>
+            <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
           ) : items.length === 0 ? (
-            <div className="card-base text-center py-16">
-              <ShoppingCart className="w-14 h-14 mx-auto mb-4" style={{ color: "var(--foreground-muted)" }} />
-              <h2 className="text-lg font-bold mb-2">Giỏ hàng trống</h2>
-              <p className="text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>Hãy khám phá và thêm khóa học bạn yêu thích</p>
-              <Link href="/courses" className="btn-primary">Xem khóa học</Link>
+            <div className="text-center py-20 border border-border rounded-lg bg-card shadow-sm">
+               <div className="w-32 h-32 mx-auto bg-muted rounded-full flex items-center justify-center mb-6">
+                  <ShoppingCart className="w-12 h-12 text-foreground-muted" />
+               </div>
+               <p className="text-foreground-muted mb-6">Giỏ hàng của bạn đang trống. Hãy tiếp tục mua sắm để tìm một khóa học!</p>
+               <Link href="/courses" className="btn-primary px-8 py-3">Tiếp tục mua sắm</Link>
             </div>
           ) : (
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-3">
-                {items.map((item, i) => (
-                  <div key={item.id} className="card-base flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: `${colors[i % colors.length]}22` }}>
-                      <BookOpen className="w-7 h-7" style={{ color: colors[i % colors.length] }} />
+            <div className="grid lg:grid-cols-3 gap-8 items-start">
+              <div className="lg:col-span-2 space-y-4">
+                {items.map((item) => (
+                  <div key={item.id} className="flex flex-col sm:flex-row gap-4 p-4 border border-border rounded-lg bg-card shadow-sm">
+                    <div className="w-full sm:w-32 aspect-video bg-muted relative shrink-0 border border-border flex items-center justify-center">
+                       <PlayCircle className="w-8 h-8 text-primary/50" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm truncate">{item.course?.title || "Khóa học"}</h3>
-                      <p className="text-xs" style={{ color: "var(--foreground-muted)" }}>{item.course?.author?.firstName || item.course?.author?.username || "Giáo viên"}</p>
+                      <Link href={`/courses/${item.courseId}`}>
+                         <h3 className="font-bold line-clamp-2 hover:text-primary transition-colors">{item.course?.title}</h3>
+                      </Link>
+                      <p className="text-xs text-foreground-muted mt-1">{item.course?.author?.firstName || item.course?.author?.username || "Giáo viên"}</p>
+                      <div className="mt-2 text-xs flex items-center gap-2 text-foreground-muted">
+                         <span className="bg-muted px-2 py-1 rounded">Tất cả trình độ</span>
+                      </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-bold" style={{ color: "#a78bfa" }}>{(item.course?.price || 0).toLocaleString()} ₫</p>
-                      <button onClick={() => removeItem(item.id)} className="text-xs flex items-center gap-1 mt-1" style={{ color: "#ef4444" }}>
-                        <Trash2 className="w-3 h-3" /> Xóa
-                      </button>
+                    <div className="flex flex-col items-end justify-between sm:w-28 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border">
+                      <p className="font-bold text-lg text-primary">{(item.course?.price || 0).toLocaleString()} ₫</p>
+                      <button onClick={() => removeItem(item.id)} className="text-sm text-foreground hover:text-red-500 transition-colors mt-2 font-bold">Xóa</button>
                     </div>
                   </div>
                 ))}
+                
+                <button onClick={clearCart} className="text-sm font-bold text-foreground-muted hover:text-red-500 transition-colors">Xóa toàn bộ giỏ hàng</button>
               </div>
 
               {/* Summary */}
-              <div className="glass-card rounded-2xl p-6 h-fit sticky top-24" style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.15)" }}>
-                <h3 className="font-bold mb-4">Tóm tắt đơn hàng</h3>
-                <div className="space-y-3 text-sm mb-4">
-                  <div className="flex justify-between" style={{ color: "var(--foreground-muted)" }}><span>Tạm tính</span><span>{total.toLocaleString()} ₫</span></div>
-                  {appliedCoupon && (
-                    <>
-                      <div className="flex justify-between items-center" style={{ color: "#10b981" }}>
-                        <span className="flex items-center gap-1.5">
-                          <Tag className="w-3 h-3" />
-                          Giảm {appliedCoupon.discount}%
-                          <button onClick={removeCoupon} className="ml-1 opacity-60 hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
-                        </span>
-                        <span>−{appliedCoupon.savings.toLocaleString()} ₫</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="divider" />
-                  <div className="flex justify-between font-bold text-base"><span>Tổng cộng</span><span className="gradient-text">{finalTotal.toLocaleString()} ₫</span></div>
-                </div>
+              <div className="p-6 border border-border rounded-lg bg-card shadow-sm sticky top-24">
+                <p className="text-foreground-muted font-bold mb-2">Tổng cộng:</p>
+                <p className="text-4xl font-extrabold mb-4">{finalTotal.toLocaleString()} ₫</p>
+                {appliedCoupon && (
+                   <p className="text-sm line-through text-foreground-muted mb-2">{total.toLocaleString()} ₫</p>
+                )}
+                
+                {appliedCoupon && (
+                   <div className="mb-4 text-sm bg-green-500/10 text-green-500 p-2 border border-green-500/20 rounded flex items-center justify-between">
+                      <span className="font-bold">Giảm {appliedCoupon.discount}% (tiết kiệm {appliedCoupon.savings.toLocaleString()} ₫)</span>
+                      <button onClick={removeCoupon}><X className="w-4 h-4 hover:text-green-700" /></button>
+                   </div>
+                )}
 
-                {/* Voucher picker */}
+                <button onClick={handleCheckout} className="w-full bg-primary text-white font-bold py-4 hover:bg-primary/90 transition-colors mb-4 flex justify-center items-center gap-2">
+                  Thanh toán <ArrowRight className="w-5 h-5" />
+                </button>
+
+                <hr className="border-border my-6" />
+
+                <p className="font-bold mb-2">Mã giảm giá</p>
+                {!appliedCoupon ? (
+                   <div className="flex gap-2 mb-4">
+                     <input value={coupon} onChange={(e) => setCoupon(e.target.value)} placeholder="Nhập mã giảm giá" className="w-full px-3 py-2 border border-border bg-background focus:outline-none focus:border-primary text-sm" />
+                     <button onClick={() => applyCoupon()} className="px-4 py-2 bg-foreground text-background font-bold hover:bg-foreground/90 transition-colors text-sm">Áp dụng</button>
+                   </div>
+                ) : (
+                   <p className="text-sm text-foreground-muted mb-4 italic">Đã áp dụng mã: <strong>{appliedCoupon.code}</strong></p>
+                )}
+
                 {myCoupons.length > 0 && !appliedCoupon && (
-                  <div className="mb-4">
-                    <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: "#f59e0b" }}>
-                      <Gift className="w-3.5 h-3.5" /> Voucher dành cho bạn
-                    </p>
-                    <div className="space-y-2">
+                  <div className="mt-4">
+                    <p className="text-xs font-bold text-yellow-500 mb-2 flex items-center gap-1"><Gift className="w-4 h-4" /> Voucher có sẵn</p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                       {myCoupons.map(c => (
-                        <button
-                          key={c.id}
-                          onClick={() => applyCoupon(c.code)}
-                          className="w-full p-3 rounded-xl text-left transition-all hover:scale-[1.02] cursor-pointer"
-                          style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.08))", border: "1px solid rgba(124,58,237,0.2)" }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="font-mono text-sm font-bold" style={{ color: "#a78bfa" }}>{c.code}</span>
-                              <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>
-                                Giảm {c.discount}% · {c.expiresAt ? `Hết hạn ${new Date(c.expiresAt).toLocaleDateString("vi-VN")}` : 'Không có hạn'}
-                              </p>
-                            </div>
-                            <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: "rgba(16,185,129,0.15)", color: "#10b981" }}>
-                              Dùng
-                            </span>
-                          </div>
-                        </button>
+                        <div key={c.id} className="border border-border border-dashed p-3 bg-muted/50 cursor-pointer hover:bg-muted transition-colors flex justify-between items-center group" onClick={() => applyCoupon(c.code)}>
+                           <div>
+                              <p className="font-bold text-sm text-primary">{c.code}</p>
+                              <p className="text-xs text-foreground-muted">Giảm {c.discount}%</p>
+                           </div>
+                           <span className="text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity">Sử dụng</span>
+                        </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Manual coupon input */}
-                {!appliedCoupon && (
-                  <div className="flex gap-2 mb-4">
-                    <input value={coupon} onChange={(e) => setCoupon(e.target.value)} onKeyDown={e => e.key === "Enter" && applyCoupon()} placeholder="Nhập mã giảm giá" className="input-base flex-1 py-2.5 text-sm" />
-                    <button onClick={() => applyCoupon()} className="btn-secondary px-4 py-2.5 text-sm">Áp dụng</button>
-                  </div>
-                )}
-
-                <button onClick={handleCheckout} className="btn-primary w-full justify-center py-3.5 text-base">
-                  Thanh toán <ArrowRight className="w-4 h-4" />
-                </button>
-                <button onClick={clearCart} className="btn-ghost w-full justify-center py-2 text-xs mt-2" style={{ color: "#ef4444" }}>
-                  <Trash2 className="w-3 h-3" /> Xóa toàn bộ giỏ hàng
-                </button>
-                <div className="flex items-center justify-center gap-1.5 mt-4 text-xs" style={{ color: "var(--foreground-muted)" }}>
-                  <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#10b981" }} /> Thanh toán an toàn & bảo mật
-                </div>
               </div>
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Payment Modal */}
       {showPayment && (
@@ -333,75 +317,47 @@ export default function CartPage() {
             {!paymentSent ? (
               <>
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-extrabold flex items-center gap-2"><QrCode className="w-5 h-5" style={{ color: "#7c3aed" }} /> Thanh toán</h2>
+                  <h2 className="text-lg font-extrabold flex items-center gap-2"><QrCode className="w-5 h-5" style={{ color: "#5624d0" }} /> Thanh toán</h2>
                   <button onClick={() => setShowPayment(false)} className="btn-ghost px-2 py-2"><X className="w-5 h-5" /></button>
                 </div>
 
                 {sending ? (
-                  /* Loading: creating order + generating QR */
                   <div className="text-center py-12">
-                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: "#7c3aed" }} />
+                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: "#5624d0" }} />
                     <p className="text-sm font-semibold">Đang tạo đơn hàng & mã QR...</p>
-                    <p className="text-xs mt-2" style={{ color: "var(--foreground-muted)" }}>Vui lòng chờ trong giây lát</p>
                   </div>
                 ) : qrPayment ? (
-                  /* QR ready from API */
                   <div className="text-center mb-6">
-                    <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>Quét mã QR bên dưới để thanh toán</p>
+                    <p className="text-sm mb-4" style={{ color: "#6a6f73" }}>Quét mã QR bên dưới để thanh toán</p>
                     <div className="w-56 h-56 mx-auto rounded-2xl flex items-center justify-center mb-4" style={{ background: "white", border: "2px solid var(--border)" }}>
-                      <img
-                        src={qrPayment.vietQrUrl}
-                        alt="VietQR Payment" className="w-52 h-52 object-contain"
-                        onError={(e) => { e.currentTarget.onerror = null; (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrPayment.addInfo)}`; }}
-                      />
+                      <img src={qrPayment.vietQrUrl} alt="VietQR Payment" className="w-52 h-52 object-contain" />
                     </div>
-                    <p className="text-xs mb-1 font-mono px-2 py-1.5 rounded-lg inline-block" style={{ color: "var(--foreground)", background: "var(--muted)" }}>
+                    <p className="text-xs mb-1 font-mono px-3 py-2 rounded bg-muted border border-border inline-block">
                       Nội dung CK: <span className="font-bold">{qrPayment.addInfo}</span>
                     </p>
-                    <p className="text-[10px] mt-2 mb-3" style={{ color: "var(--foreground-muted)" }}>
-                      ⚠️ Nội dung chuyển khoản phải chứa đúng mã trên để hệ thống tự xác nhận
-                    </p>
-                    <div className="flex justify-between px-4 py-2 rounded-lg text-sm" style={{ background: "var(--muted)" }}>
-                      <span style={{ color: "var(--foreground-muted)" }}>Số tiền</span>
-                      <span className="font-bold gradient-text">{qrPayment.amount.toLocaleString()} ₫</span>
+                    <div className="flex justify-between px-4 py-3 rounded text-sm mt-4 bg-muted">
+                      <span className="text-foreground-muted font-bold">Số tiền</span>
+                      <span className="font-bold text-primary">{qrPayment.amount.toLocaleString()} ₫</span>
                     </div>
                   </div>
                 ) : (
-                  /* Error state — QR not loaded */
                   <div className="text-center py-8">
                     <p className="text-sm" style={{ color: "#ef4444" }}>Không thể tạo mã QR. Vui lòng đóng và thử lại.</p>
                   </div>
                 )}
 
                 {qrPayment && !sending && (
-                  <>
-                    <button onClick={handleConfirmSent} className="btn-primary w-full justify-center py-3">
-                      <Send className="w-4 h-4" /> Gửi cho phụ huynh thanh toán
-                    </button>
-                    <p className="text-[10px] mt-3 text-center" style={{ color: "var(--foreground-muted)" }}>
-                      Hệ thống sẽ tự kích hoạt khóa học sau khi nhận được thanh toán
-                    </p>
-                  </>
+                  <button onClick={handleConfirmSent} className="btn-primary w-full justify-center py-3">
+                    <Send className="w-4 h-4" /> Gửi cho phụ huynh thanh toán
+                  </button>
                 )}
               </>
             ) : (
               <div className="text-center py-8">
-                <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4" style={{ background: "rgba(16,185,129,0.15)" }}>
-                  <CheckCircle2 className="w-10 h-10" style={{ color: "#10b981" }} />
-                </div>
-                <h2 className="text-xl font-extrabold mb-2">Đã gửi thành công!</h2>
-                <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>Mã QR đã gửi đến phụ huynh. Sau khi thanh toán, hệ thống sẽ tự kích hoạt khóa học.</p>
-                <div className="space-y-2 mb-6">
-                  <div className="flex items-center gap-2 justify-center px-4 py-2.5 rounded-xl" style={{ background: "rgba(245,158,11,0.1)" }}>
-                    <Clock className="w-4 h-4" style={{ color: "#f59e0b" }} />
-                    <span className="text-sm font-medium" style={{ color: "#f59e0b" }}>Bước 1: Chờ phụ huynh thanh toán</span>
-                  </div>
-                  <div className="flex items-center gap-2 justify-center px-4 py-2.5 rounded-xl" style={{ background: "var(--muted)" }}>
-                    <Clock className="w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
-                    <span className="text-sm" style={{ color: "var(--foreground-muted)" }}>Bước 2: Hệ thống tự kích hoạt khóa học</span>
-                  </div>
-                </div>
-                <button onClick={() => { setShowPayment(false); setPaymentSent(false); router.push("/dashboard"); }} className="btn-primary w-full justify-center">
+                <CheckCircle2 className="w-16 h-16 mx-auto text-green-500 mb-4" />
+                <h2 className="text-xl font-bold mb-2">Đã gửi thành công!</h2>
+                <p className="text-sm text-foreground-muted mb-6">Phụ huynh thanh toán xong hệ thống sẽ duyệt tự động.</p>
+                <button onClick={() => { setShowPayment(false); setPaymentSent(false); router.push("/dashboard"); }} className="btn-secondary w-full justify-center">
                   Về trang chủ
                 </button>
               </div>

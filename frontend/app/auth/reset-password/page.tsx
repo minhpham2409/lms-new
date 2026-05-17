@@ -52,14 +52,14 @@ function ResetPasswordForm() {
         <div>
           <label className="block text-sm font-medium mb-2">Mật khẩu mới</label>
           <div className="relative">
-            <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+            <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#6a6f73" }} />
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="input-base pl-11" required />
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Xác nhận</label>
           <div className="relative">
-            <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+            <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#6a6f73" }} />
             <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" className="input-base pl-11" required />
           </div>
         </div>

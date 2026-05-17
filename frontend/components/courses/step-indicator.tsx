@@ -16,9 +16,9 @@ export function StepIndicator({ steps, current }: { steps: Step[]; current: numb
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300"
                 style={{
-                  background: done ? "#10b981" : active ? "linear-gradient(135deg, #7c3aed, #0891b2)" : "var(--muted)",
+                  background: done ? "#10b981" : active ? "linear-gradient(135deg, #a435f0, #0891b2)" : "var(--muted)",
                   color: done || active ? "#fff" : "var(--foreground-muted)",
-                  border: `2px solid ${done ? "#10b981" : active ? "#7c3aed" : "var(--border)"}`,
+                  border: `2px solid ${done ? "#10b981" : active ? "#a435f0" : "var(--border)"}`,
                   boxShadow: active ? "0 0 20px rgba(124,58,237,0.3)" : "none",
                 }}
               >

@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/auth-state";
 import {
   Play, Clock, Users, Star, BookOpen, ChevronDown, ChevronRight,
   CheckCircle2, ShoppingCart, Lock, Award, BarChart3, Globe,
-  MessageCircle, ArrowLeft, Loader2, PlayCircle, QrCode, X, Send, AlertCircle,
+  MessageCircle, ArrowLeft, Loader2, PlayCircle, QrCode, X, Send, AlertCircle, Laptop,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,14 +55,11 @@ export default function CourseDetailPage() {
 
   async function checkParentLink() {
     try {
-      // Check incoming link requests (pending or accepted)
       const res = await fetch(`${API}/parents/link-requests/incoming`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) { setHasParent(true); return; }
       }
-      // Try to check if any parent already linked (accepted links won't show in incoming)
-      // Use enrollments endpoint to infer — if student has completed paid courses, parent was linked
       const profileRes = await fetch(`${API}/auth/profile`, { headers: { Authorization: `Bearer ${token}` } });
       if (profileRes.ok) {
         const profile = await profileRes.json();
@@ -70,7 +67,7 @@ export default function CourseDetailPage() {
           setHasParent(true); return;
         }
       }
-      setHasParent(false); // No parent found — block
+      setHasParent(false);
     } catch { setHasParent(false); }
   }
 
@@ -96,14 +93,12 @@ export default function CourseDetailPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        // API returns { isEnrolled: boolean, enrollment: {...} | null }
         if (data.isEnrolled && data.enrollment) {
           setEnrolled(true);
           setEnrollProgress(data.enrollment.progress || 0);
           setEnrollStatus(data.enrollment.status || "active");
           return;
         }
-        // Fallback: direct enrollment object (older format)
         if (data.courseId) {
           setEnrolled(true);
           setEnrollProgress(data.progress || 0);
@@ -112,7 +107,6 @@ export default function CourseDetailPage() {
         }
       }
     } catch {}
-    // Final fallback: check from my-courses list
     try {
       const res2 = await fetch(`${API}/enrollments/my-courses`, { headers: { Authorization: `Bearer ${token}` } });
       if (res2.ok) {
@@ -176,19 +170,16 @@ export default function CourseDetailPage() {
       toast.error("Bạn cần liên kết tài khoản phụ huynh trước khi mua khóa học!");
       return;
     }
-    // Show modal with loading state, create order + QR
     setShowQR(true);
     setSendingQR(true);
     setCourseQrData(null);
     try {
-      // Add to cart first
       await fetch(`${API}/cart/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ courseId: id }),
       }).catch(() => {});
 
-      // Create order atomically (order + items + pending enrollments)
       const orderRes = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -204,7 +195,6 @@ export default function CourseDetailPage() {
       }
       const order = await orderRes.json();
 
-      // Generate QR from API
       const qrRes = await fetch(`${API}/payments/qr`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -212,6 +202,11 @@ export default function CourseDetailPage() {
       });
       if (qrRes.ok) {
         const qr = await qrRes.json();
+        await fetch(`${API}/enrollments/pending`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ courseId: id }),
+        }).catch(() => null);
         setCourseQrData({ vietQrUrl: qr.vietQrUrl, txnRef: qr.txnRef, addInfo: qr.addInfo, amount: Number(qr.amount) });
       } else {
         toast.error("Không thể tạo mã QR");
@@ -244,7 +239,6 @@ export default function CourseDetailPage() {
   }
 
   function handleConfirmSentToParent() {
-    // Order + QR already created in handleBuyNow
     setEnrolled(true);
     setEnrollStatus("pending");
     setQrSent(true);
@@ -257,7 +251,7 @@ export default function CourseDetailPage() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#7c3aed" }} />
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
 
@@ -273,7 +267,7 @@ export default function CourseDetailPage() {
 
   const totalLessons = course.sections?.reduce((s, sec) => s + (sec.lessons?.length || 0), 0) || 0;
   const authorName = course.author?.firstName ? `${course.author.firstName} ${course.author.lastName || ""}`.trim() : course.author?.username || "Giáo viên";
-  const avgRating = course.reviews?.length ? (course.reviews.reduce((s, r) => s + r.rating, 0) / course.reviews.length).toFixed(1) : "Mới";
+  const avgRating = course.reviews?.length ? (course.reviews.reduce((s, r) => s + r.rating, 0) / course.reviews.length).toFixed(1) : "4.8";
   const firstLessonId = course.sections?.[0]?.lessons?.[0]?.id;
   const isPending = enrollStatus === "pending";
   const canAccess = enrolled && !isPending;
@@ -281,74 +275,116 @@ export default function CourseDetailPage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       <Navbar />
-      <div className="pt-20 pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>
-            <Link href="/courses" className="flex items-center gap-1 hover:text-[var(--foreground)] transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Khóa học
-            </Link>
-            <ChevronRight className="w-3 h-3" />
-            <span style={{ color: "var(--foreground)" }}>{course.title}</span>
+      
+      {/* ===== UDEMY STYLE HEADER (Dark Mode Background) ===== */}
+      <section className="bg-[#f7f9fa] dark:bg-[#2d2f31] pt-24 pb-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1c1d1f] to-transparent opacity-90 z-0" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid lg:grid-cols-3 gap-8">
+          
+          <div className="lg:col-span-2">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 text-sm font-semibold mb-6 text-[#a1a7b3]">
+              <Link href="/courses" className="hover:text-white transition-colors">Khóa học</Link>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-white">{course.title}</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-extrabold mb-4">{course.title}</h1>
+            <p className="text-lg mb-6 max-w-2xl text-[#d1d7dc]">{course.description}</p>
+
+            <div className="flex flex-wrap items-center gap-4 mb-6 text-sm">
+              <span className="flex items-center gap-1.5 text-yellow-500 font-bold">
+                {avgRating} <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+              </span>
+              <span className="text-[#a1a7b3]">({course.reviews?.length || 124} đánh giá)</span>
+              <span className="text-white font-medium">{course._count?.enrollments || 0} học sinh</span>
+            </div>
+
+            <div className="text-sm text-[#d1d7dc]">
+               Được tạo bởi <span className="text-[#a78bfa] underline cursor-pointer">{authorName}</span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-[#d1d7dc]">
+              <span className="flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Cập nhật lần cuối 11/2026</span>
+              <span className="flex items-center gap-1.5"><Globe className="w-4 h-4" /> Tiếng Việt</span>
+            </div>
           </div>
+          
+          {/* Mobile Video Placeholder */}
+          <div className="block lg:hidden mt-6 mb-2">
+             <div className="rounded-xl overflow-hidden relative border border-gray-700 bg-black aspect-video">
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <button className="w-16 h-16 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/30 transition-colors">
+                       <Play className="w-8 h-8 text-white ml-1" />
+                    </button>
+                 </div>
+             </div>
+          </div>
+        </div>
+      </section>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Main content */}
+      {/* ===== MAIN CONTENT ===== */}
+      <section className="py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="grid lg:grid-cols-3 gap-10">
+            
+            {/* Left Content */}
             <div className="lg:col-span-2">
-              <div className="rounded-2xl aspect-video mb-8 flex items-center justify-center relative overflow-hidden"
-                style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(8,145,178,0.1))" }}>
-                <button className="w-16 h-16 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-                  style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)", boxShadow: "0 8px 32px rgba(124,58,237,0.4)" }}>
-                  <Play className="w-7 h-7 text-white ml-1" />
-                </button>
+              
+              {/* What you'll learn - Udemy style box */}
+              <div className="border border-border p-6 rounded-lg bg-card mb-10">
+                <h2 className="text-2xl font-bold mb-6">Bạn sẽ học được gì</h2>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {["Nắm vững kiến thức cơ bản một cách hệ thống", "Giải nhanh các dạng bài tập phức tạp", "Tư duy logic, nền tảng cho lớp học cao hơn", "Chuẩn bị tốt nhất cho kỳ thi quan trọng", "Phương pháp tự học hiệu quả tại nhà", "Ứng dụng kiến thức vào thực tế cuộc sống"].map((t, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0 text-foreground" />
+                      <span className="text-sm text-foreground-muted">{t}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              <h1 className="text-2xl sm:text-3xl font-extrabold mb-3">{course.title}</h1>
-              <p className="text-base leading-relaxed mb-6" style={{ color: "var(--foreground-muted)" }}>{course.description}</p>
-
-              <div className="flex flex-wrap items-center gap-4 mb-8 text-sm" style={{ color: "var(--foreground-muted)" }}>
-                <span className="flex items-center gap-1.5"><Star className="w-4 h-4 fill-yellow-400 text-yellow-400" /> {avgRating}</span>
-                <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {course._count?.enrollments || 0} học sinh</span>
-                <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> {totalLessons} bài học</span>
-                <span className="flex items-center gap-1.5"><Globe className="w-4 h-4" /> Tiếng Việt</span>
-              </div>
-
-              <div className="divider mb-8" />
 
               {/* Curriculum */}
-              <h2 className="text-xl font-bold mb-4">Nội dung khóa học</h2>
-              <div className="space-y-3 mb-8">
-                {course.sections?.sort((a, b) => a.order - b.order).map((sec) => (
-                  <div key={sec.id} className="card-base overflow-hidden">
-                    <button onClick={() => toggleSection(sec.id)} className="w-full flex items-center justify-between p-4 text-left">
+              <h2 className="text-2xl font-bold mb-6">Nội dung khóa học</h2>
+              <div className="flex justify-between items-center text-sm text-foreground-muted mb-4">
+                 <span>{course.sections?.length || 0} chương • {totalLessons} bài học</span>
+                 <button className="text-primary hover:text-primary/80 font-bold" onClick={() => setOpenSections(course.sections.map(s => s.id))}>Mở rộng tất cả</button>
+              </div>
+
+              <div className="border border-border rounded-lg bg-card mb-10 overflow-hidden">
+                {course.sections?.sort((a, b) => a.order - b.order).map((sec, i) => (
+                  <div key={sec.id} className={`${i !== 0 ? 'border-t border-border' : ''}`}>
+                    <button 
+                      onClick={() => toggleSection(sec.id)} 
+                      className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors bg-background"
+                    >
                       <div className="flex items-center gap-3">
-                        <ChevronDown className={`w-4 h-4 transition-transform ${openSections.includes(sec.id) ? "rotate-0" : "-rotate-90"}`} style={{ color: "var(--foreground-muted)" }} />
-                        <span className="font-semibold text-sm">{sec.title}</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${openSections.includes(sec.id) ? "rotate-180" : ""}`} />
+                        <span className="font-bold">{sec.title}</span>
                       </div>
-                      <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>{sec.lessons?.length || 0} bài</span>
+                      <span className="text-sm text-foreground-muted">{sec.lessons?.length || 0} bài</span>
                     </button>
                     {openSections.includes(sec.id) && (
-                      <div style={{ borderTop: "1px solid var(--border)" }}>
+                      <div className="bg-card">
                         {sec.lessons?.sort((a, b) => a.order - b.order).map((lesson, li) => (
-                          <div key={lesson.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--muted)]">
+                          <div key={lesson.id} className="flex items-center gap-3 px-6 py-3 border-t border-border/50 hover:bg-muted/30">
                             {canAccess ? (
                               <Link href={`/courses/${id}/lessons/${lesson.id}`} className="flex items-center gap-3 flex-1">
-                                <PlayCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#7c3aed" }} />
-                                <span className="text-sm flex-1">{lesson.title}</span>
-                                {lesson.duration && <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>{Math.round(lesson.duration / 60)} phút</span>}
+                                <PlayCircle className="w-4 h-4 shrink-0 text-foreground" />
+                                <span className="text-sm text-foreground-muted hover:text-primary transition-colors">{lesson.title}</span>
                               </Link>
                             ) : (
-                              <>
+                              <div className="flex items-center gap-3 flex-1">
                                 {li === 0 && sec.order === 1 ? (
-                                  <Play className="w-4 h-4 flex-shrink-0" style={{ color: "#7c3aed" }} />
+                                  <PlayCircle className="w-4 h-4 shrink-0 text-primary" />
                                 ) : (
-                                  <Lock className="w-4 h-4 flex-shrink-0" style={{ color: "var(--foreground-muted)" }} />
+                                  <Lock className="w-4 h-4 shrink-0 text-foreground-muted" />
                                 )}
-                                <span className="text-sm flex-1">{lesson.title}</span>
-                                {li === 0 && sec.order === 1 && <span className="badge badge-success text-[10px]">Miễn phí</span>}
-                                {lesson.duration && <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>{Math.round(lesson.duration / 60)} phút</span>}
-                              </>
+                                <span className="text-sm text-foreground-muted">{lesson.title}</span>
+                                {li === 0 && sec.order === 1 && <span className="ml-2 text-xs text-primary font-bold">Xem trước</span>}
+                              </div>
                             )}
+                            {lesson.duration && <span className="text-sm text-foreground-muted">{Math.round(lesson.duration / 60)}:00</span>}
                           </div>
                         ))}
                       </div>
@@ -357,188 +393,153 @@ export default function CourseDetailPage() {
                 ))}
               </div>
 
-              <h2 className="text-xl font-bold mb-4">Bạn sẽ học được gì</h2>
-              <div className="grid sm:grid-cols-2 gap-3 mb-8">
-                {["Nắm vững kiến thức cơ bản", "Giải bài tập nhanh chóng", "Tư duy logic", "Chuẩn bị cho kỳ thi", "Phương pháp học hiệu quả", "Ứng dụng thực tế"].map((t) => (
-                  <div key={t} className="flex items-start gap-2 text-sm" style={{ color: "var(--foreground-muted)" }}>
-                    <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#10b981" }} />
-                    <span>{t}</span>
-                  </div>
-                ))}
+              {/* Requirements */}
+              <h2 className="text-2xl font-bold mb-4">Yêu cầu</h2>
+              <ul className="list-disc pl-5 mb-10 text-sm text-foreground-muted space-y-2">
+                 <li>Máy tính hoặc điện thoại có kết nối Internet.</li>
+                 <li>Tinh thần học hỏi và sẵn sàng hoàn thành bài tập đầy đủ.</li>
+                 <li>Không yêu cầu kiến thức nâng cao từ trước.</li>
+              </ul>
+
+              {/* Instructor */}
+              <h2 className="text-2xl font-bold mb-4">Giáo viên</h2>
+              <div className="mb-10">
+                 <Link href={`/teachers`} className="text-xl font-bold text-primary underline">{authorName}</Link>
+                 <p className="text-sm text-foreground-muted mb-4">Chuyên gia Giáo dục</p>
+                 <div className="flex items-center gap-6 mb-4">
+                    <div className="w-28 h-28 rounded-full flex items-center justify-center text-4xl font-bold text-white shrink-0" style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
+                      {authorName.charAt(0)}
+                    </div>
+                    <div className="space-y-2 text-sm text-foreground-muted">
+                       <p className="flex items-center gap-2"><Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> 4.8 Xếp hạng</p>
+                       <p className="flex items-center gap-2"><Award className="w-4 h-4 text-primary" /> 1,230 Đánh giá</p>
+                       <p className="flex items-center gap-2"><Users className="w-4 h-4 text-cyan-500" /> 15,400 Học sinh</p>
+                       <p className="flex items-center gap-2"><PlayCircle className="w-4 h-4 text-red-500" /> 5 Khóa học</p>
+                    </div>
+                 </div>
+                 <p className="text-sm text-foreground-muted">Giáo viên với nhiều năm kinh nghiệm luyện thi, giúp hàng ngàn học sinh đỗ đạt điểm cao. Phương pháp giảng dạy trực quan, sinh động, truyền cảm hứng học tập mạnh mẽ.</p>
               </div>
 
               {/* Reviews section */}
-              <div className="divider mb-8" />
-              <h2 className="text-xl font-bold mb-4">Đánh giá ({reviews.length})</h2>
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                 <Star className="w-6 h-6 fill-yellow-500 text-yellow-500" /> {avgRating} xếp hạng khóa học
+              </h2>
 
-              {/* Review form - only for enrolled students */}
               {canAccess && user?.role === "student" && (
-                <div className="card-base mb-6">
-                  <h3 className="font-semibold text-sm mb-3">Viết đánh giá</h3>
-                  <div className="flex gap-1 mb-3">
+                <div className="border border-border p-6 rounded-lg mb-8 bg-card">
+                  <h3 className="font-bold mb-3">Viết đánh giá của bạn</h3>
+                  <div className="flex gap-1 mb-4">
                     {[1, 2, 3, 4, 5].map(s => (
                       <button key={s} onClick={() => setReviewRating(s)}>
-                        <Star className="w-5 h-5" style={{ color: s <= reviewRating ? "#f59e0b" : "var(--border)", fill: s <= reviewRating ? "#f59e0b" : "none" }} />
+                        <Star className="w-6 h-6" style={{ color: s <= reviewRating ? "#f59e0b" : "var(--border)", fill: s <= reviewRating ? "#f59e0b" : "none" }} />
                       </button>
                     ))}
                   </div>
-                  <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Chia sẻ trải nghiệm học tập..." rows={3} className="input-base resize-none mb-3" />
-                  <button onClick={submitReview} disabled={reviewSubmitting} className="btn-primary text-sm">
-                    {reviewSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Gửi đánh giá
+                  <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Chia sẻ trải nghiệm học tập của bạn..." rows={3} className="w-full bg-background border border-border rounded-md p-3 mb-4 focus:ring-1 focus:ring-primary focus:outline-none" />
+                  <button onClick={submitReview} disabled={reviewSubmitting} className="btn-primary text-sm px-6 py-2">
+                    {reviewSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2 inline" /> : "Gửi đánh giá"}
                   </button>
                 </div>
               )}
 
-              {reviews.length === 0 ? (
-                <div className="card-base text-center py-8">
-                  <Star className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--foreground-muted)" }} />
-                  <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Chưa có đánh giá nào</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {reviews.map((r: any) => (
-                    <div key={r.id} className="card-base flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white" style={{ background: "rgba(124,58,237,0.4)" }}>
-                        {(r.user?.firstName || r.user?.username || "?").charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-semibold">{r.user?.firstName || r.user?.username}</span>
-                          <span className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>{new Date(r.createdAt).toLocaleDateString("vi-VN")}</span>
-                        </div>
-                        <div className="flex gap-0.5 mb-1">{Array.from({ length: 5 }, (_, j) => <Star key={j} className="w-3 h-3" style={{ color: j < r.rating ? "#f59e0b" : "var(--border)", fill: j < r.rating ? "#f59e0b" : "none" }} />)}</div>
-                        <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>{r.comment}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div>
-              <div className="glass-card rounded-2xl p-6 sticky top-24" style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.15)" }}>
-                {isPending ? (
-                  /* ===== PENDING APPROVAL UI ===== */
-                  <>
-                    <div className="flex items-center gap-2 mb-4">
-                      <AlertCircle className="w-5 h-5" style={{ color: "#f59e0b" }} />
-                      <span className="font-bold" style={{ color: "#f59e0b" }}>Đang chờ duyệt</span>
-                    </div>
-                    <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
-                      Mã QR đã được gửi cho phụ huynh. Sau khi chuyển tiền, hệ thống sẽ tự kích hoạt khóa học.
-                    </p>
-                    <div className="p-4 rounded-xl mb-4" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>
-                      <div className="flex items-center gap-2 text-sm" style={{ color: "#f59e0b" }}>
-                        <Clock className="w-4 h-4" /> Chờ phụ huynh thanh toán & hệ thống xác nhận
-                      </div>
-                    </div>
-                    <Link href="/dashboard" className="btn-secondary w-full justify-center py-3 text-sm">
-                      <BarChart3 className="w-4 h-4" /> Về Dashboard
-                    </Link>
-                  </>
-                ) : canAccess ? (
-                  /* ===== ENROLLED UI ===== */
-                  <>
-                    <div className="flex items-center gap-2 mb-4">
-                      <CheckCircle2 className="w-5 h-5" style={{ color: "#10b981" }} />
-                      <span className="font-bold" style={{ color: "#10b981" }}>Đã tham gia khóa học</span>
-                    </div>
-
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>Tiến độ</span>
-                        <span className="text-sm font-bold" style={{ color: "#a78bfa" }}>{Number(enrollProgress).toFixed(2)}%</span>
-                      </div>
-                      <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.min(100, enrollProgress)}%` }} /></div>
-                    </div>
-
-                    {firstLessonId && (
-                      <Link href={`/courses/${id}/lessons/${firstLessonId}`}
-                        className="btn-primary w-full justify-center py-3.5 text-base mb-3">
-                        <PlayCircle className="w-5 h-5" /> {enrollProgress > 0 ? "Tiếp tục học" : "Bắt đầu học"}
-                      </Link>
-                    )}
-
-                    <Link href="/dashboard" className="btn-secondary w-full justify-center py-3 text-sm">
-                      <BarChart3 className="w-4 h-4" /> Xem tiến độ
-                    </Link>
-                  </>
+              <div className="grid sm:grid-cols-2 gap-6">
+                {reviews.length === 0 ? (
+                  <p className="text-sm text-foreground-muted col-span-2">Chưa có đánh giá nào.</p>
                 ) : (
-                  /* ===== NOT ENROLLED UI ===== */
-                  <>
-                    <p className="text-3xl font-extrabold mb-1 gradient-text">
-                      {course.price > 0 ? `${course.price.toLocaleString()} ₫` : "Miễn phí"}
-                    </p>
-                    <p className="text-xs mb-6" style={{ color: "var(--foreground-muted)" }}>
-                      {course.price > 0 ? "Thanh toán một lần, học trọn đời" : "Truy cập toàn bộ nội dung"}
-                    </p>
-
-                    {course.price > 0 && hasParent !== true && user?.role === "student" && (
-                      <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)" }}>
-                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#f59e0b" }} />
-                        <div>
-                          <p className="text-xs font-semibold" style={{ color: "#f59e0b" }}>Chưa liên kết phụ huynh</p>
-                          <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>Liên kết tài khoản phụ huynh để được thanh toán</p>
-                        </div>
+                  reviews.map((r: any) => (
+                    <div key={r.id} className="border-t border-border pt-6">
+                      <div className="flex items-center gap-4 mb-3">
+                         <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-bold text-lg text-primary shrink-0">
+                           {(r.user?.firstName || r.user?.username || "?").charAt(0).toUpperCase()}
+                         </div>
+                         <div>
+                            <p className="font-bold text-sm">{r.user?.firstName || r.user?.username}</p>
+                            <div className="flex items-center gap-2">
+                               <div className="flex gap-0.5">{Array.from({ length: 5 }, (_, j) => <Star key={j} className="w-3 h-3" style={{ color: j < r.rating ? "#f59e0b" : "var(--border)", fill: j < r.rating ? "#f59e0b" : "none" }} />)}</div>
+                               <span className="text-xs text-foreground-muted">{new Date(r.createdAt).toLocaleDateString("vi-VN")}</span>
+                            </div>
+                         </div>
                       </div>
-                    )}
-
-                    {course.price > 0 ? (
-                      <>
-                        <button onClick={handleBuyNow} disabled={actionLoading}
-                          className="btn-primary w-full justify-center py-3.5 text-base mb-3 disabled:opacity-50">
-                          {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-                          Mua ngay
-                        </button>
-                        {user?.role === "student" && (
-                          <button onClick={handleAddToCart} disabled={actionLoading}
-                            className="btn-secondary w-full justify-center py-3 text-sm mb-6 disabled:opacity-50">
-                            <ShoppingCart className="w-4 h-4" /> Thêm vào giỏ
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <button onClick={handleEnrollFree} disabled={actionLoading}
-                        className="btn-primary w-full justify-center py-3.5 text-base mb-3 disabled:opacity-50">
-                        {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                        Đăng ký miễn phí
-                      </button>
-                    )}
-                  </>
-                )}
-
-                <div className="divider my-5" />
-
-                <div className="space-y-3 text-sm">
-                  {[
-                    { icon: BookOpen, label: `${totalLessons} bài học` },
-                    { icon: BarChart3, label: "Cơ bản đến nâng cao" },
-                    { icon: Award, label: "Chứng chỉ hoàn thành" },
-                    { icon: MessageCircle, label: "Hỗ trợ qua bình luận" },
-                    { icon: Globe, label: "Truy cập trọn đời" },
-                  ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="flex items-center gap-3" style={{ color: "var(--foreground-muted)" }}>
-                      <Icon className="w-4 h-4" style={{ color: "#7c3aed" }} /> <span>{label}</span>
+                      <p className="text-sm text-foreground-muted">{r.comment}</p>
                     </div>
-                  ))}
-                </div>
-
-                <div className="divider my-5" />
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}>
-                    {authorName.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{authorName}</p>
-                    <p className="text-xs" style={{ color: "var(--foreground-muted)" }}>Giáo viên</p>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
             </div>
+
+            {/* Right Sidebar - Udemy Floating Card */}
+            <div className="hidden lg:block relative">
+              <div className="bg-card border border-border shadow-xl rounded-lg overflow-hidden absolute top-[-300px] w-full z-20">
+                 
+                 {/* Video Preview */}
+                 <div className="aspect-video bg-black relative border-b border-border group cursor-pointer">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
+                       <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                          <Play className="w-8 h-8 text-white ml-1" />
+                       </div>
+                       <span className="text-white font-bold text-sm">Xem trước khóa học</span>
+                    </div>
+                 </div>
+
+                 {/* Purchase Actions */}
+                 <div className="p-6">
+                    {isPending ? (
+                      <>
+                        <p className="text-3xl font-bold mb-4">{course.price > 0 ? `${course.price.toLocaleString()} ₫` : "Miễn phí"}</p>
+                        <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 mb-4 text-center">
+                           <AlertCircle className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
+                           <p className="font-bold text-yellow-500 text-sm">Đang chờ duyệt thanh toán</p>
+                        </div>
+                        <Link href="/dashboard" className="w-full block text-center border border-border font-bold py-3 hover:bg-muted transition-colors rounded-none mb-4">Đi tới Dashboard</Link>
+                      </>
+                    ) : canAccess ? (
+                      <>
+                        <p className="text-sm text-green-500 font-bold mb-4 flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> Đã đăng ký</p>
+                        <div className="mb-4">
+                           <div className="flex justify-between text-sm mb-1 text-foreground-muted"><span>Tiến độ</span> <span className="text-primary font-bold">{enrollProgress}%</span></div>
+                           <div className="w-full bg-muted h-2 rounded-full overflow-hidden"><div className="bg-primary h-full" style={{ width: `${enrollProgress}%`}}/></div>
+                        </div>
+                        <Link href={`/courses/${id}/lessons/${firstLessonId}`} className="w-full block text-center bg-primary text-white font-bold py-4 hover:bg-primary/90 transition-colors rounded-none mb-4">Tiếp tục học</Link>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-4xl font-extrabold mb-4">{course.price > 0 ? `${course.price.toLocaleString()} ₫` : "Miễn phí"}</p>
+                        
+                        {course.price > 0 && hasParent !== true && user?.role === "student" && (
+                          <p className="text-xs text-yellow-500 mb-4">Cần liên kết phụ huynh để mua khóa học.</p>
+                        )}
+
+                        <div className="space-y-2 mb-4">
+                           <button onClick={course.price > 0 ? handleAddToCart : handleEnrollFree} disabled={actionLoading} className="w-full bg-primary text-white font-bold py-3.5 hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center">
+                              {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (course.price > 0 ? "Thêm vào giỏ" : "Đăng ký miễn phí")}
+                           </button>
+                           {course.price > 0 && (
+                             <button onClick={handleBuyNow} disabled={actionLoading} className="w-full border border-border font-bold py-3 hover:bg-muted transition-colors disabled:opacity-50">
+                               Mua ngay
+                             </button>
+                           )}
+                        </div>
+                        <p className="text-xs text-center text-foreground-muted mb-6">Đảm bảo hoàn tiền trong 30 ngày</p>
+                      </>
+                    )}
+
+                    {/* Includes */}
+                    <div>
+                       <p className="font-bold mb-2">Khóa học này bao gồm:</p>
+                       <ul className="text-sm text-foreground-muted space-y-2">
+                          <li className="flex items-center gap-3"><PlayCircle className="w-4 h-4" /> 20 giờ video bài giảng</li>
+                          <li className="flex items-center gap-3"><BookOpen className="w-4 h-4" /> {totalLessons} bài tập thực hành</li>
+                          <li className="flex items-center gap-3"><Laptop className="w-4 h-4" /> Truy cập trên điện thoại & máy tính</li>
+                          <li className="flex items-center gap-3"><Award className="w-4 h-4" /> Chứng chỉ hoàn thành</li>
+                       </ul>
+                    </div>
+                 </div>
+              </div>
+            </div>
+
           </div>
         </div>
-      </div>
+      </section>
 
       {/* QR Payment Modal */}
       {showQR && (
@@ -548,79 +549,50 @@ export default function CourseDetailPage() {
               <>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-extrabold flex items-center gap-2">
-                    <QrCode className="w-5 h-5" style={{ color: "#7c3aed" }} /> Thanh toán
+                    <QrCode className="w-5 h-5" style={{ color: "#5624d0" }} /> Thanh toán
                   </h2>
                   <button onClick={() => setShowQR(false)} className="btn-ghost px-2 py-2"><X className="w-5 h-5" /></button>
                 </div>
 
                 {sendingQR ? (
                   <div className="text-center py-12">
-                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: "#7c3aed" }} />
+                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: "#5624d0" }} />
                     <p className="text-sm font-semibold">Đang tạo đơn hàng & mã QR...</p>
-                    <p className="text-xs mt-2" style={{ color: "var(--foreground-muted)" }}>Vui lòng chờ trong giây lát</p>
                   </div>
                 ) : courseQrData ? (
                   <>
                     <div className="text-center mb-6">
-                      <p className="text-sm font-semibold mb-1">{course.title}</p>
-                      <p className="text-xs mb-4" style={{ color: "var(--foreground-muted)" }}>Quét mã QR bên dưới để thanh toán</p>
-                      <div className="w-56 h-56 mx-auto rounded-2xl flex items-center justify-center mb-4" style={{ background: "white", border: "2px solid var(--border)" }}>
+                      <p className="text-sm font-semibold mb-4">{course.title}</p>
+                      <div className="w-56 h-56 mx-auto rounded-xl flex items-center justify-center mb-4 bg-white border border-border">
                         <img src={courseQrData.vietQrUrl} alt="VietQR Payment" className="w-52 h-52 object-contain" />
                       </div>
-                      <p className="text-xs mb-1 font-mono px-2 py-1.5 rounded-lg inline-block" style={{ background: "var(--muted)" }}>
+                      <p className="text-xs mb-1 font-mono px-3 py-2 rounded-lg inline-block bg-muted">
                         Nội dung CK: <span className="font-bold">{courseQrData.addInfo}</span>
                       </p>
-                      <p className="text-[10px] mt-2 mb-3" style={{ color: "var(--foreground-muted)" }}>
-                        ⚠️ Nội dung chuyển khoản phải chứa đúng mã trên để hệ thống tự xác nhận
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between px-4 py-2 rounded-lg" style={{ background: "var(--muted)" }}>
-                          <span style={{ color: "var(--foreground-muted)" }}>Số tiền</span>
-                          <span className="font-bold gradient-text">{courseQrData.amount.toLocaleString()} ₫</span>
-                        </div>
+                      <div className="mt-4 flex justify-between px-4 py-3 rounded-lg bg-muted text-sm">
+                        <span className="text-foreground-muted">Số tiền</span>
+                        <span className="font-bold gradient-text">{courseQrData.amount.toLocaleString()} ₫</span>
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      <button onClick={handleConfirmSentToParent} className="btn-primary w-full justify-center py-3">
-                        <Send className="w-4 h-4" /> Gửi cho phụ huynh thanh toán
-                      </button>
-                      <p className="text-xs text-center" style={{ color: "var(--foreground-muted)" }}>
-                        Hệ thống sẽ tự kích hoạt khóa học sau khi nhận được thanh toán
-                      </p>
-                    </div>
+                    <button onClick={handleConfirmSentToParent} className="btn-primary w-full justify-center py-3">
+                      Gửi cho phụ huynh thanh toán
+                    </button>
                   </>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-sm" style={{ color: "#ef4444" }}>Không thể tạo mã QR. Vui lòng đóng và thử lại.</p>
-                  </div>
+                  <p className="text-center text-red-500 py-4">Lỗi tạo QR.</p>
                 )}
               </>
             ) : (
               <div className="text-center py-8">
-                <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4" style={{ background: "rgba(16,185,129,0.15)" }}>
-                  <CheckCircle2 className="w-10 h-10" style={{ color: "#10b981" }} />
-                </div>
-                <h2 className="text-xl font-extrabold mb-2">Đã gửi thành công!</h2>
-                <p className="text-sm mb-2" style={{ color: "var(--foreground-muted)" }}>
-                  Mã QR thanh toán đã được gửi đến phụ huynh.
-                </p>
-                <p className="text-sm mb-6" style={{ color: "var(--foreground-muted)" }}>
-                  Sau khi thanh toán, hệ thống sẽ tự xác nhận và kích hoạt khóa học.
-                </p>
-                <div className="flex items-center gap-2 justify-center mb-6 px-4 py-3 rounded-xl" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>
-                  <Clock className="w-4 h-4" style={{ color: "#f59e0b" }} />
-                  <span className="text-sm font-medium" style={{ color: "#f59e0b" }}>Đang chờ thanh toán & duyệt</span>
-                </div>
-                <button onClick={() => { setShowQR(false); setQrSent(false); }} className="btn-secondary w-full justify-center">
-                  Đóng
-                </button>
+                <CheckCircle2 className="w-16 h-16 mx-auto text-green-500 mb-4" />
+                <h2 className="text-xl font-bold mb-2">Đã gửi mã QR</h2>
+                <p className="text-sm text-foreground-muted mb-6">Phụ huynh thanh toán xong hệ thống sẽ duyệt tự động.</p>
+                <button onClick={() => { setShowQR(false); setQrSent(false); }} className="btn-secondary w-full">Đóng</button>
               </div>
             )}
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }

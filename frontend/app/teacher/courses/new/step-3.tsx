@@ -159,7 +159,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
               {sec.title || "Chương chưa có tên"}
             </h4>
             <div className="flex items-center gap-3">
-              <span className="text-xs" style={{ color: "var(--foreground-muted)" }}>{sec.lessons.length} bài học</span>
+              <span className="text-xs" style={{ color: "#6a6f73" }}>{sec.lessons.length} bài học</span>
               <span className="btn-ghost px-1 py-1">{sec.expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</span>
             </div>
           </div>
@@ -193,7 +193,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                             className="input-base text-xs py-1.5 w-full"
                           />
 
-                          <div className="text-[10px] text-center" style={{ color: "var(--foreground-muted)" }}>— hoặc —</div>
+                          <div className="text-[10px] text-center" style={{ color: "#6a6f73" }}>— hoặc —</div>
 
                           {/* File upload */}
                           {isUploadedVideo(les.videoUrl) ? (
@@ -201,7 +201,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                               <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#ef4444" }} />
                               <span className="text-[10px] truncate flex-1" style={{ color: "#ef4444" }}>Video đã tải lên</span>
                               <button type="button" onClick={() => updateLesson(sec.id, les.id, { videoUrl: "" })}
-                                className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Xóa</button>
+                                className="text-[10px]" style={{ color: "#6a6f73" }}>Xóa</button>
                             </div>
                           ) : (
                             <UploadButton
@@ -219,7 +219,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                           <label className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#3b82f6" }}>
                             <FileText className="w-3.5 h-3.5" /> Tài liệu đính kèm
                           </label>
-                          <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>PDF, Word, Text (tối đa 50MB)</p>
+                          <p className="text-[10px]" style={{ color: "#6a6f73" }}>PDF, Word, Text (tối đa 50MB)</p>
 
                           {les.documentUrl ? (
                             <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)" }}>
@@ -228,7 +228,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                                 {les.documentOriginalName || "Tài liệu đã tải lên"}
                               </span>
                               <button type="button" onClick={() => updateLesson(sec.id, les.id, { documentUrl: "", documentOriginalName: "" })}
-                                className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Xóa</button>
+                                className="text-[10px]" style={{ color: "#6a6f73" }}>Xóa</button>
                             </div>
                           ) : (
                             <UploadButton
@@ -250,7 +250,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                           <label className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#10b981" }}>
                             <ImageIcon className="w-3.5 h-3.5" /> Ảnh đề bài tập
                           </label>
-                          <p className="text-[10px]" style={{ color: "var(--foreground-muted)" }}>Học sinh nộp bài bằng ảnh chụp</p>
+                          <p className="text-[10px]" style={{ color: "#6a6f73" }}>Học sinh nộp bài bằng ảnh chụp</p>
 
                           {les.assignmentImageUrl ? (
                             <div className="space-y-1.5">

@@ -7,36 +7,16 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
-  ChevronRight, Loader2, Gift,
+  ChevronRight, Loader2, Gift, PlayCircle, Clock, CheckCircle2, Award, AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
-interface StreakReward {
-  days: number;
-  discount: number;
-  remaining: number;
-}
-
-interface RewardResult {
-  code: string;
-  discount: number;
-  label: string;
-}
-
 interface DashboardData {
   streak: number;
-  nextReward: StreakReward | null;
+  nextReward: any | null;
   activities: Array<{ text: string; time: string; type: string }>;
-}
-
-interface CheckInResult {
-  streak: number;
-  rewarded: boolean;
-  reward: RewardResult | null;
-  nextReward: StreakReward | null;
-  activeCoupon: { code: string; discount: number; expiresAt: string } | null;
 }
 
 interface EnrolledCourse {
@@ -53,17 +33,6 @@ interface EnrolledCourse {
   };
 }
 
-const courseColors = ["#7c3aed", "#0891b2", "#ec4899", "#f59e0b", "#10b981", "#3b82f6"];
-
-function relativeTime(iso: string): string {
-  const d = new Date(iso);
-  const diff = Math.floor((Date.now() - d.getTime()) / 60000);
-  if (diff < 1) return "Vừa xong";
-  if (diff < 60) return `${diff} phút trước`;
-  if (diff < 1440) return `${Math.floor(diff / 60)} giờ trước`;
-  return `${Math.floor(diff / 1440)} ngày trước`;
-}
-
 export default function DashboardPage() {
   const router = useRouter();
   const { user, token, isLoggedIn, loading } = useAuth();
@@ -71,9 +40,8 @@ export default function DashboardPage() {
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [parentRequests, setParentRequests] = useState<any[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData>({ streak: 0, nextReward: null, activities: [] });
-  const [rewardPopup, setRewardPopup] = useState<RewardResult | null>(null);
-  const [streakCoupon, setStreakCoupon] = useState<{ code: string; discount: number; expiresAt: string } | null>(null);
   const [achievements, setAchievements] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"courses" | "stats" | "requests">("courses");
 
   useEffect(() => {
     if (loading) return;
@@ -87,32 +55,16 @@ export default function DashboardPage() {
     if (token && user?.role === "student") {
       fetchEnrolledCourses();
       fetchParentRequests();
-
-      // Dashboard data
       fetch(`${API}/users/me/dashboard`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) setDashboard(d); })
-        .catch(() => {});
-
-      // Auto check-in streak
+        .then(d => { if (d) setDashboard(d); }).catch(() => {});
       fetch(`${API}/users/me/streak/check-in`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : null)
-        .then((d: CheckInResult | null) => {
-          if (d) {
-            setDashboard(prev => ({ ...prev, streak: d.streak, nextReward: d.nextReward }));
-            if (d.activeCoupon) setStreakCoupon(d.activeCoupon);
-            if (d.rewarded && d.reward) {
-              setRewardPopup(d.reward);
-            }
-          }
-        })
-        .catch(() => {});
-
-      // Fetch achievements/badges
+        .then(r => r.ok ? r.json() : null).then((d: any) => {
+          if (d) setDashboard(prev => ({ ...prev, streak: d.streak, nextReward: d.nextReward }));
+        }).catch(() => {});
       fetch(`${API}/achievements/me`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.badges) setAchievements(d.badges); })
-        .catch(() => {});
+        .then(d => { if (d?.badges) setAchievements(d.badges); }).catch(() => {});
     }
   }, [token, user]);
 
@@ -120,7 +72,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch(`${API}/enrollments/my-courses`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) { const data = await res.json(); setEnrolledCourses(Array.isArray(data) ? data : []); }
-    } catch { console.error("Failed to fetch enrolled courses"); }
+    } catch { }
     finally { setCoursesLoading(false); }
   }
 
@@ -131,397 +83,276 @@ export default function DashboardPage() {
     } catch {}
   }
 
-  async function acceptParentRequest(id: string) {
+  async function acceptParentLink(linkId: string) {
     try {
-      const res = await fetch(`${API}/parents/link-request/${id}/accept`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { toast.success("Đã liên kết với phụ huynh!"); fetchParentRequests(); }
-      else { const d = await res.json(); toast.error(d.message || "Lỗi"); }
+      const res = await fetch(`${API}/parents/link-request/${linkId}/accept`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        toast.success("✅ Đã chấp nhận liên kết phụ huynh!");
+        setParentRequests(prev => prev.filter(r => r.id !== linkId));
+      } else {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.message || "Lỗi chấp nhận liên kết");
+      }
     } catch { toast.error("Lỗi kết nối"); }
   }
 
-  async function rejectParentRequest(id: string) {
+  async function rejectParentLink(linkId: string) {
     try {
-      const res = await fetch(`${API}/parents/link-request/${id}/reject`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { toast.success("Đã từ chối yêu cầu"); fetchParentRequests(); }
-      else toast.error("Lỗi");
+      const res = await fetch(`${API}/parents/link-request/${linkId}/reject`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        toast.success("Đã từ chối liên kết");
+        setParentRequests(prev => prev.filter(r => r.id !== linkId));
+      } else {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.message || "Lỗi từ chối liên kết");
+      }
     } catch { toast.error("Lỗi kết nối"); }
   }
 
   if (loading || (user && user.role !== "student")) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-        <div className="w-8 h-8 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  const displayName = user?.firstName || user?.username || "Học sinh";
   const activeCourses = enrolledCourses.filter(e => e.status === "active" || e.status === "completed");
   const pendingCourses = enrolledCourses.filter(e => e.status === "pending");
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--background)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       <Navbar />
 
-      {/* Reward popup overlay */}
-      {rewardPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
-          <div className="card-base max-w-sm mx-4 text-center p-8 animate-scale-in" style={{ border: "1px solid rgba(245,158,11,0.4)" }}>
-            <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: "rgba(245,158,11,0.15)" }}>
-              <Gift className="w-8 h-8" style={{ color: "#f59e0b" }} />
-            </div>
-            <h2 className="text-xl font-bold mb-2">{rewardPopup.label}</h2>
-            <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
-              Bạn nhận được mã giảm giá <strong style={{ color: "#f59e0b" }}>{rewardPopup.discount}%</strong>
-            </p>
-            <div className="p-3 rounded-xl mb-4 font-mono text-lg font-bold tracking-wider" style={{ background: "rgba(124,58,237,0.1)", color: "#a78bfa" }}>
-              {rewardPopup.code}
-            </div>
-            <p className="text-[11px] mb-5" style={{ color: "var(--foreground-muted)" }}>Mã có hiệu lực 30 ngày. Dùng khi thanh toán khóa học.</p>
-            <button onClick={() => setRewardPopup(null)} className="btn-primary w-full">Tuyệt vời!</button>
-          </div>
+      {/* ===== UDEMY STYLE HEADER ===== */}
+      <section className="bg-[#1c1d1f] text-white pt-28 pb-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+           <h1 className="text-3xl sm:text-4xl font-bold mb-8">Học tập của tôi</h1>
+           
+           <div className="flex gap-6 overflow-x-auto hide-scrollbar border-b border-gray-700">
+             <button onClick={() => setActiveTab("courses")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "courses" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
+                Tất cả khóa học
+             </button>
+             <button onClick={() => setActiveTab("stats")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "stats" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
+                Thống kê & Thành tích
+             </button>
+             {(parentRequests.length > 0 || pendingCourses.length > 0) && (
+               <button onClick={() => setActiveTab("requests")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "requests" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
+                  Chờ xử lý ({parentRequests.length + pendingCourses.length})
+               </button>
+             )}
+           </div>
         </div>
-      )}
+      </section>
 
-      <div className="pt-20 pb-24 page-enter">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          {/* Background orbs */}
-          <div className="orb orb-violet w-[350px] h-[350px] -top-40 right-[-100px] opacity-20 pointer-events-none" />
-          <div className="orb orb-cyan w-[250px] h-[250px] top-60 left-[-80px] opacity-15 pointer-events-none" />
-
-          {/* Header */}
-          <div className="mb-8 animate-slide-up">
-            <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">
-              Xin chào, <span className="text-shimmer">{displayName}</span>
-            </h1>
-            <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>Tiếp tục hành trình học tập của bạn</p>
-          </div>
-
-          {/* Stats row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {[
-              { label: "Đang học", value: activeCourses.length, color: "#7c3aed" },
-              { label: "Chờ duyệt", value: pendingCourses.length, color: "#f59e0b" },
-              { label: "Hoàn thành", value: activeCourses.filter(c => c.progress >= 100).length, color: "#10b981" },
-              { label: "Chuỗi ngày", value: dashboard.streak, color: "#ef4444" },
-            ].map(({ label, value, color }, i) => (
-              <div key={label} className="card-base hover-lift" style={{ animationDelay: `${i * 80}ms` }}>
-                <p className="text-2xl font-extrabold" style={{ color }}>{value}</p>
-                <p className="text-xs mt-1" style={{ color: "var(--foreground-muted)" }}>{label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Main content */}
-            <div className="lg:col-span-2 space-y-6">
-
-              {/* Enrolled courses */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">Khóa học của bạn</h2>
-                  <Link href="/courses" className="text-sm flex items-center gap-1" style={{ color: "#a78bfa" }}>
-                    Tất cả <ChevronRight className="w-3 h-3" />
-                  </Link>
-                </div>
-
-                {/* Pending */}
-                {pendingCourses.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-xs font-semibold mb-2" style={{ color: "#f59e0b" }}>
-                      Đang chờ duyệt ({pendingCourses.length})
-                    </p>
-                    <div className="space-y-2">
-                      {pendingCourses.map((enrollment, i) => (
-                        <div key={enrollment.id} className="card-base flex items-center gap-4 opacity-70">
-                          <div className="w-2 h-10 rounded-full flex-shrink-0" style={{ background: courseColors[i % courseColors.length] }} />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm truncate">{enrollment.course?.title || "Khóa học"}</h3>
-                            <p className="text-xs mt-0.5" style={{ color: "var(--foreground-muted)" }}>
-                              {enrollment.course?.author?.firstName || enrollment.course?.author?.username || "Giáo viên"}
-                            </p>
-                          </div>
-                          <span className="text-[10px] px-2 py-1 rounded-full" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>Chờ duyệt</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+      {/* ===== MAIN CONTENT ===== */}
+      <section className="flex-1 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+           
+           {/* TAB: COURSES */}
+           {activeTab === "courses" && (
+             <div>
                 {coursesLoading ? (
-                  <div className="card-base flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: "#7c3aed" }} />
-                  </div>
+                  <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
                 ) : activeCourses.length === 0 ? (
-                  <div className="card-base text-center py-12">
-                    <h3 className="font-bold mb-2">Chưa có khóa học nào</h3>
-                    <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>Hãy khám phá và đăng ký khóa học bạn yêu thích</p>
-                    <Link href="/courses" className="btn-primary inline-flex">Khám phá khóa học</Link>
+                  <div className="text-center py-20 border border-border rounded-lg bg-card shadow-sm">
+                     <h3 className="text-2xl font-bold mb-4">Bạn chưa đăng ký khóa học nào</h3>
+                     <Link href="/courses" className="btn-primary px-6 py-3">Khám phá khóa học ngay</Link>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {activeCourses.map((enrollment, i) => {
-                      const color = courseColors[i % courseColors.length];
-                      const totalLessons = enrollment.course?.sections?.reduce((sum: number, sec: any) => sum + (sec.lessons?.length || 0), 0) || enrollment.course?._count?.lessons || 0;
-                      const completedLessons = totalLessons > 0 ? Math.round((enrollment.progress / 100) * totalLessons) : 0;
-                      const authorName = enrollment.course?.author?.firstName || enrollment.course?.author?.username || "Giáo viên";
-                      return (
-                        <Link key={enrollment.id} href={`/courses/${enrollment.courseId}`}>
-                          <div className="card-base card-hover flex items-center gap-4">
-                            <div className="w-2 h-12 rounded-full flex-shrink-0" style={{ background: color }} />
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-sm truncate">{enrollment.course?.title || "Khóa học"}</h3>
-                              <p className="text-xs mt-0.5" style={{ color: "var(--foreground-muted)" }}>{authorName} · {completedLessons}/{totalLessons} bài</p>
-                              <div className="mt-2 progress-bar">
-                                <div className="progress-fill" style={{ width: `${Math.min(100, enrollment.progress)}%` }} />
-                              </div>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <p className="text-lg font-bold" style={{ color }}>{Number(enrollment.progress).toFixed(2)}%</p>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Weekly chart */}
-              <div className="card-base">
-                <h3 className="font-semibold text-sm mb-4">Thời gian học tuần này</h3>
-                <div className="flex items-end gap-2 h-28">
-                  {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day, i) => {
-                    const heights = [60, 80, 45, 90, 70, 30, 50];
-                    const today = new Date().getDay(); // 0=CN, 1=T2...
-                    const isToday = (i === 6 && today === 0) || (i + 1 === today);
-                    return (
-                      <div key={day} className="flex-1 flex flex-col items-center gap-1">
-                        <div
-                          className="w-full rounded-md transition-all duration-300"
-                          style={{
-                            height: `${heights[i]}%`,
-                            background: isToday ? "linear-gradient(to top, #7c3aed, #a78bfa)" : "rgba(124,58,237,0.15)",
-                            minHeight: 6,
-                          }}
-                        />
-                        <span className="text-[10px]" style={{ color: isToday ? "#a78bfa" : "var(--foreground-muted)" }}>{day}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-5">
-
-              {/* Parent requests */}
-              {parentRequests.length > 0 && (
-                <div className="card-base" style={{ border: "1px solid rgba(245,158,11,0.3)" }}>
-                  <h3 className="font-semibold text-sm mb-3">
-                    Yêu cầu liên kết phụ huynh
-                    <span className="ml-2 w-5 h-5 inline-flex items-center justify-center rounded-full text-[10px] text-white" style={{ background: "#ef4444" }}>{parentRequests.length}</span>
-                  </h3>
-                  <div className="space-y-2">
-                    {parentRequests.map((req: any) => (
-                      <div key={req.id} className="p-3 rounded-xl" style={{ background: "var(--card)" }}>
-                        <p className="text-sm font-semibold mb-1">{req.parent?.firstName || req.parent?.username || "Phụ huynh"}</p>
-                        <p className="text-[10px] mb-2" style={{ color: "var(--foreground-muted)" }}>{req.parent?.email || ""}</p>
-                        <div className="flex gap-2">
-                          <button onClick={() => acceptParentRequest(req.id)} className="btn-primary text-xs px-3 py-1.5 flex-1">Xác nhận</button>
-                          <button onClick={() => rejectParentRequest(req.id)} className="btn-ghost text-xs px-3 py-1.5" style={{ color: "#ef4444" }}>Từ chối</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Streak + Rewards */}
-              <div className="card-base" style={{ border: "1px solid rgba(124,58,237,0.2)" }}>
-                <div className="flex items-baseline justify-between mb-3">
-                  <h3 className="font-semibold text-sm">Chuỗi học tập</h3>
-                  <span className="text-2xl font-extrabold" style={{ color: "#7c3aed" }}>{dashboard.streak}</span>
-                </div>
-                <p className="text-xs mb-4" style={{ color: "var(--foreground-muted)" }}>
-                  {dashboard.streak === 0
-                    ? "Bắt đầu học mỗi ngày để tạo chuỗi!"
-                    : `${dashboard.streak} ngày liên tiếp`}
-                </p>
-
-                {/* Progress toward next reward */}
-                {dashboard.nextReward && (
-                  <div className="p-3 rounded-xl mb-3" style={{ background: "rgba(124,58,237,0.06)" }}>
-                    <div className="flex justify-between text-xs mb-1.5">
-                      <span style={{ color: "var(--foreground-muted)" }}>Mốc tiếp theo: {dashboard.nextReward.days} ngày</span>
-                      <span style={{ color: "#a78bfa" }}>giảm {dashboard.nextReward.discount}%</span>
-                    </div>
-                    <div className="progress-bar" style={{ height: 6 }}>
-                      <div className="progress-fill" style={{
-                        width: `${Math.min(100, ((dashboard.nextReward.days - dashboard.nextReward.remaining) / dashboard.nextReward.days) * 100)}%`,
-                        background: "linear-gradient(to right, #7c3aed, #a78bfa)"
-                      }} />
-                    </div>
-                    <p className="text-[10px] mt-1.5" style={{ color: "var(--foreground-muted)" }}>
-                      Còn {dashboard.nextReward.remaining} ngày nữa
-                    </p>
-                  </div>
-                )}
-
-                {/* Milestones */}
-                <div className="space-y-2 mt-4">
-                  {[
-                    { days: 3, discount: 0 },
-                    { days: 7, discount: 0 },
-                    { days: 10, discount: 0 },
-                    { days: 14, discount: 10 },
-                    { days: 30, discount: 15 },
-                    { days: 60, discount: 25 },
-                    { days: 100, discount: 35 },
-                    { days: 180, discount: 50 },
-                  ].map(m => {
-                    const done = dashboard.streak >= m.days;
-                    return (
-                      <div key={m.days} className="flex items-center justify-between text-sm py-1.5 font-medium">
-                        <span style={{ color: done ? "#10b981" : "var(--foreground-muted)", textDecoration: done ? "line-through" : "none" }}>
-                          {m.days} ngày
-                        </span>
-                        <span style={{ color: done ? "#10b981" : "var(--foreground-muted)" }}>
-                          {done ? "Đã đạt" : (m.discount > 0 ? `−${m.discount}%` : "Cơ bản")}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Active streak coupon */}
-                {streakCoupon && (
-                  <div className="mt-3 p-3 rounded-xl" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.08))", border: "1px solid rgba(245,158,11,0.25)" }}>
-                    <p className="text-[10px] font-semibold mb-1.5 flex items-center gap-1" style={{ color: "#f59e0b" }}>
-                      <Gift className="w-3 h-3" /> Mã giảm giá cá nhân
-                    </p>
-                    <div className="font-mono text-sm font-bold tracking-wider" style={{ color: "#a78bfa" }}>
-                      {streakCoupon.code}
-                    </div>
-                    <p className="text-[10px] mt-1" style={{ color: "var(--foreground-muted)" }}>
-                      Giảm {streakCoupon.discount}% · Hết hạn {new Date(streakCoupon.expiresAt).toLocaleDateString("vi-VN")}
-                    </p>
-                    <p className="text-[9px] mt-0.5 italic" style={{ color: "var(--foreground-muted)" }}>
-                      Dùng khi thanh toán khóa học · Chỉ dành cho bạn
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Recent activity */}
-              <div className="card-base">
-                <h3 className="font-semibold text-sm mb-3">Hoạt động gần đây</h3>
-                {dashboard.activities.length === 0 ? (
-                  <p className="text-xs py-4 text-center" style={{ color: "var(--foreground-muted)" }}>Chưa có hoạt động</p>
-                ) : (
-                  <div className="space-y-3">
-                    {dashboard.activities.map((act, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{
-                          background: act.type === 'certificate' ? '#f59e0b'
-                            : act.type === 'quiz' ? '#10b981'
-                            : act.type === 'enrollment' ? '#0891b2'
-                            : '#7c3aed'
-                        }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm leading-snug truncate">{act.text}</p>
-                          <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground-muted)" }}>{relativeTime(act.time)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Achievements / Badges Showcase */}
-              <div className="card-base" style={{ border: "1px solid rgba(255,215,0,0.15)" }}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-sm flex items-center gap-1.5">
-                    🏆 Cây huy hiệu
-                  </h3>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                        style={{ background: "rgba(255,215,0,0.1)", color: "#fbbf24" }}>
-                    {achievements.filter(b => b.earned).length}/{achievements.length}
-                  </span>
-                </div>
-
-                {achievements.length === 0 ? (
-                  <p className="text-xs text-center py-4" style={{ color: "var(--foreground-muted)" }}>Đang tải huy hiệu...</p>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Group badges by category */}
-                    {[
-                      { key: "streak", label: "🔥 Chuỗi ngày" },
-                      { key: "enrollment", label: "📖 Đăng ký" },
-                      { key: "course", label: "🎓 Hoàn thành" },
-                      { key: "video", label: "🎬 Video" },
-                      { key: "quiz", label: "🧠 Trắc nghiệm" },
-                      { key: "assignment", label: "✍️ Bài tập" },
-                      { key: "social", label: "💬 Cộng đồng" },
-                      { key: "certificate", label: "📜 Chứng chỉ" },
-                    ].map(cat => {
-                      const catBadges = achievements.filter(b => b.category === cat.key);
-                      if (catBadges.length === 0) return null;
-                      return (
-                        <div key={cat.key}>
-                          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--foreground-muted)" }}>
-                            {cat.label}
-                          </p>
-                          <div className="grid grid-cols-4 gap-2">
-                            {catBadges.map(badge => (
-                              <div key={badge.code} className="relative group/badge">
-                                <div className="flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 cursor-default"
-                                     style={{
-                                       background: badge.earned ? "rgba(255,215,0,0.08)" : "var(--muted)",
-                                       opacity: badge.earned ? 1 : 0.5,
-                                       border: badge.earned ? "1px solid rgba(255,215,0,0.2)" : "1px solid transparent",
-                                     }}>
-                                  <span className="text-xl">{badge.icon}</span>
-                                  {!badge.earned && (
-                                    <div className="w-full rounded-full overflow-hidden" style={{ height: 3, background: "var(--border)" }}>
-                                      <div className="h-full rounded-full" style={{ width: `${badge.progress}%`, background: "linear-gradient(to right, #7c3aed, #a78bfa)" }} />
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                     {activeCourses.map(enrollment => {
+                        const totalLessons = enrollment.course?.sections?.reduce((sum: number, sec: any) => sum + (sec.lessons?.length || 0), 0) || enrollment.course?._count?.lessons || 0;
+                        const authorName = enrollment.course?.author?.firstName || enrollment.course?.author?.username || "Giáo viên";
+                        const isCompleted = enrollment.progress >= 100;
+                        return (
+                           <Link key={enrollment.id} href={`/courses/${enrollment.courseId}`} className="group">
+                              <div className="border border-border rounded-lg overflow-hidden h-full flex flex-col bg-card hover:shadow-lg transition-all hover:-translate-y-1">
+                                 <div className="aspect-video bg-muted relative border-b border-border">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-colors">
+                                       <PlayCircle className="w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
                                     </div>
-                                  )}
-                                  {badge.earned && (
-                                    <span className="text-[8px]" style={{ color: "#10b981" }}>✓</span>
-                                  )}
-                                </div>
-                                {/* Tooltip */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover/badge:opacity-100 transition-opacity pointer-events-none z-10"
-                                     style={{ background: "var(--popover)", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", color: "var(--foreground)" }}>
-                                  <p className="font-semibold">{badge.name}</p>
-                                  <p style={{ color: "var(--foreground-muted)" }}>{badge.description}</p>
-                                  {!badge.earned && <p style={{ color: "#a78bfa" }}>Tiến độ: {badge.progress}%</p>}
-                                </div>
+                                 </div>
+                                 <div className="p-4 flex-1 flex flex-col">
+                                    <h3 className="font-bold mb-1 line-clamp-2 leading-tight group-hover:text-primary transition-colors">{enrollment.course?.title}</h3>
+                                    <p className="text-xs text-foreground-muted mb-4">{authorName}</p>
+                                    
+                                    <div className="mt-auto">
+                                       <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden mb-2">
+                                          <div className={`h-full ${isCompleted ? 'bg-green-500' : 'bg-primary'}`} style={{ width: `${enrollment.progress}%`}} />
+                                       </div>
+                                       <div className="flex justify-between text-xs font-bold">
+                                          <span className="text-foreground-muted">{Math.round(enrollment.progress)}% hoàn thành</span>
+                                          {isCompleted && <span className="text-green-500 flex items-center gap-1"><Award className="w-3 h-3"/> Đã hoàn thành</span>}
+                                       </div>
+                                    </div>
+                                 </div>
                               </div>
+                           </Link>
+                        )
+                     })}
+                  </div>
+                )}
+             </div>
+           )}
+
+           {/* TAB: STATS & ACHIEVEMENTS */}
+           {activeTab === "stats" && (
+             <div className="grid lg:grid-cols-3 gap-8">
+                {/* Left col - Stats */}
+                <div className="lg:col-span-2 space-y-6">
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="border border-border rounded-lg p-6 bg-card text-center shadow-sm">
+                         <p className="text-3xl font-extrabold text-primary mb-1">{activeCourses.length}</p>
+                         <p className="text-sm text-foreground-muted font-bold">Đang học</p>
+                      </div>
+                      <div className="border border-border rounded-lg p-6 bg-card text-center shadow-sm">
+                         <p className="text-3xl font-extrabold text-green-500 mb-1">{activeCourses.filter(c => c.progress >= 100).length}</p>
+                         <p className="text-sm text-foreground-muted font-bold">Hoàn thành</p>
+                      </div>
+                      <div className="border border-border rounded-lg p-6 bg-card text-center shadow-sm">
+                         <p className="text-3xl font-extrabold text-yellow-500 mb-1">{dashboard.streak}</p>
+                         <p className="text-sm text-foreground-muted font-bold">Ngày liên tiếp</p>
+                      </div>
+                      <div className="border border-border rounded-lg p-6 bg-card text-center shadow-sm">
+                         <p className="text-3xl font-extrabold text-cyan-500 mb-1">{achievements.filter(a => a.earned).length}</p>
+                         <p className="text-sm text-foreground-muted font-bold">Huy hiệu</p>
+                      </div>
+                   </div>
+
+                   {/* Weekly Activity */}
+                   <div className="border border-border rounded-lg p-6 bg-card shadow-sm">
+                      <h3 className="font-bold text-lg mb-6">Hoạt động trong tuần</h3>
+                      <div className="flex items-end gap-4 h-40">
+                        {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day, i) => {
+                          const heights = [60, 80, 45, 90, 70, 30, 50]; // mock
+                          const isToday = new Date().getDay() === (i === 6 ? 0 : i + 1);
+                          return (
+                            <div key={day} className="flex-1 flex flex-col items-center gap-2">
+                              <div className="w-full rounded-t-md transition-all relative group" style={{ height: `${heights[i]}%`, background: isToday ? 'var(--primary)' : 'var(--muted-foreground)', opacity: isToday ? 1 : 0.2 }}>
+                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                    {heights[i]}p
+                                 </div>
+                              </div>
+                              <span className={`text-xs font-bold ${isToday ? 'text-primary' : 'text-foreground-muted'}`}>{day}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                   </div>
+                </div>
+
+                {/* Right col - Badges */}
+                <div className="space-y-6">
+                   <div className="border border-border rounded-lg p-6 bg-card shadow-sm">
+                      <div className="flex justify-between items-center mb-4">
+                         <h3 className="font-bold text-lg">Huy hiệu đạt được</h3>
+                         <Link href="/achievements" className="text-sm text-primary font-bold hover:underline">Xem tất cả</Link>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3">
+                         {achievements.filter(a => a.earned).slice(0, 8).map((badge, i) => (
+                           <div key={i} className="aspect-square rounded-full border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center text-2xl relative group cursor-pointer" title={badge.name}>
+                              {badge.icon || "🏆"}
+                              <div className="absolute bottom-[-10px] right-[-5px] bg-white rounded-full">
+                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              </div>
+                           </div>
+                         ))}
+                         {achievements.filter(a => a.earned).length === 0 && (
+                            <p className="col-span-4 text-sm text-foreground-muted text-center py-4">Học tập chăm chỉ để nhận huy hiệu đầu tiên nhé!</p>
+                         )}
+                      </div>
+                   </div>
+
+                   <div className="border border-border rounded-lg p-6 bg-card shadow-sm">
+                      <h3 className="font-bold text-lg mb-4">Lịch sử hoạt động</h3>
+                      {dashboard.activities.length === 0 ? (
+                         <p className="text-sm text-foreground-muted">Chưa có hoạt động nào.</p>
+                      ) : (
+                         <div className="space-y-4">
+                            {dashboard.activities.slice(0, 5).map((act, i) => (
+                               <div key={i} className="flex gap-3">
+                                  <div className="mt-1 w-2 h-2 rounded-full bg-primary shrink-0" />
+                                  <div>
+                                     <p className="text-sm font-medium leading-tight">{act.text}</p>
+                                     <p className="text-xs text-foreground-muted mt-1">{act.time}</p>
+                                  </div>
+                               </div>
                             ))}
-                          </div>
-                        </div>
-                      );
-                    })}
+                         </div>
+                      )}
+                   </div>
+                </div>
+             </div>
+           )}
+
+           {/* TAB: REQUESTS */}
+           {activeTab === "requests" && (
+             <div className="max-w-2xl mx-auto space-y-6">
+                
+                {pendingCourses.length > 0 && (
+                  <div className="border border-border rounded-lg p-6 bg-card shadow-sm">
+                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-yellow-500"/> Khóa học chờ duyệt thanh toán</h3>
+                     <div className="space-y-4">
+                        {pendingCourses.map(course => (
+                           <div key={course.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
+                              <div className="aspect-video w-24 bg-muted rounded shrink-0 border border-border" />
+                              <div className="flex-1">
+                                 <h4 className="font-bold text-sm mb-1">{course.course?.title}</h4>
+                                 <span className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-500 font-bold rounded-full">Chờ phụ huynh thanh toán</span>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
                   </div>
                 )}
 
-                <Link href="/achievements" className="block text-center mt-4 text-xs font-semibold py-2 rounded-xl transition-colors"
-                      style={{ background: "rgba(255,215,0,0.06)", color: "#fbbf24" }}>
-                  Xem chi tiết →
-                </Link>
-              </div>
+                {parentRequests.length > 0 && (
+                  <div className="border border-[#d1d7dc] dark:border-[#3e4143] rounded p-6 bg-white dark:bg-[#2d2f31]">
+                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                       <AlertCircle className="w-5 h-5 text-[#3b82f6]"/>
+                       Yêu cầu liên kết phụ huynh
+                       <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#3b82f6] text-white">{parentRequests.length}</span>
+                     </h3>
+                     <div className="space-y-3">
+                        {parentRequests.map(req => (
+                           <div key={req.id} className="flex items-center justify-between p-4 border border-[#d1d7dc] dark:border-[#3e4143] rounded bg-[#f7f9fa] dark:bg-[#1c1d1f]">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-[#3b82f6] flex items-center justify-center text-white font-bold text-sm">
+                                  {(req.parent?.firstName || req.parent?.username || "P").charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-sm text-[#2d2f31] dark:text-white">{req.parent?.firstName ? `${req.parent.firstName} ${req.parent.lastName || ""}`.trim() : req.parent?.username}</h4>
+                                  <p className="text-xs text-[#6a6f73]">{req.parent?.email} · Muốn theo dõi học tập của bạn</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0">
+                                 <button
+                                   onClick={() => acceptParentLink(req.id)}
+                                   className="px-4 py-2 bg-[#a435f0] hover:bg-[#8710d8] text-white text-xs font-bold rounded transition-colors"
+                                 >✓ Chấp nhận</button>
+                                 <button
+                                   onClick={() => rejectParentLink(req.id)}
+                                   className="px-4 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] text-[#6a6f73] text-xs font-bold rounded hover:bg-[#fee2e2] hover:text-[#ef4444] hover:border-[#ef4444] transition-colors"
+                                 >✕ Từ chối</button>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+                )}
+             </div>
+           )}
 
-              {/* Explore */}
-              <Link href="/courses" className="card-base card-hover block text-center">
-                <p className="text-sm font-semibold" style={{ color: "#a78bfa" }}>Khám phá khóa mới →</p>
-              </Link>
-            </div>
-          </div>
         </div>
-      </div>
+      </section>
+
       <Footer />
     </div>
   );

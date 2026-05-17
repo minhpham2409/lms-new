@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Mail, Lock, Eye, EyeOff, ArrowRight, Zap } from "lucide-react";
+import { GraduationCap, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-state";
 
 export default function LoginPage() {
@@ -23,27 +23,22 @@ export default function LoginPage() {
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/auth/login`,
         {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: form.email, password: form.password }),
+          body: JSON.stringify({ username: form.email, password: form.password }),
         }
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Đăng nhập thất bại");
       login(data.access_token, data.refresh_token);
       
-      // Redirect based on user role from JWT
       try {
         const payload = JSON.parse(atob(data.access_token.split(".")[1]));
         const role = payload.role;
-        if (role === "admin") {
-          router.push("/admin");
-        } else if (role === "teacher") {
-          router.push("/teacher");
-        } else if (role === "parent") {
-          router.push("/parent");
-        } else {
-          router.push("/dashboard");
-        }
+        if (role === "admin") router.push("/admin");
+        else if (role === "teacher") router.push("/teacher");
+        else if (role === "parent") router.push("/parent");
+        else router.push("/dashboard");
       } catch {
         router.push("/dashboard");
       }
@@ -55,121 +50,77 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: "var(--background)" }}>
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center overflow-hidden">
-        <div className="orb orb-violet w-[500px] h-[500px] top-[-100px] left-[-100px] opacity-40" />
-        <div className="orb orb-cyan w-[400px] h-[400px] bottom-[-50px] right-[-50px] opacity-30" />
-
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
-        />
-
-        <div className="relative z-10 max-w-md px-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-2.5 mb-8">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}
-            >
-              <GraduationCap className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-2xl font-bold">
-              <span className="gradient-text">HọcLộ</span>
-              <span>Trình</span>
-            </span>
-          </Link>
-          <h2 className="text-3xl font-extrabold mb-4">Chào mừng trở lại!</h2>
-          <p className="text-base leading-relaxed" style={{ color: "#8892a4" }}>
-            Đăng nhập để tiếp tục hành trình học tập. Theo dõi tiến độ, hoàn thành bài tập
-            và nhận chứng chỉ.
-          </p>
+    <div className="min-h-screen flex flex-col md:flex-row bg-white dark:bg-[#1c1d1f]">
+      {/* Left - Illustration (Udemy style) */}
+      <div className="hidden md:flex md:w-1/2 items-center justify-center p-12 bg-white dark:bg-[#1c1d1f]">
+        <div className="max-w-md">
+          <img
+            src="/images/login_illustration.png"
+            alt="Đăng nhập để bắt đầu hành trình học tập"
+            className="w-full h-auto"
+          />
         </div>
       </div>
 
-      {/* Right panel — form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-8">
-        <div className="w-full max-w-md">
-          {/* Mobile logo */}
-          <div className="lg:hidden mb-8 text-center">
+      {/* Right - Form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12 md:px-12">
+        <div className="w-full max-w-[400px]">
+          {/* Logo */}
+          <div className="mb-8">
             <Link href="/" className="inline-flex items-center gap-2">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}
-              >
+              <div className="w-9 h-9 bg-[#5624d0] rounded-full flex items-center justify-center">
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-lg gradient-text">HọcLộ Trình</span>
+              <span className="font-bold text-xl text-[#2d2f31] dark:text-white">HọcLộ Trình</span>
             </Link>
           </div>
 
-          <h1 className="text-2xl font-extrabold mb-2">Đăng nhập</h1>
-          <p className="text-sm mb-8" style={{ color: "#8892a4" }}>
-            Chưa có tài khoản?{" "}
-            <Link href="/auth/register" className="font-semibold" style={{ color: "#a78bfa" }}>
-              Đăng ký miễn phí
-            </Link>
-          </p>
+          <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white font-serif">
+            Đăng nhập và bắt đầu hành trình học tập của bạn
+          </h1>
 
           {error && (
-            <div
-              className="mb-6 p-4 rounded-xl text-sm"
-              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}
-            >
+            <div className="mt-4 p-3 bg-[#fcbca0] border border-[#f5c2c7] text-[#842029] text-sm font-medium rounded">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: "var(--foreground)" }}>
+              <label className="block text-sm font-bold mb-1.5 text-[#2d2f31] dark:text-white">
                 Email hoặc tên đăng nhập
               </label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#8892a4" }} />
-                <input
-                  type="text"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="email@example.com"
-                  className="input-base pl-11"
-                />
-              </div>
+              <input
+                type="text"
+                required
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="email@example.com"
+                className="w-full px-4 py-3 border border-[#2d2f31] dark:border-[#6a6f73] text-[#2d2f31] dark:text-white bg-transparent outline-none focus:ring-1 focus:ring-[#5624d0] placeholder:text-[#b0b5b9] text-base rounded"
+              />
             </div>
 
             {/* Password */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                  Mật khẩu
-                </label>
-                <Link href="/auth/forgot-password" className="text-xs" style={{ color: "#a78bfa" }}>
-                  Quên mật khẩu?
-                </Link>
-              </div>
+              <label className="block text-sm font-bold mb-1.5 text-[#2d2f31] dark:text-white">
+                Mật khẩu
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#8892a4" }} />
                 <input
                   type={showPw ? "text" : "password"}
                   required
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="••••••••"
-                  className="input-base pl-11 pr-11"
+                  className="w-full px-4 py-3 pr-12 border border-[#2d2f31] dark:border-[#6a6f73] text-[#2d2f31] dark:text-white bg-transparent outline-none focus:ring-1 focus:ring-[#5624d0] placeholder:text-[#b0b5b9] text-base rounded"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2"
-                  style={{ color: "#8892a4" }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6a6f73] hover:text-[#2d2f31] dark:hover:text-white"
                 >
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
@@ -178,20 +129,32 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full justify-center py-3.5 text-base disabled:opacity-50"
+              className="w-full bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold py-3 text-base transition-colors disabled:opacity-60 rounded"
             >
               {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Đang đăng nhập...
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Đang xử lý...
                 </span>
               ) : (
-                <>
-                  Đăng nhập <ArrowRight className="w-4 h-4" />
-                </>
+                "Đăng nhập"
               )}
             </button>
           </form>
+
+          <div className="mt-4 text-center">
+            <span className="text-sm text-[#6a6f73]">hoặc </span>
+            <Link href="/auth/forgot-password" className="text-sm font-bold text-[#5624d0] dark:text-[#c0a5f7] hover:text-[#401b9c] underline">
+              Quên mật khẩu?
+            </Link>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-[#d1d7dc] dark:border-[#3e4143] text-center">
+            <span className="text-sm text-[#2d2f31] dark:text-[#b0b5b9]">Chưa có tài khoản? </span>
+            <Link href="/auth/register" className="text-sm font-bold text-[#5624d0] dark:text-[#c0a5f7] hover:text-[#401b9c] underline">
+              Đăng ký
+            </Link>
+          </div>
         </div>
       </div>
     </div>

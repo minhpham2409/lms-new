@@ -123,7 +123,13 @@ export class UserRepository extends BaseRepository<User> {
         firstName: true,
         lastName: true,
         email: true,
-        _count: { select: { courses: true } },
+        _count: { 
+          select: { 
+            courses: {
+              where: { status: 'published' }
+            } 
+          } 
+        },
       },
     });
   }

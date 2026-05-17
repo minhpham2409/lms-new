@@ -59,7 +59,7 @@ export default function OrderDetailPage() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#7c3aed" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#5624d0" }} />
       </div>
     );
   }
@@ -89,14 +89,14 @@ export default function OrderDetailPage() {
       <Navbar />
       <div className="pt-20 pb-24">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Link href="/orders" className="flex items-center gap-1 text-sm mb-6" style={{ color: "#8892a4" }}>
+          <Link href="/orders" className="flex items-center gap-1 text-sm mb-6" style={{ color: "#6a6f73" }}>
             <ArrowLeft className="w-4 h-4" /> Quay lại đơn hàng
           </Link>
 
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-extrabold flex items-center gap-2">
-              <Package className="w-6 h-6" style={{ color: "#7c3aed" }} />
-              Đơn hàng <span className="font-mono text-sm" style={{ color: "#a78bfa" }}>#{(order.id as string).substring(0, 8)}</span>
+              <Package className="w-6 h-6" style={{ color: "#5624d0" }} />
+              Đơn hàng <span className="font-mono text-sm" style={{ color: "#a435f0" }}>#{(order.id as string).substring(0, 8)}</span>
             </h1>
             <span className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"
               style={{ background: `${statusInfo.color}15`, color: statusInfo.color, border: `1px solid ${statusInfo.color}30` }}>
@@ -119,16 +119,16 @@ export default function OrderDetailPage() {
                 { icon: FileText, label: "Mã giao dịch", value: order.payment?.txnRef ? order.payment.txnRef.substring(0, 12) + "..." : "—" },
               ].map(({ icon: Icon, label, value, color }) => (
                 <div key={label} className="flex items-center gap-3">
-                  <Icon className="w-4 h-4 flex-shrink-0" style={{ color: color || "#7c3aed" }} />
+                  <Icon className="w-4 h-4 flex-shrink-0" style={{ color: color || "#a435f0" }} />
                   <div>
-                    <p className="text-xs" style={{ color: "#8892a4" }}>{label}</p>
+                    <p className="text-xs" style={{ color: "#6a6f73" }}>{label}</p>
                     <p className="font-medium" style={color ? { color } : undefined}>{value}</p>
                   </div>
                 </div>
               ))}
             </div>
             {order.payment?.paidAt && (
-              <div className="mt-3 pt-3 text-xs" style={{ borderTop: "1px solid var(--border)", color: "var(--foreground-muted)" }}>
+              <div className="mt-3 pt-3 text-xs" style={{ borderTop: "1px solid var(--border)", color: "#6a6f73" }}>
                 Thanh toán lúc: {new Date(order.payment.paidAt).toLocaleString("vi-VN")}
               </div>
             )}
@@ -151,7 +151,7 @@ export default function OrderDetailPage() {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-sm truncate">{item.course?.title || "Khóa học"}</h4>
                   </div>
-                  <p className="font-bold text-sm flex-shrink-0" style={{ color: "#a78bfa" }}>
+                  <p className="font-bold text-sm flex-shrink-0" style={{ color: "#a435f0" }}>
                     {Number(item.price).toLocaleString()} ₫
                   </p>
                 </div>
@@ -162,7 +162,7 @@ export default function OrderDetailPage() {
           {/* Summary */}
           <div className="card-base">
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between" style={{ color: "#8892a4" }}>
+              <div className="flex justify-between" style={{ color: "#6a6f73" }}>
                 <span>Tạm tính</span>
                 <span>{Number(order.totalPrice).toLocaleString()} ₫</span>
               </div>
@@ -173,7 +173,7 @@ export default function OrderDetailPage() {
                 </div>
               )}
               {!order.coupon && (
-                <div className="flex justify-between" style={{ color: "#8892a4" }}>
+                <div className="flex justify-between" style={{ color: "#6a6f73" }}>
                   <span>Giảm giá</span><span>0 ₫</span>
                 </div>
               )}

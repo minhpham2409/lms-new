@@ -33,33 +33,20 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer
-      className="relative mt-24 border-t"
-      style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(8, 12, 20, 0.9)" }}
-    >
-      {/* Glow accent */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-px"
-        style={{ background: "linear-gradient(to right, transparent, rgba(124,58,237,0.5), transparent)" }}
-      />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+    <footer className="bg-[#2d2f31] border-t border-[#3e4143]">
+      <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #0891b2)" }}
-              >
-                <GraduationCap className="w-5 h-5 text-white" />
+            <Link href="/" className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-[#5624d0] rounded-full flex items-center justify-center">
+                <GraduationCap className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-lg">
-                <span className="gradient-text">HọcLộ</span>
-                <span style={{ color: "#f1f5ff" }}>Trình</span>
+              <span className="font-bold text-lg text-white">
+                HọcLộ Trình
               </span>
             </Link>
-            <p className="text-sm leading-relaxed mb-6 max-w-xs" style={{ color: "#8892a4" }}>
+            <p className="text-sm leading-relaxed mb-5 max-w-xs text-[#b0b5b9]">
               Nền tảng học tập thông minh kết nối giáo viên, học sinh và phụ huynh.
               Mang lại trải nghiệm giáo dục hiện đại, cá nhân hóa.
             </p>
@@ -68,24 +55,7 @@ export function Footer() {
               {[Facebook, Youtube, Twitter, Github].map((Icon, i) => (
                 <button
                   key={i}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200"
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "#8892a4",
-                  }}
-                  onMouseEnter={(e) => {
-                    const el = e.currentTarget;
-                    el.style.background = "rgba(124,58,237,0.2)";
-                    el.style.borderColor = "rgba(124,58,237,0.3)";
-                    el.style.color = "#a78bfa";
-                  }}
-                  onMouseLeave={(e) => {
-                    const el = e.currentTarget;
-                    el.style.background = "rgba(255,255,255,0.05)";
-                    el.style.borderColor = "rgba(255,255,255,0.08)";
-                    el.style.color = "#8892a4";
-                  }}
+                  className="w-8 h-8 rounded flex items-center justify-center transition-colors text-[#b0b5b9] hover:text-white hover:bg-[#3e4143]"
                 >
                   <Icon className="w-4 h-4" />
                 </button>
@@ -96,22 +66,15 @@ export function Footer() {
           {/* Links */}
           {Object.values(footerLinks).map((section) => (
             <div key={section.title}>
-              <h3 className="text-sm font-semibold mb-4" style={{ color: "#f1f5ff" }}>
+              <h3 className="text-sm font-bold mb-3 text-white">
                 {section.title}
               </h3>
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {section.links.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm transition-colors duration-200"
-                      style={{ color: "#8892a4" }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLAnchorElement).style.color = "#a78bfa";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLAnchorElement).style.color = "#8892a4";
-                      }}
+                      className="text-sm text-[#b0b5b9] hover:text-white transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -123,39 +86,27 @@ export function Footer() {
         </div>
 
         {/* Contact info */}
-        <div
-          className="rounded-2xl p-5 mb-8 flex flex-col sm:flex-row gap-4"
-          style={{
-            background: "rgba(19,26,46,0.6)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
+        <div className="border-t border-[#3e4143] pt-6 mb-6 flex flex-col sm:flex-row gap-4">
           {[
             { icon: Mail, text: "providminh24092004@gmail.com" },
             { icon: Phone, text: "0916 869 648" },
             { icon: MapPin, text: "TP. Hồ Chí Minh, Việt Nam" },
           ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-center gap-2 text-sm" style={{ color: "#8892a4" }}>
-              <Icon className="w-4 h-4 flex-shrink-0" style={{ color: "#7c3aed" }} />
+            <div key={text} className="flex items-center gap-2 text-sm text-[#b0b5b9]">
+              <Icon className="w-4 h-4 flex-shrink-0 text-[#6a6f73]" />
               <span>{text}</span>
             </div>
           ))}
         </div>
 
         {/* Bottom bar */}
-        <div
-          className="pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4"
-          style={{ borderColor: "rgba(255,255,255,0.06)" }}
-        >
-          <p className="text-xs" style={{ color: "#8892a4" }}>
+        <div className="pt-6 border-t border-[#3e4143] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-[#6a6f73]">
             © 2026 HọcLộ Trình. Tất cả quyền được bảo lưu.
           </p>
           <div className="flex items-center gap-1">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ background: "#10b981", boxShadow: "0 0 8px rgba(16,185,129,0.5)" }}
-            />
-            <span className="text-xs" style={{ color: "#8892a4" }}>
+            <div className="w-2 h-2 rounded-full bg-[#16a34a]" />
+            <span className="text-xs text-[#6a6f73]">
               Hệ thống hoạt động bình thường
             </span>
           </div>

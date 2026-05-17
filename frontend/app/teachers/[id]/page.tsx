@@ -96,8 +96,8 @@ export default function TeacherProfilePage() {
       <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "#7c3aed" }} />
-          <p style={{ color: "var(--foreground-muted)" }}>Đang tải thông tin giáo viên...</p>
+          <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "#5624d0" }} />
+          <p style={{ color: "#6a6f73" }}>Đang tải thông tin giáo viên...</p>
         </div>
         <Footer />
       </div>
@@ -115,10 +115,10 @@ export default function TeacherProfilePage() {
   const isOwner = user?.id === teacher.id;
 
   const gradients = [
-    "linear-gradient(135deg, #7c3aed, #0891b2)",
+    "linear-gradient(135deg, #a435f0, #0891b2)",
     "linear-gradient(135deg, #f59e0b, #ef4444)",
     "linear-gradient(135deg, #10b981, #0891b2)",
-    "linear-gradient(135deg, #ec4899, #7c3aed)",
+    "linear-gradient(135deg, #ec4899, #a435f0)",
   ];
   const charCode = teacher.id.charCodeAt(0) || 0;
   const bgGradient = gradients[charCode % gradients.length];
@@ -161,12 +161,12 @@ export default function TeacherProfilePage() {
               <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                 <h1 className="text-3xl sm:text-4xl font-extrabold">{fullName}</h1>
                 <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                      style={{ background: "rgba(124,58,237,0.1)", color: "#7c3aed" }}>
+                      style={{ background: "rgba(124,58,237,0.1)", color: "#5624d0" }}>
                   Giảng viên
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 text-sm mb-5" style={{ color: "var(--foreground-muted)" }}>
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 text-sm mb-5" style={{ color: "#6a6f73" }}>
                 <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" /> {teacher.email}</span>
                 <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Tham gia {new Date(teacher.createdAt).toLocaleDateString("vi-VN")}</span>
               </div>
@@ -174,7 +174,7 @@ export default function TeacherProfilePage() {
               {/* Stats Row */}
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
                 {[
-                  { icon: BookOpen, label: "Khóa học", value: teacher.courses.length, color: "#7c3aed", bg: "rgba(124,58,237,0.08)" },
+                  { icon: BookOpen, label: "Khóa học", value: teacher.courses.length, color: "#5624d0", bg: "rgba(124,58,237,0.08)" },
                   { icon: Users, label: "Học viên", value: totalStudents, color: "#0891b2", bg: "rgba(8,145,178,0.08)" },
                   { icon: Video, label: "Bài giảng", value: totalLessons, color: "#10b981", bg: "rgba(16,185,129,0.08)" },
                   { icon: Star, label: "Đánh giá", value: "4.9/5", color: "#f59e0b", bg: "rgba(245,158,11,0.08)" },
@@ -183,7 +183,7 @@ export default function TeacherProfilePage() {
                        style={{ background: stat.bg }}>
                     <stat.icon className="w-4.5 h-4.5" style={{ color: stat.color }} />
                     <div className="text-left">
-                      <p className="text-[10px] font-semibold uppercase" style={{ color: "var(--foreground-muted)" }}>{stat.label}</p>
+                      <p className="text-[10px] font-semibold uppercase" style={{ color: "#6a6f73" }}>{stat.label}</p>
                       <p className="font-extrabold text-sm leading-tight">{stat.value}</p>
                     </div>
                   </div>
@@ -205,12 +205,12 @@ export default function TeacherProfilePage() {
               <div className="card-base p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-bold text-lg flex items-center gap-2">
-                    <Award className="w-5 h-5" style={{ color: "#7c3aed" }} /> Giới thiệu
+                    <Award className="w-5 h-5" style={{ color: "#5624d0" }} /> Giới thiệu
                   </h2>
                   {isOwner && !isEditingBio && (
                     <button onClick={() => setIsEditingBio(true)} className="p-2 rounded-lg hover:opacity-80 transition-opacity"
                             style={{ background: "var(--muted)" }}>
-                      <Edit2 className="w-4 h-4" style={{ color: "var(--foreground-muted)" }} />
+                      <Edit2 className="w-4 h-4" style={{ color: "#6a6f73" }} />
                     </button>
                   )}
                 </div>
@@ -226,18 +226,18 @@ export default function TeacherProfilePage() {
                     />
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => { setIsEditingBio(false); setBioInput(teacher.bio || ""); }}
-                              className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: "var(--muted)", color: "var(--foreground-muted)" }}>
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: "var(--muted)", color: "#6a6f73" }}>
                         Hủy
                       </button>
                       <button onClick={handleSaveBio} disabled={savingBio}
                               className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5"
-                              style={{ background: "#7c3aed" }}>
+                              style={{ background: "#a435f0" }}>
                         {savingBio ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Lưu
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--foreground-muted)" }}>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "#6a6f73" }}>
                     {teacher.bio || <span className="italic opacity-60">Chưa có thông tin giới thiệu.</span>}
                   </p>
                 )}
@@ -245,14 +245,14 @@ export default function TeacherProfilePage() {
 
               {/* Quick Info Card */}
               <div className="card-base p-6">
-                <h3 className="font-bold text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>THÔNG TIN</h3>
+                <h3 className="font-bold text-sm mb-4" style={{ color: "#6a6f73" }}>THÔNG TIN</h3>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(124,58,237,0.08)" }}>
-                      <GraduationCap className="w-4 h-4" style={{ color: "#7c3aed" }} />
+                      <GraduationCap className="w-4 h-4" style={{ color: "#5624d0" }} />
                     </div>
                     <div>
-                      <p className="text-xs font-medium" style={{ color: "var(--foreground-muted)" }}>Vai trò</p>
+                      <p className="text-xs font-medium" style={{ color: "#6a6f73" }}>Vai trò</p>
                       <p className="text-sm font-semibold">Giảng viên</p>
                     </div>
                   </div>
@@ -261,7 +261,7 @@ export default function TeacherProfilePage() {
                       <TrendingUp className="w-4 h-4" style={{ color: "#10b981" }} />
                     </div>
                     <div>
-                      <p className="text-xs font-medium" style={{ color: "var(--foreground-muted)" }}>Tổng bài giảng</p>
+                      <p className="text-xs font-medium" style={{ color: "#6a6f73" }}>Tổng bài giảng</p>
                       <p className="text-sm font-semibold">{totalLessons} bài học</p>
                     </div>
                   </div>
@@ -270,7 +270,7 @@ export default function TeacherProfilePage() {
                       <Clock className="w-4 h-4" style={{ color: "#f59e0b" }} />
                     </div>
                     <div>
-                      <p className="text-xs font-medium" style={{ color: "var(--foreground-muted)" }}>Ngày tham gia</p>
+                      <p className="text-xs font-medium" style={{ color: "#6a6f73" }}>Ngày tham gia</p>
                       <p className="text-sm font-semibold">{new Date(teacher.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "long", year: "numeric" })}</p>
                     </div>
                   </div>
@@ -280,19 +280,19 @@ export default function TeacherProfilePage() {
               {/* Contact Admin Card */}
               <div className="card-base p-6" style={{ border: "1px solid rgba(124,58,237,0.15)" }}>
                 <h3 className="font-bold text-sm mb-3">Liên hệ hỗ trợ</h3>
-                <p className="text-xs mb-4" style={{ color: "var(--foreground-muted)" }}>
+                <p className="text-xs mb-4" style={{ color: "#6a6f73" }}>
                   Nếu bạn cần tư vấn khóa học hoặc hỗ trợ, hãy liên hệ:
                 </p>
                 <div className="space-y-2.5">
                   <a href="tel:0916869648" className="flex items-center gap-2.5 text-sm font-medium hover:opacity-80 transition-opacity">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(124,58,237,0.1)" }}>
-                      <Phone className="w-4 h-4" style={{ color: "#7c3aed" }} />
+                      <Phone className="w-4 h-4" style={{ color: "#5624d0" }} />
                     </div>
                     <span>0916 869 648</span>
                   </a>
                   <a href="mailto:providminh24092004@gmail.com" className="flex items-center gap-2.5 text-sm font-medium hover:opacity-80 transition-opacity">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(124,58,237,0.1)" }}>
-                      <Mail className="w-4 h-4" style={{ color: "#7c3aed" }} />
+                      <Mail className="w-4 h-4" style={{ color: "#5624d0" }} />
                     </div>
                     <span className="truncate">providminh24092004@gmail.com</span>
                   </a>
@@ -305,7 +305,7 @@ export default function TeacherProfilePage() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(124,58,237,0.1)" }}>
-                    <BookOpen className="w-4.5 h-4.5" style={{ color: "#7c3aed" }} />
+                    <BookOpen className="w-4.5 h-4.5" style={{ color: "#5624d0" }} />
                   </div>
                   Khóa học ({teacher.courses.length})
                 </h2>
@@ -313,9 +313,9 @@ export default function TeacherProfilePage() {
 
               {teacher.courses.length === 0 ? (
                 <div className="card-base text-center py-16">
-                  <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-40" style={{ color: "var(--foreground-muted)" }} />
+                  <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-40" style={{ color: "#6a6f73" }} />
                   <h3 className="font-bold text-lg mb-2">Chưa có khóa học</h3>
-                  <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>
+                  <p className="text-sm" style={{ color: "#6a6f73" }}>
                     Giáo viên này hiện chưa xuất bản khóa học nào.
                   </p>
                 </div>
@@ -338,7 +338,7 @@ export default function TeacherProfilePage() {
                               className="object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                           ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center gap-2 min-h-[140px]" style={{ color: "var(--foreground-muted)" }}>
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-2 min-h-[140px]" style={{ color: "#6a6f73" }}>
                               <BookOpen className="w-8 h-8 opacity-40" />
                               <span className="text-xs opacity-60">Chưa có ảnh bìa</span>
                             </div>
@@ -357,13 +357,13 @@ export default function TeacherProfilePage() {
                               {course.title}
                             </h3>
                             {course.description && (
-                              <p className="text-xs mb-4 line-clamp-2 leading-relaxed" style={{ color: "var(--foreground-muted)" }}>
+                              <p className="text-xs mb-4 line-clamp-2 leading-relaxed" style={{ color: "#6a6f73" }}>
                                 {course.description}
                               </p>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-4 text-xs" style={{ color: "var(--foreground-muted)" }}>
+                          <div className="flex items-center gap-4 text-xs" style={{ color: "#6a6f73" }}>
                             <span className="flex items-center gap-1.5">
                               <Users className="w-3.5 h-3.5" /> {course._count.enrollments} học viên
                             </span>
