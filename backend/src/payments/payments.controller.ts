@@ -1,4 +1,12 @@
-import { Controller, Post, Body, UseGuards, Logger, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Logger,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
@@ -46,14 +54,14 @@ export class PaymentsController {
    *   "gateway": "MBBank",
    *   "transactionDate": "2024-12-01 10:30:00",
    *   "accountNumber": "0389999999",
-   *   "content": "HL abc12345-6789-...",   ← contains our txnRef
+   *   "content": "HP123456789",   ← contains our txnRef
    *   "transferAmount": 500000,
    *   "transferType": "in",
    *   "referenceCode": "FT24335...",
    *   "description": "..."
    * }
    *
-   * The controller extracts txnRef from the `content` field (looks for "HL <uuid>")
+   * The controller extracts txnRef from the `content` field (looks for "<prefix><number>")
    * and converts to our internal WebhookDto format.
    */
   @Post('webhook/sepay')
@@ -70,7 +78,7 @@ export class PaymentsController {
       const providedKey = authHeader?.replace('Apikey ', '').replace('Bearer ', '').trim();
       if (providedKey !== sepayApiKey) {
         this.logger.warn(`[SePay] Invalid API key received`);
-        return { success: false, message: 'Invalid API key' };
+        throw new UnauthorizedException('Invalid API key');
       }
     }
 
@@ -81,9 +89,11 @@ export class PaymentsController {
     }
 
     // ── Extract txnRef from content ────────────────────────────────────
-    // Our QR addInfo format is "HL <uuid>", so look for that pattern
-    const match = dto.content?.match(/HL\s+([a-f0-9-]{36})/i)
-      || dto.content?.match(/HL\s+(\S+)/i);
+    // Our QR addInfo format matches SePay's configured payment code pattern:
+    // "<prefix><3-10 digit number>", e.g. "HP123456789".
+    const paymentCodePrefix = this.paymentsService.getPaymentCodePrefix();
+    const escapedPrefix = paymentCodePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = dto.content?.match(new RegExp(`${escapedPrefix}\\s*(\\d{3,10})`, 'i'));
 
     if (!match || !match[1]) {
       this.logger.warn(`[SePay] Cannot extract txnRef from content: "${dto.content}"`);

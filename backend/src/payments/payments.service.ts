@@ -13,7 +13,7 @@ import {
   PaymentCompletedPayload,
   PaymentFailedPayload,
 } from '../shared/events';
-import { randomUUID, createHmac, timingSafeEqual, createHash } from 'crypto';
+import { randomInt, createHmac, timingSafeEqual, createHash } from 'crypto';
 
 @Injectable()
 export class PaymentsService {
@@ -76,6 +76,18 @@ export class PaymentsService {
     return createHash('sha256').update(canonicalPayload).digest('hex');
   }
 
+  getPaymentCodePrefix(): string {
+    return (process.env.PAYMENT_CODE_PREFIX || 'HP').trim().toUpperCase();
+  }
+
+  private createPaymentCodeSuffix(): string {
+    return randomInt(100_000_000, 1_000_000_000).toString();
+  }
+
+  private isCurrentPaymentCode(txnRef?: string | null): boolean {
+    return typeof txnRef === 'string' && /^\d{3,10}$/.test(txnRef);
+  }
+
   async createQr(dto: CreateQrDto, userId: string) {
     const order = await this.orderRepository.findByIdWithDetails(dto.orderId);
     if (!order) throw new NotFoundException('Order not found');
@@ -105,10 +117,11 @@ export class PaymentsService {
       existing &&
       existing.status === 'pending' &&
       existing.qrData &&
-      existing.txnRef;
+      existing.txnRef &&
+      this.isCurrentPaymentCode(existing.txnRef);
 
     if (reusePending) {
-      const addInfo = `HL ${existing.txnRef}`;
+      const addInfo = `${this.getPaymentCodePrefix()}${existing.txnRef}`;
       const amount = Number(order.finalPrice);
       return {
         ...existing,
@@ -120,9 +133,9 @@ export class PaymentsService {
       };
     }
 
-    const txnRef = randomUUID();
+    const txnRef = this.createPaymentCodeSuffix();
     const finalPrice = Number(order.finalPrice);
-    const addInfo = `HL ${txnRef}`;
+    const addInfo = `${this.getPaymentCodePrefix()}${txnRef}`;
     const vietQrUrl = `https://img.vietqr.io/image/${bankCode}-${bankAccount}-compact2.png?amount=${finalPrice}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accountName)}`;
     const qrData = `VIETQR|${txnRef}|${finalPrice}|${addInfo}`;
 

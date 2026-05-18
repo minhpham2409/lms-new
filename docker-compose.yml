@@ -67,6 +67,10 @@ services:
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-dev-webhook-secret}
       - SEPAY_API_KEY=${SEPAY_API_KEY:-dev-sepay-api-key}
+      - PAYMENT_CODE_PREFIX=${PAYMENT_CODE_PREFIX:-HP}
+      - BANK_CODE=${BANK_CODE:-BIDV}
+      - BANK_ACCOUNT=${BANK_ACCOUNT:-8817642232}
+      - BANK_ACCOUNT_NAME=${BANK_ACCOUNT_NAME:-PHAM LE QUANG MINH}
       - FRONTEND_URL=http://localhost:3000
       - API_URL=http://localhost:4000/api/v1
       - MEDIA_ORPHAN_TTL_HOURS=24

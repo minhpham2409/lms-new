@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * Internal webhook DTO used by the payment processor.
@@ -34,15 +35,16 @@ export class WebhookDto {
  * Docs: https://docs.sepay.vn/webhook.html
  */
 export class SepayWebhookDto {
-  @ApiPropertyOptional() @IsOptional() @IsNumber() id?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber() @Type(() => Number) id?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() gateway?: string;
   @ApiProperty() @IsNotEmpty() @IsString() transactionDate: string;
   @ApiPropertyOptional() @IsOptional() @IsString() accountNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() subAccount?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() code?: string;
   @ApiProperty() @IsNotEmpty() @IsString() content: string;
-  @ApiProperty() @IsNumber() transferAmount: number;
-  @ApiPropertyOptional() @IsOptional() @IsNumber() referenceCode?: number;
+  @ApiProperty() @IsNumber() @Type(() => Number) transferAmount: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber() @Type(() => Number) accumulated?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() referenceCode?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiProperty() @IsNotEmpty() @IsString() transferType: string; // 'in' or 'out'
 }
