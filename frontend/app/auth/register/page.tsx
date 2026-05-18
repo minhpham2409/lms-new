@@ -78,7 +78,7 @@ export default function RegisterPage() {
             </Link>
           </div>
 
-          <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white font-serif">
+          <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white">
             Đăng ký và bắt đầu học
           </h1>
 

@@ -86,7 +86,7 @@ export default function HelpPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.15)] border border-[#e9e0ff] dark:border-[rgba(164,53,240,0.3)] rounded text-xs font-bold text-[#5624d0] dark:text-[#c0a5f7] mb-5">
             <HelpCircle className="w-3.5 h-3.5" /> Trung tâm trợ giúp
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-[#2d2f31] dark:text-white" style={{ fontFamily: "serif" }}>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-[#2d2f31] dark:text-white">
             Bạn cần <span style={{ background: "linear-gradient(135deg,#a435f0,#5624d0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>giúp đỡ?</span>
           </h1>
           <p className="text-base text-[#6a6f73] mb-8">Tìm câu trả lời cho các thắc mắc thường gặp</p>

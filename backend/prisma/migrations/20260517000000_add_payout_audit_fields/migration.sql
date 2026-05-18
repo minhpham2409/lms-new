@@ -1,6 +1,5 @@
 -- AlterTable
-ALTER TABLE "PayoutRequest" ADD COLUMN     "adminNote" TEXT,
-ADD COLUMN     "bankTransferRef" TEXT,
+ALTER TABLE "PayoutRequest" ADD COLUMN     "bankTransferRef" TEXT,
 ADD COLUMN     "processedAt" TIMESTAMP(3),
 ADD COLUMN     "processedByAdminId" TEXT;
 

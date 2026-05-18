@@ -43,7 +43,7 @@ export default function AboutPage() {
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.15)] border border-[#e9e0ff] dark:border-[rgba(164,53,240,0.3)] rounded text-xs font-bold text-[#5624d0] dark:text-[#c0a5f7] mb-5">
                 <GraduationCap className="w-3.5 h-3.5" /> Về chúng tôi
               </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-[#2d2f31] dark:text-white" style={{ fontFamily: "serif" }}>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-[#2d2f31] dark:text-white">
                 Sứ mệnh đổi mới <span style={{ background: "linear-gradient(135deg,#a435f0,#5624d0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>giáo dục Việt Nam</span>
               </h1>
               <p className="text-base leading-relaxed text-[#6a6f73] mb-8 max-w-lg">
@@ -97,7 +97,7 @@ export default function AboutPage() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-sm font-bold text-[#6a6f73] uppercase tracking-wider mb-3">Giá trị cốt lõi</p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#2d2f31] dark:text-white" style={{ fontFamily: "serif" }}>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#2d2f31] dark:text-white">
               Những gì làm chúng tôi khác biệt
             </h2>
           </div>
@@ -121,7 +121,7 @@ export default function AboutPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <p className="text-sm font-bold text-[#6a6f73] uppercase tracking-wider mb-3">Tính năng nổi bật</p>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-[#2d2f31] dark:text-white" style={{ fontFamily: "serif" }}>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-[#2d2f31] dark:text-white">
                 Mọi thứ bạn cần để học tốt hơn
               </h2>
               <div className="grid sm:grid-cols-2 gap-3">
@@ -159,7 +159,7 @@ export default function AboutPage() {
       {/* =================== CTA =================== */}
       <section className="py-16 sm:py-20">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-[#2d2f31] dark:text-white" style={{ fontFamily: "serif" }}>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-[#2d2f31] dark:text-white">
             Sẵn sàng bắt đầu hành trình học tập?
           </h2>
           <p className="text-base text-[#6a6f73] mb-8">

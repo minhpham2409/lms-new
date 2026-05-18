@@ -83,12 +83,72 @@ function CreateTeacherModal({ onClose, onCreate }: { onClose: () => void; onCrea
   );
 }
 
+function CreateCouponModal({ onClose, onCreate }: { onClose: () => void; onCreate: (data: any) => Promise<void> }) {
+  const [form, setForm] = useState({ code: "", discount: 10, maxUses: "", expiresAt: "", isActive: true });
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.code || form.discount <= 0) return;
+    setSaving(true);
+    const data: any = { 
+      code: form.code, 
+      discount: Number(form.discount),
+      isActive: form.isActive 
+    };
+    if (form.maxUses) data.maxUses = Number(form.maxUses);
+    if (form.expiresAt) data.expiresAt = new Date(form.expiresAt).toISOString();
+    
+    await onCreate(data);
+    setSaving(false);
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-[#2d2f31] border border-[#d1d7dc] dark:border-[#3e4143] rounded w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#d1d7dc] dark:border-[#3e4143]">
+          <h3 className="text-base font-bold text-[#2d2f31] dark:text-white">Tạo mã giảm giá</h3>
+          <button onClick={onClose} className="text-[#6a6f73] hover:text-[#2d2f31] dark:hover:text-white transition-colors">✕</button>
+        </div>
+        <form onSubmit={submit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Mã Coupon *</label>
+            <input value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="GIAM10" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0] uppercase" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Phần trăm giảm (%) *</label>
+            <input type="number" min="1" max="100" value={form.discount} onChange={e => setForm({...form, discount: Number(e.target.value)})} required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Số lần dùng tối đa (Tùy chọn)</label>
+            <input type="number" min="1" value={form.maxUses} onChange={e => setForm({...form, maxUses: e.target.value})} placeholder="Để trống nếu không giới hạn" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Ngày hết hạn (Tùy chọn)</label>
+            <input type="date" value={form.expiresAt} onChange={e => setForm({...form, expiresAt: e.target.value})} className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+          </div>
+          <div className="pt-2 flex gap-3">
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold text-sm rounded transition-colors disabled:opacity-60">
+              {saving ? "Đang tạo..." : "Tạo mã"}
+            </button>
+            <button type="button" onClick={onClose} className="px-4 py-2.5 border border-[#d1d7dc] dark:border-[#6a6f73] text-sm font-bold text-[#2d2f31] dark:text-white rounded hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors">
+              Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, token, isLoggedIn, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
   const [search, setSearch] = useState("");
   const [showCreateTeacher, setShowCreateTeacher] = useState(false);
+  const [showCreateCoupon, setShowCreateCoupon] = useState(false);
 
   const [stats, setStats] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
@@ -302,6 +362,12 @@ export default function AdminPage() {
         <CreateTeacherModal
           onClose={() => setShowCreateTeacher(false)}
           onCreate={async (data) => { await _createUser(data); }}
+        />
+      )}
+      {showCreateCoupon && (
+        <CreateCouponModal
+          onClose={() => setShowCreateCoupon(false)}
+          onCreate={async (data) => { await _createCoupon(data); }}
         />
       )}
       <Navbar />
@@ -670,9 +736,13 @@ export default function AdminPage() {
 
               {/* COUPONS */}
               {tab === "coupons" && (
-                <>
+                <div className="bg-card border border-border shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
+                    <h2 className="font-bold flex items-center gap-2"><Tag className="w-5 h-5 text-[#a435f0]" /> Quản lý Mã giảm giá</h2>
+                    <button onClick={() => setShowCreateCoupon(true)} className="btn-primary">Tạo mã mới</button>
+                  </div>
                   {coupons.length === 0 ? (
-                    <div className="bg-card border border-border shadow-sm text-center py-12">
+                    <div className="text-center py-12">
                       <Tag className="w-10 h-10 mx-auto mb-3" style={{ color: "#6a6f73" }} />
                       <p className="text-sm" style={{ color: "#6a6f73" }}>Chưa có mã giảm giá nào</p>
                     </div>
@@ -697,7 +767,7 @@ export default function AdminPage() {
                       })}
                     </div>
                   )}
-                </>
+                </div>
               )}
 
               {/* PAYOUTS */}
@@ -815,7 +885,7 @@ export default function AdminPage() {
                     <form onSubmit={saveFeeConfig} className="space-y-4">
                       <div>
                         <label className="block text-sm font-bold mb-2">Phí nền tảng (%)</label>
-                        <input type="number" step="0.1" value={feeConfig.platformFeePercentage} onChange={e => setFeeConfig({...feeConfig, platformFeePercentage: Number(e.target.value)})} className="input-base" />
+                        <input type="number" step="0.1" value={feeConfig.percentage} onChange={e => setFeeConfig({...feeConfig, percentage: Number(e.target.value)})} className="input-base" />
                         <p className="text-xs text-[#6a6f73] mt-1">Phần trăm hoa hồng hệ thống giữ lại từ mỗi khóa học được bán.</p>
                       </div>
                       <button type="submit" className="btn-primary w-full">Lưu cấu hình</button>

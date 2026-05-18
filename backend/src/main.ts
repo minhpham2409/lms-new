@@ -69,8 +69,8 @@ async function bootstrap() {
     origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    exposedHeaders: ['Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Range'],
+    exposedHeaders: ['Authorization', 'Content-Range', 'Accept-Ranges', 'Content-Length'],
   });
 
   // ─── Global Pipes ───────────────────────────────────────────────────────────

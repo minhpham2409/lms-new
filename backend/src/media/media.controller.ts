@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Req, Res, UnauthorizedException, Param } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { StorageService } from '../storage/storage.service';
 import { JwtTokenService } from '../auth/services/jwt-token.service';
@@ -15,60 +15,66 @@ export class MediaController {
     private readonly prisma: PrismaService,
   ) {}
 
-  @Get('videos/*')
+  @Get('videos/*path')
   @ApiOperation({ summary: 'Stream protected video content' })
   async streamVideo(
+    @Param('path') path: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const key = req.params[0]; 
-    if (!key) return res.status(400).send('Invalid media path');
+    if (!path) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
-    await this.verifyVideoAccess(user, `videos/${key}`);
-    await this.pipeMedia(`videos/${key}`, req, res);
+    await this.verifyVideoAccess(user, `videos/${path}`);
+    await this.pipeMedia(`videos/${path}`, req, res);
   }
 
-  @Get('hls/*')
+  @Get('hls/*path')
   @ApiOperation({ summary: 'Stream protected HLS video content' })
   async streamHls(
+    @Param('path') path: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const key = req.params[0];
-    if (!key) return res.status(400).send('Invalid media path');
+    if (!path) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
-    await this.verifyVideoAccess(user, `hls/${key}`);
-    await this.pipeMedia(`hls/${key}`, req, res);
+    await this.verifyVideoAccess(user, `hls/${path}`);
+    await this.pipeMedia(`hls/${path}`, req, res);
   }
 
-  @Get('materials/*')
+  @Get('materials/*path')
   @ApiOperation({ summary: 'Download protected material/document' })
   async downloadMaterial(
+    @Param('path') path: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const key = req.params[0]; 
-    if (!key) return res.status(400).send('Invalid media path');
+    if (!path) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
-    await this.verifyMaterialAccess(user, `materials/${key}`);
-    await this.pipeMedia(`materials/${key}`, req, res);
+    await this.verifyMaterialAccess(user, `materials/${path}`);
+    await this.pipeMedia(`materials/${path}`, req, res);
   }
 
-  @Get('images/*')
+  @Get('images/*path')
   @ApiOperation({ summary: 'View public image' })
   async viewImage(
+    @Param('path') path: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    // Images are public (avatars, thumbnails)
-    const key = req.params[0]; 
-    if (!key) return res.status(400).send('Invalid media path');
-    await this.pipeMedia(`images/${key}`, req, res);
+    // Images are public (avatars, thumbnails) — no auth required
+    if (!path) return res.status(400).send('Invalid media path');
+    await this.pipeMedia(`images/${path}`, req, res);
   }
 
+  // ─── Private helpers ────────────────────────────────────────────────────────
+
   private verifyMediaAuth(req: Request) {
-    const token = req.cookies?.['refresh_token'] || req.headers.authorization?.split(' ')[1];
-    
+    // Prefer Bearer token (sent by hls.js XHR) over cookies
+    const token =
+      req.headers.authorization?.split(' ')[1] ||
+      req.cookies?.['access_token'] ||
+      req.cookies?.['refresh_token'];
+
     if (!token) {
       throw new UnauthorizedException('Media access denied. Authentication required.');
     }
@@ -89,8 +95,18 @@ export class MediaController {
   private async verifyVideoAccess(user: { sub: string; role: string }, fullKey: string) {
     this.rejectUnsafeKey(fullKey);
 
+    // For HLS, fullKey may be:
+    //   - "hls/{videoId}/index.m3u8"   (manifest — stored in lesson.videoUrl)
+    //   - "hls/{videoId}/segment_000.ts" (segment — NOT stored in DB)
+    // We extract the videoId and search by prefix so segments also pass.
+    let searchKey = fullKey;
+    const hlsMatch = fullKey.match(/^hls\/([^/]+)\//);
+    if (hlsMatch) {
+      searchKey = `hls/${hlsMatch[1]}/`;
+    }
+
     const lesson = await this.prisma.lesson.findFirst({
-      where: { videoUrl: { contains: fullKey } },
+      where: { videoUrl: { contains: searchKey } },
       select: {
         id: true,
         section: {

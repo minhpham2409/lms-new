@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { useAuth } from "@/components/auth/auth-state";
-import { getAccessToken } from "@/lib/api-service";
+import { getAccessToken, lessonsApi, coursesApi, commentsApi, assignmentsApi, progressApi } from "@/lib/api-service";
+import api from "@/lib/api-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play, ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Clock,
@@ -155,11 +156,7 @@ export default function LessonPage() {
     }
     if (tokenRef.current && pct >= lastSentPercent.current + 10) {
       lastSentPercent.current = pct;
-      fetch(`${API}/progress/video`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenRef.current}` },
-        body: JSON.stringify({ lessonId, watchTime: Math.floor(player.getCurrentTime()), watchedPercentage: pct, completed: pct >= 95 }),
-      }).then(() => checkCanComplete()).catch(() => {});
+      progressApi.updateVideo({ lessonId: lessonId as string, watchTime: Math.floor(player.getCurrentTime()), watchedPercentage: pct }).then(() => checkCanComplete()).catch(() => {});
     }
   }, [lessonId]);
 
@@ -172,27 +169,27 @@ export default function LessonPage() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [lessonId, id]);
+  useEffect(() => { 
+    if (token !== undefined) {
+      fetchData(); 
+    }
+  }, [lessonId, id, token]);
 
   async function fetchData() {
     setLoading(true);
-    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     try {
-      const [lessonR, courseR] = await Promise.all([
-        fetch(`${API}/lessons/${lessonId}`, { headers }),
-        fetch(`${API}/courses/${id}`, { headers }),
+      const [lessonData, courseData] = await Promise.all([
+        lessonsApi.getById(lessonId as string),
+        coursesApi.getById(id as string),
       ]);
-      if (lessonR.ok) setLesson(await lessonR.json());
-      if (courseR.ok) {
-        const courseData = await courseR.json();
-        setCourse(courseData);
-        for (const sec of courseData.sections || []) {
-          for (const les of sec.lessons || []) {
-            if (les.id === lessonId) {
-              if (les.materials?.length) setMaterials(les.materials);
-              if (les.assignments?.length) setAssignments(les.assignments);
-              break;
-            }
+      setLesson(lessonData);
+      setCourse(courseData);
+      for (const sec of courseData.sections || []) {
+        for (const les of sec.lessons || []) {
+          if (les.id === lessonId) {
+            if (les.materials?.length) setMaterials(les.materials);
+            if (les.assignments?.length) setAssignments(les.assignments);
+            break;
           }
         }
       }
@@ -201,7 +198,7 @@ export default function LessonPage() {
     fetchAssignmentsApi();
     checkCanComplete();
     if (token) {
-      fetch(`${API}/progress/video/lesson/${lessonId}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+      progressApi.getLesson(lessonId as string).catch(() => {});
     }
   }
 
@@ -209,68 +206,48 @@ export default function LessonPage() {
     if (!token) return;
     try {
       if (watchedPctRef.current > 0) {
-        await fetch(`${API}/progress/video`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            lessonId,
-            watchTime: 0,
-            watchedPercentage: watchedPctRef.current,
-            completed: watchedPctRef.current >= 95,
-          }),
+        await progressApi.updateVideo({
+          lessonId: lessonId as string,
+          watchTime: 0,
+          watchedPercentage: watchedPctRef.current
         }).catch(() => {});
       }
-      const res = await fetch(`${API}/progress/lesson/${lessonId}/can-complete`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setVideoWatched(d.videoCompleted);
-        setCanComplete(d.canComplete);
-      }
+      const { data } = await api.get(`/progress/lesson/${lessonId}/can-complete`);
+      setVideoWatched(data.videoCompleted);
+      setCanComplete(data.canComplete);
     } catch {}
   }
 
   async function fetchComments() {
     try {
-      const res = await fetch(`${API}/lessons/${lessonId}/comments`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (res.ok) setComments(await res.json());
+      const data = await commentsApi.getByLesson(lessonId as string);
+      setComments(data);
     } catch {}
   }
 
   async function fetchAssignmentsApi() {
     try {
-      const res = await fetch(`${API}/assignments?lessonId=${lessonId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) setAssignments(data);
-      }
+      const data = await assignmentsApi.getByLesson(lessonId as string);
+      if (Array.isArray(data) && data.length > 0) setAssignments(data);
     } catch {}
   }
 
   async function postComment() {
     if (!comment.trim()) return;
     try {
-      const res = await fetch(`${API}/lessons/${lessonId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: comment.trim() }),
-      });
-      if (res.ok) { setComment(""); fetchComments(); toast.success("Đã gửi bình luận"); }
-      else { const d = await res.json(); toast.error(d.message || "Lỗi gửi bình luận"); }
-    } catch { toast.error("Lỗi kết nối"); }
+      await commentsApi.create(lessonId as string, { content: comment.trim() });
+      setComment(""); fetchComments(); toast.success("Đã gửi bình luận");
+    } catch (err: any) { 
+      toast.error(err.response?.data?.message || "Lỗi kết nối"); 
+    }
   }
 
   async function postReply(commentId: string) {
     const text = replyText[commentId];
     if (!text?.trim()) return;
     try {
-      const res = await fetch(`${API}/lessons/${lessonId}/comments/${commentId}/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: text.trim() }),
-      });
-      if (res.ok) { setReplyText({ ...replyText, [commentId]: "" }); fetchComments(); toast.success("Đã trả lời"); }
+      await commentsApi.reply(lessonId as string, commentId, { content: text.trim() });
+      setReplyText({ ...replyText, [commentId]: "" }); fetchComments(); toast.success("Đã trả lời");
     } catch { toast.error("Lỗi"); }
   }
 
@@ -282,28 +259,21 @@ export default function LessonPage() {
       return;
     }
     try {
-      const res = await fetch(`${API}/progress/video`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lessonId, watchTime: 0, watchedPercentage, completed: true }),
-      });
-      if (res.ok) {
-        toast.success("🎉 Hoàn thành bài học!");
-        const allL = course?.sections?.flatMap((s: any) => s.lessons?.sort((a: any, b: any) => a.order - b.order) || []) || [];
-        const idx = allL.findIndex((l: any) => l.id === lessonId);
-        if (idx < allL.length - 1) {
-          window.location.href = `/courses/${id}/lessons/${allL[idx + 1].id}`;
-        } else {
-          toast.success("🏆 Chúc mừng! Bạn đã hoàn thành khóa học!");
-          setTimeout(() => {
-            window.location.href = `/courses/${id}/certificate`;
-          }, 1500);
-        }
+      await progressApi.updateVideo({ lessonId: lessonId as string, watchTime: 0, watchedPercentage: 100 });
+      toast.success("🎉 Hoàn thành bài học!");
+      const allL = course?.sections?.flatMap((s: any) => s.lessons?.sort((a: any, b: any) => a.order - b.order) || []) || [];
+      const idx = allL.findIndex((l: any) => l.id === lessonId);
+      if (idx < allL.length - 1) {
+        window.location.href = `/courses/${id}/lessons/${allL[idx + 1].id}`;
       } else {
-        const d = await res.json();
-        toast.error(d.message || "Lỗi cập nhật tiến độ");
+        toast.success("🏆 Chúc mừng! Bạn đã hoàn thành khóa học!");
+        setTimeout(() => {
+          window.location.href = `/courses/${id}/certificate`;
+        }, 1500);
       }
-    } catch { toast.error("Lỗi kết nối"); }
+    } catch (err: any) { 
+      toast.error(err.response?.data?.message || "Lỗi cập nhật tiến độ"); 
+    }
   }
 
   if (loading) return (
@@ -452,11 +422,7 @@ export default function LessonPage() {
                       if (pct >= 90 && !videoWatched) { setVideoWatched(true); checkCanComplete(); }
                       if (token && pct >= lastSentPercent.current + 10) {
                         lastSentPercent.current = pct;
-                        fetch(`${API}/progress/video`, {
-                          method: "PUT",
-                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({ lessonId, watchTime: seconds, watchedPercentage: pct, completed: pct >= 95 }),
-                        }).then(() => checkCanComplete()).catch(() => {});
+                        progressApi.updateVideo({ lessonId: lessonId as string, watchTime: seconds, watchedPercentage: pct }).then(() => checkCanComplete()).catch(() => {});
                       }
                     }}
                   />

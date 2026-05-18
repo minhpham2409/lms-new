@@ -74,7 +74,7 @@ export function Navbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white dark:bg-[#1c1d1f]"
+      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/90 dark:bg-[#1c1d1f]/90 backdrop-blur-md"
       style={{ borderBottom: "1px solid #d1d7dc", boxShadow: scrolled ? "0 2px 4px rgba(0,0,0,0.08)" : "none" }}
     >
       <nav className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8">

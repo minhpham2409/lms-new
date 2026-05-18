@@ -112,8 +112,9 @@ export class WalletsController {
   @Get('admin/configs/fee')
   @UseGuards(RolesGuard)
   @Roles('admin')
-  getPlatformFee() {
-    return this.walletsService.getPlatformFeePercentage();
+  async getPlatformFee() {
+    const percentage = await this.walletsService.getPlatformFeePercentage();
+    return { percentage };
   }
 
   /** Update platform fee percentage */

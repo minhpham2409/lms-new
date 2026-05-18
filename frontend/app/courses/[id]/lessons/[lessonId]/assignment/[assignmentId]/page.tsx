@@ -135,7 +135,7 @@ export default function AssignmentPage() {
              // breakdown might be provided by getResult if already submitted
              let isCorrect = false;
              let isWrong = false;
-             let selectedAns = answers[q.id];
+             const selectedAns = answers[q.id];
 
              if (submitted && result?.breakdown) {
                 const bd = result.breakdown.find((b: any) => b.question === q.content);

@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+const interFont = Inter({
+  variable: "--font-plus-jakarta", // Keep the variable name to avoid breaking other CSS relying on it
+  subsets: ["latin", "vietnamese"],
   display: "swap",
 });
 
 const jetBrainsMono = JetBrains_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "vietnamese"],
   weight: ["400", "500"],
   display: "swap",
 });
@@ -43,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark" suppressHydrationWarning>
       <body
-        className={`${plusJakarta.variable} ${jetBrainsMono.variable} antialiased`}
+        className={`${interFont.variable} ${jetBrainsMono.variable} antialiased`}
         style={{ fontFamily: "var(--font-plus-jakarta), system-ui, sans-serif" }}
       >
         <ThemeProvider>

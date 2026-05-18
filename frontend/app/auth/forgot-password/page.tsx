@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
           <div className="w-24 h-24 bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.15)] rounded-full flex items-center justify-center mx-auto mb-6">
             <Mail className="w-12 h-12 text-[#a435f0]" />
           </div>
-          <h2 className="text-2xl font-bold text-[#2d2f31] dark:text-white mb-3" style={{ fontFamily: "serif" }}>
+          <h2 className="text-2xl font-bold text-[#2d2f31] dark:text-white mb-3">
             Khôi phục mật khẩu
           </h2>
           <p className="text-sm text-[#6a6f73]">
@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-[#dcfce7] rounded-full flex items-center justify-center mb-5">
                 <CheckCircle2 className="w-8 h-8 text-[#16a34a]" />
               </div>
-              <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white" style={{ fontFamily: "serif" }}>
+              <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white">
                 Email đã được gửi!
               </h1>
               <p className="text-sm text-[#6a6f73] mb-2">
@@ -93,7 +93,7 @@ export default function ForgotPasswordPage() {
           ) : (
             /* Form */
             <div>
-              <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white" style={{ fontFamily: "serif" }}>
+              <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white">
                 Quên mật khẩu?
               </h1>
               <p className="text-sm text-[#6a6f73] mb-6">

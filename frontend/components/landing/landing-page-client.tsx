@@ -97,7 +97,7 @@ export function LandingPageClient() {
             {/* Floating text card - Udemy style */}
             <div className="absolute top-8 sm:top-12 lg:top-16 left-4 sm:left-8 lg:left-12 z-10">
               <div className="bg-white dark:bg-[#2d2f31] shadow-lg p-6 sm:p-8 max-w-[420px] rounded">
-                <h1 className="text-2xl sm:text-3xl lg:text-[2.1rem] font-bold leading-tight mb-3 text-[#2d2f31] dark:text-white font-serif">
+                <h1 className="text-2xl sm:text-3xl lg:text-[2.1rem] font-bold leading-tight mb-3 text-[#2d2f31] dark:text-white">
                   Ngày xuất đã đến rồi
                 </h1>
                 <p className="text-sm sm:text-base text-[#6a6f73] dark:text-[#b0b5b9] leading-relaxed">
@@ -128,7 +128,7 @@ export function LandingPageClient() {
       <section className="py-12 sm:py-16">
         <div className="max-w-[1340px] mx-auto px-4 sm:px-8">
           <Reveal>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-[#2d2f31] dark:text-white font-serif">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-[#2d2f31] dark:text-white">
               Lựa chọn khóa học đa dạng
             </h2>
             <p className="text-base text-[#6a6f73] dark:text-[#b0b5b9] mb-6 max-w-3xl">
@@ -165,14 +165,15 @@ export function LandingPageClient() {
 
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 {[
-                  { title: 'Toán Đại Số 9 - Ôn thi vào 10', author: 'Thầy Trần Văn A', rating: 4.8, students: 1240, price: '499.000₫', oldPrice: '899.000₫' },
-                  { title: 'Hình học phẳng nâng cao', author: 'Cô Nguyễn Thị B', rating: 4.9, students: 850, price: '599.000₫', oldPrice: '999.000₫' },
-                  { title: 'Luyện đề Toán 9 tổng hợp', author: 'Thầy Lê Văn C', rating: 4.7, students: 2100, price: '399.000₫', oldPrice: '699.000₫' },
-                  { title: 'Toán Cơ bản 8 - Lấy lại gốc', author: 'Thầy Trần Văn A', rating: 4.6, students: 530, price: '299.000₫', oldPrice: '599.000₫' },
+                  { title: 'Toán Đại Số 9 - Ôn thi vào 10', author: 'Thầy Trần Văn A', rating: 4.8, students: 1240, price: '499.000₫', oldPrice: '899.000₫', img: '/images/new_course_thumbnail.png' },
+                  { title: 'Hình học phẳng nâng cao', author: 'Cô Nguyễn Thị B', rating: 4.9, students: 850, price: '599.000₫', oldPrice: '999.000₫', img: '/images/new_course_thumbnail.png' },
+                  { title: 'Luyện đề Toán 9 tổng hợp', author: 'Thầy Lê Văn C', rating: 4.7, students: 2100, price: '399.000₫', oldPrice: '699.000₫', img: '/images/new_course_thumbnail.png' },
+                  { title: 'Toán Cơ bản 8 - Lấy lại gốc', author: 'Thầy Trần Văn A', rating: 4.6, students: 530, price: '299.000₫', oldPrice: '599.000₫', img: '/images/new_course_thumbnail.png' },
                 ].map((course, i) => (
                   <Link href="/courses" key={i} className="group cursor-pointer">
                     {/* Course thumbnail */}
                     <div className="w-full aspect-video bg-[#2d2f31] mb-3 overflow-hidden border border-[#d1d7dc] dark:border-[#3e4143] relative">
+                      <img src={course.img} alt={course.title} className="w-full h-full object-cover opacity-80" />
                       <div className="absolute inset-0 bg-gradient-to-tr from-[#5624d0]/30 to-[#a435f0]/20 group-hover:opacity-80 transition-opacity" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -205,7 +206,7 @@ export function LandingPageClient() {
       <section className="py-12 sm:py-16 bg-[#f7f9fa] dark:bg-[#2d2f31]">
         <div className="max-w-[1340px] mx-auto px-4 sm:px-8">
           <Reveal>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-[#2d2f31] dark:text-white font-serif">Danh mục hàng đầu</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-[#2d2f31] dark:text-white">Danh mục hàng đầu</h2>
           </Reveal>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
@@ -244,7 +245,7 @@ export function LandingPageClient() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <Reveal>
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-[#2d2f31] dark:text-white font-serif">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-[#2d2f31] dark:text-white">
                   Tại sao học sinh chọn HọcLộ Trình?
                 </h2>
 
@@ -312,7 +313,7 @@ export function LandingPageClient() {
       <section className="py-16 sm:py-20 bg-[#2d2f31] dark:bg-[#1c1d1f]">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <Reveal>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white font-serif">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">
               Sẵn sàng để bứt phá điểm số?
             </h2>
             <p className="text-base sm:text-lg mb-8 text-[#b0b5b9] max-w-xl mx-auto">
