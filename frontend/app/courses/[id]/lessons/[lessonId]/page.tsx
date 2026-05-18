@@ -128,6 +128,11 @@ export default function LessonPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [theaterMode, setTheaterMode] = useState(false);
   const lastSentPercent = useRef(0);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const hlsInstanceRef = useRef<any>(null);
+  const canCompleteRequestRef = useRef(false);
+  const canCompleteQueuedRef = useRef(false);
+  const completionProgressSavedRef = useRef(false);
   const ytPlayerRef = useRef<any>(null);
   const ytIntervalRef = useRef<any>(null);
   const ytInitedRef = useRef<string | null>(null);
@@ -136,8 +141,38 @@ export default function LessonPage() {
   const tokenRef = useRef(token);
   tokenRef.current = token;
 
+  const lessonVideoUrl = typeof lesson?.videoUrl === "string" ? lesson.videoUrl : "";
+  const videoEmbedUrl = lessonVideoUrl && isYoutubeUrl(lessonVideoUrl) ? getYoutubeEmbedUrl(lessonVideoUrl) : null;
+  const nativeVideoSrc = lessonVideoUrl && !videoEmbedUrl
+    ? lessonVideoUrl.startsWith("http")
+      ? lessonVideoUrl
+      : `${BASE_URL}${lessonVideoUrl}`
+    : "";
+  const nativeVideoIsHls = nativeVideoSrc.includes(".m3u8");
+
   useEffect(() => { watchedPctRef.current = watchedPercentage; }, [watchedPercentage]);
   useEffect(() => { videoWatchedRef.current = videoWatched; }, [videoWatched]);
+
+  useEffect(() => {
+    watchedPctRef.current = 0;
+    lastSentPercent.current = 0;
+    completionProgressSavedRef.current = false;
+    setWatchedPercentage(0);
+  }, [lessonId]);
+
+  async function persistVideoProgress(seconds: number, pct: number, checkAfter = false) {
+    if (!tokenRef.current) return;
+    try {
+      await progressApi.updateVideo({
+        lessonId: lessonId as string,
+        watchTime: seconds,
+        watchedPercentage: pct,
+      });
+      if (checkAfter) {
+        await checkCanComplete();
+      }
+    } catch {}
+  }
 
   const trackYoutubeProgress = useCallback(() => {
     const player = ytPlayerRef.current;
@@ -152,11 +187,15 @@ export default function LessonPage() {
     if (pct >= 90 && !videoWatchedRef.current) {
       videoWatchedRef.current = true;
       setVideoWatched(true);
-      checkCanComplete();
     }
     if (tokenRef.current && pct >= lastSentPercent.current + 10) {
       lastSentPercent.current = pct;
-      progressApi.updateVideo({ lessonId: lessonId as string, watchTime: Math.floor(player.getCurrentTime()), watchedPercentage: pct }).then(() => checkCanComplete()).catch(() => {});
+      if (pct >= 90) completionProgressSavedRef.current = true;
+      persistVideoProgress(Math.floor(player.getCurrentTime()), pct, pct >= 90);
+    } else if (tokenRef.current && pct >= 90 && !completionProgressSavedRef.current) {
+      completionProgressSavedRef.current = true;
+      lastSentPercent.current = Math.max(lastSentPercent.current, pct);
+      persistVideoProgress(Math.floor(player.getCurrentTime()), pct, true);
     }
   }, [lessonId]);
 
@@ -174,6 +213,63 @@ export default function LessonPage() {
       fetchData(); 
     }
   }, [lessonId, id, token]);
+
+  useEffect(() => {
+    const video = videoElementRef.current;
+    if (!video || !nativeVideoSrc) return;
+
+    let active = true;
+    let localHls: any = null;
+
+    if (hlsInstanceRef.current) {
+      try { hlsInstanceRef.current.destroy(); } catch {}
+      hlsInstanceRef.current = null;
+    }
+
+    video.crossOrigin = "use-credentials";
+
+    if (nativeVideoIsHls) {
+      if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = nativeVideoSrc;
+        video.load();
+      } else {
+        import("hls.js").then(({ default: Hls }) => {
+          if (!active || !videoElementRef.current || !Hls.isSupported()) return;
+
+          localHls = new Hls({
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            xhrSetup: (xhr) => {
+              xhr.withCredentials = true;
+              const accessToken = getAccessToken();
+              if (accessToken) {
+                xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+              }
+            },
+          });
+
+          localHls.loadSource(nativeVideoSrc);
+          localHls.attachMedia(videoElementRef.current);
+          hlsInstanceRef.current = localHls;
+        }).catch(() => {
+          toast.error("Không tải được trình phát video.");
+        });
+      }
+    } else {
+      video.src = nativeVideoSrc;
+      video.load();
+    }
+
+    return () => {
+      active = false;
+      if (localHls) {
+        try { localHls.destroy(); } catch {}
+      }
+      if (hlsInstanceRef.current === localHls) {
+        hlsInstanceRef.current = null;
+      }
+    };
+  }, [nativeVideoSrc, nativeVideoIsHls]);
 
   async function fetchData() {
     setLoading(true);
@@ -198,24 +294,36 @@ export default function LessonPage() {
     fetchAssignmentsApi();
     checkCanComplete();
     if (token) {
-      progressApi.getLesson(lessonId as string).catch(() => {});
+      progressApi.getLesson(lessonId as string).then((progress: any) => {
+        const pct = Math.max(0, Math.min(100, Math.round(Number(progress?.watchedPercentage || 0))));
+        watchedPctRef.current = pct;
+        lastSentPercent.current = pct;
+        completionProgressSavedRef.current = pct >= 90;
+        setWatchedPercentage(pct);
+      }).catch(() => {});
     }
   }
 
   async function checkCanComplete() {
     if (!token) return;
+    if (canCompleteRequestRef.current) {
+      canCompleteQueuedRef.current = true;
+      return;
+    }
+    canCompleteRequestRef.current = true;
     try {
-      if (watchedPctRef.current > 0) {
-        await progressApi.updateVideo({
-          lessonId: lessonId as string,
-          watchTime: 0,
-          watchedPercentage: watchedPctRef.current
-        }).catch(() => {});
-      }
       const { data } = await api.get(`/progress/lesson/${lessonId}/can-complete`);
-      setVideoWatched(data.videoCompleted);
+      const videoCompleted = Boolean(data.videoCompleted) || watchedPctRef.current >= 90;
+      videoWatchedRef.current = videoCompleted;
+      setVideoWatched(videoCompleted);
       setCanComplete(data.canComplete);
-    } catch {}
+    } catch {} finally {
+      canCompleteRequestRef.current = false;
+      if (canCompleteQueuedRef.current) {
+        canCompleteQueuedRef.current = false;
+        checkCanComplete();
+      }
+    }
   }
 
   async function fetchComments() {
@@ -328,9 +436,8 @@ export default function LessonPage() {
           {/* Video player */}
           {lesson?.videoUrl ? (
             (() => {
-              const embedUrl = isYoutubeUrl(lesson.videoUrl) ? getYoutubeEmbedUrl(lesson.videoUrl) : null;
-              const ytVideoId = embedUrl?.split('/embed/')?.[1]?.split('?')?.[0];
-              if (embedUrl && ytVideoId) {
+              const ytVideoId = videoEmbedUrl?.split('/embed/')?.[1]?.split('?')?.[0];
+              if (videoEmbedUrl && ytVideoId) {
                 return (
                   <div className="aspect-video bg-black w-full">
                     <div id={`yt-player-${lessonId}`} ref={(el) => {
@@ -369,63 +476,58 @@ export default function LessonPage() {
                   </div>
                 );
               }
-              const videoSrc = lesson.videoUrl.startsWith("http") ? lesson.videoUrl : `${BASE_URL}${lesson.videoUrl}`;
-              const isHls = lesson.videoUrl.includes('.m3u8');
               return (
-                <div className="aspect-video bg-black w-full relative">
-                  <video
-                    key={videoSrc}
-                    ref={(el) => {
-                      if (!el) return;
-                      if ((el as any).__hls) {
-                        try { (el as any).__hls.destroy(); } catch {}
-                        (el as any).__hls = null;
-                      }
-                      el.crossOrigin = "use-credentials";
-                      if (isHls) {
-                        if (el.canPlayType('application/vnd.apple.mpegurl')) {
-                          el.src = videoSrc;
-                        } else {
-                          import('hls.js').then(({ default: Hls }) => {
-                            if (Hls.isSupported()) {
-                              const hls = new Hls({
-                                maxBufferLength: 30,
-                                maxMaxBufferLength: 60,
-                                xhrSetup: (xhr) => {
-                                  xhr.withCredentials = true;
-                                  const accessToken = getAccessToken();
-                                  if (accessToken) {
-                                    xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
-                                  }
-                                },
-                              });
-                              hls.loadSource(videoSrc);
-                              hls.attachMedia(el);
-                              (el as any).__hls = hls;
-                            }
-                          });
+                <div className="bg-black w-full">
+                  <div className="aspect-video w-full relative">
+                    <video
+                      key={nativeVideoSrc}
+                      ref={videoElementRef}
+                      className="w-full h-full"
+                      controls
+                      controlsList="nodownload"
+                      playsInline
+                      onTimeUpdate={(e) => {
+                        const video = e.target as HTMLVideoElement;
+                        if (!video.duration) return;
+                        const pct = Math.round((video.currentTime / video.duration) * 100);
+                        const seconds = Math.floor(video.currentTime);
+                        if (pct > watchedPctRef.current) {
+                          watchedPctRef.current = pct;
+                          setWatchedPercentage(pct);
                         }
-                      } else {
-                        el.src = videoSrc;
-                      }
-                    }}
-                    className="w-full h-full"
-                    controls
-                    controlsList="nodownload"
-                    playsInline
-                    onTimeUpdate={(e) => {
-                      const video = e.target as HTMLVideoElement;
-                      if (!video.duration) return;
-                      const pct = Math.round((video.currentTime / video.duration) * 100);
-                      const seconds = Math.floor(video.currentTime);
-                      if (pct > watchedPercentage) setWatchedPercentage(pct);
-                      if (pct >= 90 && !videoWatched) { setVideoWatched(true); checkCanComplete(); }
-                      if (token && pct >= lastSentPercent.current + 10) {
-                        lastSentPercent.current = pct;
-                        progressApi.updateVideo({ lessonId: lessonId as string, watchTime: seconds, watchedPercentage: pct }).then(() => checkCanComplete()).catch(() => {});
-                      }
-                    }}
-                  />
+                        if (pct >= 90 && !videoWatchedRef.current) {
+                          videoWatchedRef.current = true;
+                          setVideoWatched(true);
+                        }
+                        if (tokenRef.current && pct >= lastSentPercent.current + 10) {
+                          lastSentPercent.current = pct;
+                          if (pct >= 90) completionProgressSavedRef.current = true;
+                          persistVideoProgress(seconds, pct, pct >= 90);
+                        } else if (tokenRef.current && pct >= 90 && !completionProgressSavedRef.current) {
+                          completionProgressSavedRef.current = true;
+                          lastSentPercent.current = Math.max(lastSentPercent.current, pct);
+                          persistVideoProgress(seconds, pct, true);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="border-t border-white/10 bg-[#111113] px-4 py-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-white/80 mb-2">
+                      <span>Tiến độ xem bài</span>
+                      <span>{watchedPercentage}% / yêu cầu 90%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#a435f0] transition-[width] duration-300"
+                        style={{ width: `${Math.min(watchedPercentage, 100)}%` }}
+                      />
+                    </div>
+                    {!videoWatched && (
+                      <p className="mt-2 text-xs text-white/55">
+                        Xem tối thiểu 90% video để được hoàn thành bài học.
+                      </p>
+                    )}
+                  </div>
                 </div>
               );
             })()

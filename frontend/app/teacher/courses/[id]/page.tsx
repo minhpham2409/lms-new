@@ -121,7 +121,7 @@ export default function TeacherCourseEditPage() {
   }
 
   async function waitForVideoJob(jobId: string): Promise<string | null> {
-    for (let attempt = 0; attempt < 180; attempt += 1) {
+    for (let attempt = 0; attempt < 600; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const res = await fetch(`${API}/upload/video/jobs/${jobId}`, {
@@ -173,10 +173,12 @@ export default function TeacherCourseEditPage() {
       let mediaAssetId: string | undefined;
       if (newLessonVideo) {
         const upload = await uploadVideo(newLessonVideo);
-        if (upload) {
-          videoUrl = upload.url;
-          mediaAssetId = upload.mediaAssetId;
+        if (!upload) {
+          setSaving(false);
+          return;
         }
+        videoUrl = upload.url;
+        mediaAssetId = upload.mediaAssetId;
       }
       const res = await fetch(`${API}/lessons`, {
         method: "POST",

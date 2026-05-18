@@ -86,6 +86,58 @@ describe('MediaController', () => {
     });
   });
 
+  it('matches HLS segment access by video folder prefix', async () => {
+    prisma.lesson.findFirst.mockResolvedValue({
+      section: { course: { id: 'course-1', authorId: 'teacher-1' } },
+    });
+    prisma.enrollment.findUnique.mockResolvedValue({ status: 'active' });
+
+    await expect(
+      (controller as any).verifyVideoAccess(
+        { sub: 'student-1', role: 'student' },
+        'hls/video-1/segment_000.ts',
+      ),
+    ).resolves.toBeUndefined();
+    expect(prisma.lesson.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: expect.arrayContaining([
+            { videoUrl: { contains: 'hls/video-1/' } },
+            { mediaAsset: { is: { hlsManifestKey: { contains: 'hls/video-1/' } } } },
+          ]),
+        },
+      }),
+    );
+  });
+
+  it('can match HLS media by MediaAsset manifest key when lesson URL format changes', async () => {
+    prisma.lesson.findFirst.mockResolvedValue({
+      section: { course: { id: 'course-1', authorId: 'teacher-1' } },
+    });
+    prisma.enrollment.findUnique.mockResolvedValue({ status: 'active' });
+
+    await expect(
+      (controller as any).verifyVideoAccess(
+        { sub: 'student-1', role: 'student' },
+        'hls/video-1/index.m3u8',
+      ),
+    ).resolves.toBeUndefined();
+    expect(prisma.lesson.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: expect.arrayContaining([
+            { mediaAsset: { is: { hlsManifestKey: { contains: 'hls/video-1/' } } } },
+          ]),
+        },
+      }),
+    );
+  });
+
+  it('normalizes wildcard route path arrays from Express 5', () => {
+    expect((controller as any).normalizePathParam(['video-1', 'segment_000.ts'])).toBe('video-1/segment_000.ts');
+    expect((controller as any).normalizePathParam('video-1/index.m3u8')).toBe('video-1/index.m3u8');
+  });
+
   it('rejects unenrolled students from protected video media', async () => {
     prisma.lesson.findFirst.mockResolvedValue({
       section: { course: { id: 'course-1', authorId: 'teacher-1' } },

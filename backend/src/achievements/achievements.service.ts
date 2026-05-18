@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { AchievementRepository } from '../database/repositories';
 
 // All available badges in the system
@@ -60,7 +60,21 @@ const BADGE_DEFINITIONS = [
 
 @Injectable()
 export class AchievementsService {
+  private readonly logger = new Logger(AchievementsService.name);
+
   constructor(private readonly achievementRepository: AchievementRepository) {}
+
+  async onModuleInit() {
+    await this.ensureBadgeDefinitions();
+  }
+
+  private async ensureBadgeDefinitions() {
+    const count = await this.achievementRepository.countBadges();
+    if (count > 0) return;
+
+    await this.seedBadges();
+    this.logger.log(`Seeded ${BADGE_DEFINITIONS.length} badge definitions`);
+  }
 
   async seedBadges() {
     for (const def of BADGE_DEFINITIONS) {

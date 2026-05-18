@@ -18,6 +18,10 @@ export class AchievementRepository {
     });
   }
 
+  countBadges() {
+    return this.prisma.badge.count();
+  }
+
   /** Get user badges with badge details */
   getUserBadges(userId: string) {
     return this.prisma.userBadge.findMany({

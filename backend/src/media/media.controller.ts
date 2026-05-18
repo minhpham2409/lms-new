@@ -18,10 +18,11 @@ export class MediaController {
   @Get('videos/*path')
   @ApiOperation({ summary: 'Stream protected video content' })
   async streamVideo(
-    @Param('path') path: string,
+    @Param('path') path: string | string[],
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    path = this.normalizePathParam(path);
     if (!path) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
     await this.verifyVideoAccess(user, `videos/${path}`);
@@ -31,10 +32,11 @@ export class MediaController {
   @Get('hls/*path')
   @ApiOperation({ summary: 'Stream protected HLS video content' })
   async streamHls(
-    @Param('path') path: string,
+    @Param('path') path: string | string[],
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    path = this.normalizePathParam(path);
     if (!path) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
     await this.verifyVideoAccess(user, `hls/${path}`);
@@ -44,10 +46,11 @@ export class MediaController {
   @Get('materials/*path')
   @ApiOperation({ summary: 'Download protected material/document' })
   async downloadMaterial(
-    @Param('path') path: string,
+    @Param('path') path: string | string[],
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    path = this.normalizePathParam(path);
     if (!path) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
     await this.verifyMaterialAccess(user, `materials/${path}`);
@@ -57,16 +60,22 @@ export class MediaController {
   @Get('images/*path')
   @ApiOperation({ summary: 'View public image' })
   async viewImage(
-    @Param('path') path: string,
+    @Param('path') path: string | string[],
     @Req() req: Request,
     @Res() res: Response,
   ) {
     // Images are public (avatars, thumbnails) — no auth required
+    path = this.normalizePathParam(path);
     if (!path) return res.status(400).send('Invalid media path');
     await this.pipeMedia(`images/${path}`, req, res);
   }
 
   // ─── Private helpers ────────────────────────────────────────────────────────
+
+  private normalizePathParam(path: string | string[] | undefined): string {
+    if (Array.isArray(path)) return path.join('/');
+    return path ?? '';
+  }
 
   private verifyMediaAuth(req: Request) {
     // Prefer Bearer token (sent by hls.js XHR) over cookies
@@ -106,7 +115,15 @@ export class MediaController {
     }
 
     const lesson = await this.prisma.lesson.findFirst({
-      where: { videoUrl: { contains: searchKey } },
+      where: {
+        OR: [
+          { videoUrl: { contains: searchKey } },
+          { mediaAsset: { is: { url: { contains: searchKey } } } },
+          { mediaAsset: { is: { storageKey: { contains: searchKey } } } },
+          { mediaAsset: { is: { originalKey: { contains: searchKey } } } },
+          { mediaAsset: { is: { hlsManifestKey: { contains: searchKey } } } },
+        ],
+      },
       select: {
         id: true,
         section: {
