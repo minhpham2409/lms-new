@@ -307,7 +307,11 @@ export default function AdminPage() {
   }
 
   async function markRefundPaid(refundId: string) {
-    const bankTransferRef = prompt("Mã giao dịch hoàn tiền (nếu có)") || "";
+    const bankTransferRef = prompt("Nhập mã giao dịch hoàn tiền")?.trim() || "";
+    if (!bankTransferRef) {
+      toast.error("Cần nhập mã giao dịch hoàn tiền để audit");
+      return;
+    }
     try {
       const res = await fetch(`${API}/admin/refund-requests/${refundId}/paid`, {
         method: "PATCH",

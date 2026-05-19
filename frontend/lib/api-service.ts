@@ -7,6 +7,7 @@ import type {
   CreateCourseData, UpdateCourseData, CreateSectionData,
   CreateLessonData, UpdateLessonData, ProgressData,
   ParentChildDashboard,
+  LearningSummary,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -137,6 +138,11 @@ export const authApi = {
     api.post('/auth/refresh').then(r => r.data),
 };
 
+export const studentLearningApi = {
+  getSummary: (): Promise<LearningSummary> =>
+    api.get('/users/me/learning-summary').then(r => r.data),
+};
+
 // ─── Courses ─────────────────────────────────────────────────────────────────
 
 export const coursesApi = {
@@ -209,6 +215,8 @@ export const enrollmentsApi = {
 
 export const progressApi = {
   getCourse: (courseId: string): Promise<ProgressData> =>
+    api.get(`/progress/course/${courseId}`).then(r => r.data),
+  getCourseVideos: (courseId: string): Promise<VideoProgress[]> =>
     api.get(`/progress/video/${courseId}`).then(r => r.data),
   getLesson: (lessonId: string): Promise<VideoProgress> =>
     api.get(`/progress/video/lesson/${lessonId}`).then(r => r.data),

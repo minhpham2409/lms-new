@@ -86,9 +86,9 @@ import { ScheduleModule } from '@nestjs/schedule';
       isGlobal: true,
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => {
-        const redisHost = config.get('REDIS_HOST', 'localhost');
-        const redisPort = config.get<number>('REDIS_PORT', 6379);
-        const redisPassword = config.get('REDIS_PASSWORD', undefined);
+        const redisHost = config.get('REDIS_CACHE_HOST') || config.get('REDIS_HOST', 'localhost');
+        const redisPort = config.get<number>('REDIS_CACHE_PORT') || config.get<number>('REDIS_PORT', 6379);
+        const redisPassword = config.get('REDIS_CACHE_PASSWORD') || config.get('REDIS_PASSWORD', undefined);
         try {
           const { redisStore } = await import('cache-manager-redis-yet');
           return {

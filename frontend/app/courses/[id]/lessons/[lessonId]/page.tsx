@@ -122,6 +122,8 @@ export default function LessonPage() {
   const [canComplete, setCanComplete] = useState(true);
   const [videoWatched, setVideoWatched] = useState(true);
   const [watchedPercentage, setWatchedPercentage] = useState(0);
+  const [resumeWatchTime, setResumeWatchTime] = useState(0);
+  const [lessonProgress, setLessonProgress] = useState<Record<string, { completed: boolean; watchTime: number; watchedPercentage: number }>>({});
   const [comment, setComment] = useState("");
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -158,6 +160,7 @@ export default function LessonPage() {
     lastSentPercent.current = 0;
     completionProgressSavedRef.current = false;
     setWatchedPercentage(0);
+    setResumeWatchTime(0);
   }, [lessonId]);
 
   async function persistVideoProgress(seconds: number, pct: number, checkAfter = false) {
@@ -197,6 +200,7 @@ export default function LessonPage() {
       lastSentPercent.current = Math.max(lastSentPercent.current, pct);
       persistVideoProgress(Math.floor(player.getCurrentTime()), pct, true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
 
   useEffect(() => {
@@ -212,6 +216,7 @@ export default function LessonPage() {
     if (token !== undefined) {
       fetchData(); 
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId, id, token]);
 
   useEffect(() => {
@@ -280,6 +285,21 @@ export default function LessonPage() {
       ]);
       setLesson(lessonData);
       setCourse(courseData);
+      if (token) {
+        progressApi.getCourseVideos(id as string).then((rows: any) => {
+          const map: Record<string, { completed: boolean; watchTime: number; watchedPercentage: number }> = {};
+          if (Array.isArray(rows)) {
+            rows.forEach((row: any) => {
+              map[row.lessonId] = {
+                completed: Boolean(row.completed),
+                watchTime: Number(row.watchTime || 0),
+                watchedPercentage: Number(row.watchedPercentage || 0),
+              };
+            });
+          }
+          setLessonProgress(map);
+        }).catch(() => setLessonProgress({}));
+      }
       for (const sec of courseData.sections || []) {
         for (const les of sec.lessons || []) {
           if (les.id === lessonId) {
@@ -296,10 +316,20 @@ export default function LessonPage() {
     if (token) {
       progressApi.getLesson(lessonId as string).then((progress: any) => {
         const pct = Math.max(0, Math.min(100, Math.round(Number(progress?.watchedPercentage || 0))));
+        const watchTime = Math.max(0, Math.round(Number(progress?.watchTime || 0)));
         watchedPctRef.current = pct;
         lastSentPercent.current = pct;
         completionProgressSavedRef.current = pct >= 90;
         setWatchedPercentage(pct);
+        setResumeWatchTime(watchTime);
+        setLessonProgress((prev) => ({
+          ...prev,
+          [lessonId as string]: {
+            completed: Boolean(progress?.completed),
+            watchTime,
+            watchedPercentage: pct,
+          },
+        }));
       }).catch(() => {});
     }
   }
@@ -368,6 +398,10 @@ export default function LessonPage() {
     }
     try {
       await progressApi.updateVideo({ lessonId: lessonId as string, watchTime: 0, watchedPercentage: 100 });
+      setLessonProgress((prev) => ({
+        ...prev,
+        [lessonId as string]: { completed: true, watchTime: prev[lessonId as string]?.watchTime ?? 0, watchedPercentage: 100 },
+      }));
       toast.success("🎉 Hoàn thành bài học!");
       const allL = course?.sections?.flatMap((s: any) => s.lessons?.sort((a: any, b: any) => a.order - b.order) || []) || [];
       const idx = allL.findIndex((l: any) => l.id === lessonId);
@@ -395,6 +429,8 @@ export default function LessonPage() {
   const prevLesson = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
   const nextLesson = currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
 
+  const completedLessons = allLessons.filter((l: any) => lessonProgress[l.id]?.completed).length;
+  const courseProgressPct = allLessons.length ? Math.round((completedLessons / allLessons.length) * 100) : 0;
   const initials = (user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?").toUpperCase();
 
   const hasAssignment = assignments.length > 0;
@@ -415,8 +451,9 @@ export default function LessonPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-32 h-1.5 bg-gray-700 rounded-full overflow-hidden hidden sm:block">
-              <div className="bg-primary h-full" style={{ width: `${allLessons.length ? ((currentIdx + 1) / allLessons.length) * 100 : 0}%` }} />
+              <div className="bg-primary h-full" style={{ width: `${courseProgressPct}%` }} />
             </div>
+            <span className="hidden text-xs font-bold text-white/70 sm:inline">{completedLessons}/{allLessons.length} bài</span>
           </div>
           <button onClick={() => setTheaterMode(!theaterMode)} className="p-1.5 rounded hover:bg-white/10 transition-colors text-white" title={theaterMode ? "Thu nhỏ" : "Mở rộng"}>
             {theaterMode ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
@@ -456,7 +493,7 @@ export default function LessonPage() {
                         ytPlayerRef.current = new (window as any).YT.Player(el, {
                           videoId: ytVideoId,
                           width: '100%', height: '100%',
-                          playerVars: { autoplay: 0, rel: 0, modestbranding: 1 },
+                          playerVars: { autoplay: 0, rel: 0, modestbranding: 1, start: resumeWatchTime > 5 ? Math.max(0, resumeWatchTime - 3) : 0 },
                           events: {
                             onStateChange: (e: any) => {
                               if (e.data === 1) {
@@ -486,6 +523,12 @@ export default function LessonPage() {
                       controls
                       controlsList="nodownload"
                       playsInline
+                      onLoadedMetadata={(e) => {
+                        const video = e.target as HTMLVideoElement;
+                        if (resumeWatchTime > 5 && resumeWatchTime < video.duration - 5) {
+                          video.currentTime = resumeWatchTime;
+                        }
+                      }}
                       onTimeUpdate={(e) => {
                         const video = e.target as HTMLVideoElement;
                         if (!video.duration) return;
@@ -508,6 +551,14 @@ export default function LessonPage() {
                           lastSentPercent.current = Math.max(lastSentPercent.current, pct);
                           persistVideoProgress(seconds, pct, true);
                         }
+                        setLessonProgress((prev) => ({
+                          ...prev,
+                          [lessonId as string]: {
+                            completed: prev[lessonId as string]?.completed || pct >= 90,
+                            watchTime: Math.max(prev[lessonId as string]?.watchTime ?? 0, seconds),
+                            watchedPercentage: Math.max(prev[lessonId as string]?.watchedPercentage ?? 0, pct),
+                          },
+                        }));
                       }}
                     />
                   </div>
@@ -593,7 +644,7 @@ export default function LessonPage() {
                   <PenTool className="w-4 h-4" /> Bài tập {assignments.length > 0 && `(${assignments.length})`}
                 </TabsTrigger>
                 <TabsTrigger value="discussion" className="bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none rounded-none px-0 py-3 text-sm font-bold gap-2">
-                  <MessageCircle className="w-4 h-4" /> Hỏi đáp ({comments.length})
+                  <MessageCircle className="w-4 h-4" /> Hỏi đáp theo bài ({comments.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -806,14 +857,18 @@ export default function LessonPage() {
                  <div>
                     {sec.lessons?.sort((a: any, b: any) => a.order - b.order).map((l: any, li: number) => {
                        const isCurrent = l.id === lessonId;
+                       const progress = lessonProgress[l.id];
                        return (
                          <Link key={l.id} href={`/courses/${id}/lessons/${l.id}`} className={`flex items-start gap-3 p-4 transition-colors ${isCurrent ? 'bg-primary/10 hover:bg-primary/20' : 'hover:bg-muted'}`}>
                             <div className="mt-0.5">
-                               {isCurrent ? <PlayCircle className="w-4 h-4 text-primary" /> : <div className="w-4 h-4 rounded-full border border-foreground-muted" />}
+                               {progress?.completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : isCurrent ? <PlayCircle className="w-4 h-4 text-primary" /> : <div className="w-4 h-4 rounded-full border border-foreground-muted" />}
                             </div>
                             <div>
                                <p className={`text-sm ${isCurrent ? 'font-bold' : ''}`}>{li + 1}. {l.title}</p>
-                               {l.duration && <p className="text-xs text-foreground-muted mt-1 flex items-center gap-1"><Clock className="w-3 h-3"/> {l.duration} phút</p>}
+                               <p className="text-xs text-foreground-muted mt-1 flex items-center gap-1">
+                                 <Clock className="w-3 h-3"/>
+                                 {l.duration ? `${l.duration} phút` : progress?.watchedPercentage ? `${Math.round(progress.watchedPercentage)}% đã xem` : "Chưa học"}
+                               </p>
                             </div>
                          </Link>
                        );

@@ -22,12 +22,26 @@ services:
   redis:
     image: redis:7-alpine
     container_name: lms-redis
-    # Tối ưu Redis: Lưu ra đĩa (AOF) + Giới hạn RAM 256MB + Xóa cache cũ giữ lại Queue Jobs
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy volatile-lru
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - redisdata:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-cache:
+    image: redis:7-alpine
+    container_name: lms-redis-cache
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redis_cache_data:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -43,8 +57,8 @@ services:
       - "127.0.0.1:9000:9000"   # S3 API
       - "127.0.0.1:9001:9001"   # MinIO Console
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
     volumes:
       - miniodata:/data
     restart: unless-stopped
@@ -65,18 +79,20 @@ services:
     environment:
       - DATABASE_URL=postgresql://lms:lms_password@postgres:5432/lms_db?schema=public
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
-      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-dev-webhook-secret}
-      - SEPAY_API_KEY=${SEPAY_API_KEY:-dev-sepay-api-key}
-      - PAYMENT_CODE_PREFIX=${PAYMENT_CODE_PREFIX:-HP}
-      - BANK_CODE=${BANK_CODE:-BIDV}
-      - BANK_ACCOUNT=${BANK_ACCOUNT:-8817642232}
-      - BANK_ACCOUNT_NAME=${BANK_ACCOUNT_NAME:-PHAM LE QUANG MINH}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      - SEPAY_API_KEY=${SEPAY_API_KEY:?SEPAY_API_KEY is required}
+      - PAYMENT_CODE_PREFIX=${PAYMENT_CODE_PREFIX:?PAYMENT_CODE_PREFIX is required}
+      - BANK_CODE=${BANK_CODE:?BANK_CODE is required}
+      - BANK_ACCOUNT=${BANK_ACCOUNT:?BANK_ACCOUNT is required}
+      - BANK_ACCOUNT_NAME=${BANK_ACCOUNT_NAME:?BANK_ACCOUNT_NAME is required}
       - FRONTEND_URL=http://localhost:3000
       - API_URL=http://localhost:4000/api/v1
       - MEDIA_ORPHAN_TTL_HOURS=24
       - MEDIA_ORPHAN_CLEANUP_BATCH_SIZE=100
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_CACHE_HOST=redis-cache
+      - REDIS_CACHE_PORT=6379
       - PORT=4000
       - NODE_ENV=production
       # S3/MinIO config
@@ -84,8 +100,8 @@ services:
       - S3_PUBLIC_ENDPOINT=http://localhost:9000
       - S3_REGION=us-east-1
       - S3_BUCKET=lms-assets
-      - S3_ACCESS_KEY=minioadmin
-      - S3_SECRET_KEY=minioadmin
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:?S3_SECRET_KEY is required}
       - S3_FORCE_PATH_STYLE=true
       - S3_USE_SSL=false
       - S3_SIGNED_URL_EXPIRES=3600
@@ -96,6 +112,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      redis-cache:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -118,7 +136,7 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
       - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-nextauth-secret}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
     depends_on:
       backend:
         condition: service_healthy
@@ -133,6 +151,7 @@ services:
 volumes:
   pgdata:
   redisdata:
+  redis_cache_data:
   miniodata:
   uploads_data:
   hls_tmp:

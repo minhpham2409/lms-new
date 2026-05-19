@@ -115,6 +115,135 @@ export class UsersService {
     };
   }
 
+  async getLearningSummary(userId: string) {
+    const enrollments = await this.dashboardRepository.getActiveEnrollmentsWithLessons(userId);
+    const courseIds = enrollments.map((e) => e.courseId);
+
+    const [videoRows, taskRows, gradedRows, quizRows] = await Promise.all([
+      this.dashboardRepository.getVideoProgressForCourses(userId, courseIds),
+      this.dashboardRepository.getPendingLearningTasks(userId, courseIds),
+      this.dashboardRepository.getRecentGradedSubmissions(userId, courseIds),
+      this.dashboardRepository.getRecentQuizResults(userId, courseIds),
+    ]);
+
+    const progressByLesson = new Map(videoRows.map((row) => [row.lessonId, row]));
+
+    const courses = enrollments.map((enrollment) => {
+      const lessons = enrollment.course.sections.flatMap((section) => section.lessons);
+      const completedLessons = lessons.filter((lesson) => progressByLesson.get(lesson.id)?.completed).length;
+      const totalLessons = lessons.length;
+      const nextLesson =
+        lessons.find((lesson) => !progressByLesson.get(lesson.id)?.completed) ?? lessons[0] ?? null;
+
+      return {
+        enrollmentId: enrollment.id,
+        courseId: enrollment.courseId,
+        title: enrollment.course.title,
+        thumbnail: enrollment.course.thumbnail,
+        teacher: enrollment.course.author,
+        progress: enrollment.progress,
+        totalLessons,
+        completedLessons,
+        nextLesson: nextLesson
+          ? {
+              id: nextLesson.id,
+              title: nextLesson.title,
+              duration: nextLesson.duration,
+              watchTime: progressByLesson.get(nextLesson.id)?.watchTime ?? 0,
+              watchedPercentage: progressByLesson.get(nextLesson.id)?.watchedPercentage ?? 0,
+              url: `/courses/${enrollment.courseId}/lessons/${nextLesson.id}`,
+            }
+          : null,
+      };
+    });
+
+    const latestInProgress = videoRows.find((row) => !row.completed);
+    const fallbackCourse = courses.find((course) => course.nextLesson);
+    const continueLearning = latestInProgress
+      ? {
+          courseId: latestInProgress.lesson.section.courseId,
+          lessonId: latestInProgress.lessonId,
+          lessonTitle: latestInProgress.lesson.title,
+          watchTime: latestInProgress.watchTime,
+          watchedPercentage: latestInProgress.watchedPercentage,
+          url: `/courses/${latestInProgress.lesson.section.courseId}/lessons/${latestInProgress.lessonId}`,
+        }
+      : fallbackCourse?.nextLesson
+        ? {
+            courseId: fallbackCourse.courseId,
+            lessonId: fallbackCourse.nextLesson.id,
+            lessonTitle: fallbackCourse.nextLesson.title,
+            watchTime: fallbackCourse.nextLesson.watchTime,
+            watchedPercentage: fallbackCourse.nextLesson.watchedPercentage,
+            url: fallbackCourse.nextLesson.url,
+          }
+        : null;
+
+    const todos = taskRows
+      .filter((task) => {
+        if (task.type === 'quiz') return (task.quiz?.attempts?.length ?? 0) === 0;
+        return task.submissions.length === 0;
+      })
+      .slice(0, 12)
+      .map((task) => ({
+        id: task.id,
+        title: task.title,
+        type: task.type,
+        dueDate: task.dueDate,
+        maxScore: task.maxScore,
+        courseId: task.lesson.section.courseId,
+        courseTitle: task.lesson.section.course.title,
+        lessonId: task.lessonId,
+        lessonTitle: task.lesson.title,
+        url:
+          task.type === 'quiz' && task.quiz?.id
+            ? `/quiz/${task.quiz.id}`
+            : `/courses/${task.lesson.section.courseId}/lessons/${task.lessonId}`,
+      }));
+
+    const feedback = [
+      ...gradedRows.map((row) => ({
+        id: row.id,
+        kind: 'assignment',
+        title: row.assignment.title,
+        courseTitle: row.assignment.lesson.section.course.title,
+        lessonTitle: row.assignment.lesson.title,
+        score: row.score,
+        maxScore: row.assignment.maxScore,
+        feedback: row.feedback,
+        gradedAt: row.gradedAt,
+        url: `/courses/${row.assignment.lesson.section.courseId}/lessons/${row.assignment.lesson.id}`,
+      })),
+      ...quizRows.map((row) => ({
+        id: row.id,
+        kind: 'quiz',
+        title: row.quiz.assignment.title,
+        courseTitle: row.quiz.assignment.lesson.section.course.title,
+        lessonTitle: row.quiz.assignment.lesson.title,
+        score: row.score,
+        maxScore: row.maxScore,
+        feedback: null,
+        gradedAt: row.updatedAt,
+        url: `/courses/${row.quiz.assignment.lesson.section.courseId}/lessons/${row.quiz.assignment.lesson.id}`,
+      })),
+    ]
+      .sort((a, b) => new Date(b.gradedAt ?? 0).getTime() - new Date(a.gradedAt ?? 0).getTime())
+      .slice(0, 8);
+
+    return {
+      courses,
+      continueLearning,
+      todos,
+      feedback,
+      stats: {
+        activeCourses: courses.length,
+        completedCourses: courses.filter((course) => course.progress >= 100).length,
+        pendingTasks: todos.length,
+        gradedItems: feedback.length,
+      },
+    };
+  }
+
   async checkInStreak(userId: string) {
     const user = await this.dashboardRepository.getUserFull(userId);
     if (!user) return null;

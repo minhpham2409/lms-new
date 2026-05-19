@@ -74,6 +74,42 @@ export class PaymentRepository extends BaseRepository<Payment> {
     });
   }
 
+  createPaymentTransaction(params: {
+    paymentId: string;
+    orderId: string;
+    txnRef?: string | null;
+    provider?: string;
+    providerRef?: string | null;
+    webhookEventId?: string | null;
+    amount: number;
+    expectedAmount?: number | null;
+    paidBefore?: number;
+    remainingAfter?: number;
+    overpaidAmount?: number;
+    status: string;
+    note?: string;
+    rawPayload?: Prisma.InputJsonValue;
+  }) {
+    return (this.prisma as any).paymentTransaction.create({
+      data: {
+        paymentId: params.paymentId,
+        orderId: params.orderId,
+        txnRef: params.txnRef,
+        provider: params.provider ?? 'sepay',
+        providerRef: params.providerRef,
+        webhookEventId: params.webhookEventId,
+        amount: params.amount,
+        expectedAmount: params.expectedAmount,
+        paidBefore: params.paidBefore ?? 0,
+        remainingAfter: params.remainingAfter ?? 0,
+        overpaidAmount: params.overpaidAmount ?? 0,
+        status: params.status,
+        note: params.note,
+        rawPayload: params.rawPayload,
+      },
+    });
+  }
+
   /**
    * ATOMIC TRANSACTION: Complete payment → mark order paid → create enrollments.
    *

@@ -349,6 +349,7 @@ model Order {
   items      OrderItem[]
   payment    Payment?
   refunds    RefundRequest[]
+  paymentTransactions PaymentTransaction[]
 
   @@index([userId, status, createdAt])
 }
@@ -405,9 +406,53 @@ model Payment {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   order     Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  transactions PaymentTransaction[]
 
   @@index([status])
   @@index([txnRef])
+}
+
+model PaymentTransaction {
+  id              String   @id @default(uuid())
+  paymentId       String
+  orderId         String
+  txnRef          String?
+  provider        String   @default("sepay")
+  providerRef     String?
+  webhookEventId  String?  @unique
+  amount          Decimal  @db.Decimal(10, 2)
+  expectedAmount  Decimal? @db.Decimal(10, 2)
+  paidBefore      Decimal  @default(0) @db.Decimal(10, 2)
+  remainingAfter  Decimal  @default(0) @db.Decimal(10, 2)
+  overpaidAmount  Decimal  @default(0) @db.Decimal(10, 2)
+  status          String
+  note            String?
+  rawPayload      Json?
+  createdAt       DateTime @default(now())
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, createdAt])
+  @@index([orderId, createdAt])
+  @@index([txnRef])
+  @@index([status])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String?
+  actorRole   String?
+  action      String
+  entityType  String
+  entityId    String
+  before      Json?
+  after       Json?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
 }
 
 model WebhookEvent {

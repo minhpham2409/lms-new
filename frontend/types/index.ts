@@ -283,6 +283,70 @@ export interface ParentChildDashboard {
   };
 }
 
+export interface LearningSummary {
+  courses: Array<{
+    enrollmentId: string;
+    courseId: string;
+    title: string;
+    thumbnail?: string | null;
+    progress: number;
+    totalLessons: number;
+    completedLessons: number;
+    nextLesson?: {
+      id: string;
+      title: string;
+      duration?: number | null;
+      watchTime: number;
+      watchedPercentage: number;
+      url: string;
+    } | null;
+    teacher?: {
+      id: string;
+      username: string;
+      firstName?: string | null;
+      lastName?: string | null;
+    };
+  }>;
+  continueLearning?: {
+    courseId: string;
+    lessonId: string;
+    lessonTitle: string;
+    watchTime: number;
+    watchedPercentage: number;
+    url: string;
+  } | null;
+  todos: Array<{
+    id: string;
+    title: string;
+    type: string;
+    dueDate?: string | null;
+    maxScore: number;
+    courseId: string;
+    courseTitle: string;
+    lessonId: string;
+    lessonTitle: string;
+    url: string;
+  }>;
+  feedback: Array<{
+    id: string;
+    kind: 'assignment' | 'quiz';
+    title: string;
+    courseTitle: string;
+    lessonTitle: string;
+    score?: number | null;
+    maxScore: number;
+    feedback?: string | null;
+    gradedAt?: string | null;
+    url: string;
+  }>;
+  stats: {
+    activeCourses: number;
+    completedCourses: number;
+    pendingTasks: number;
+    gradedItems: number;
+  };
+}
+
 export interface CreateCourseData {
   title: string;
   description: string;

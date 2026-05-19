@@ -467,7 +467,15 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   async markRefundPaid(id: string, adminId: string, bankTransferRef?: string) {
-    const refund = await this.adminRepository.markRefundPaid(id, adminId, bankTransferRef);
+    const transferRef = bankTransferRef?.trim();
+    if (!transferRef) {
+      throw new BadRequestException('bankTransferRef is required to confirm a refund');
+    }
+    const result = await this.adminRepository.markRefundPaid(id, adminId, transferRef);
+    if (!result) throw new NotFoundException('Refund request not found');
+    const refund = result.refund;
+    if (result.alreadyPaid) return refund;
+
     await this.notificationRepository.create({
       userId: refund.parentId,
       title: 'Đã hoàn tiền chuyển khoản dư',

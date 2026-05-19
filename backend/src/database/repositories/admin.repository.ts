@@ -277,15 +277,43 @@ export class AdminRepository {
     });
   }
 
-  markRefundPaid(id: string, adminId: string, bankTransferRef?: string) {
-    return (this.prisma as any).refundRequest.update({
-      where: { id },
-      data: {
-        status: 'PAID',
-        processedByAdminId: adminId,
-        processedAt: new Date(),
-        bankTransferRef,
-      },
+  findRefundRequestById(id: string) {
+    return (this.prisma as any).refundRequest.findUnique({ where: { id } });
+  }
+
+  markRefundPaid(id: string, adminId: string, bankTransferRef: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const before = await (tx as any).refundRequest.findUnique({ where: { id } });
+      if (!before) return null;
+      if (before.status === 'PAID') return { refund: before, before, alreadyPaid: true };
+      if (!['PENDING', 'APPROVED'].includes(before.status)) {
+        throw new Error(`Refund request is in ${before.status} state`);
+      }
+
+      const refund = await (tx as any).refundRequest.update({
+        where: { id },
+        data: {
+          status: 'PAID',
+          processedByAdminId: adminId,
+          processedAt: new Date(),
+          bankTransferRef,
+        },
+      });
+
+      await (tx as any).auditLog.create({
+        data: {
+          actorId: adminId,
+          actorRole: 'admin',
+          action: 'refund.mark_paid',
+          entityType: 'RefundRequest',
+          entityId: id,
+          before,
+          after: refund,
+          metadata: { bankTransferRef },
+        },
+      });
+
+      return { refund, before, alreadyPaid: false };
     });
   }
 }

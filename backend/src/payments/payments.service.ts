@@ -138,6 +138,35 @@ export class PaymentsService {
     return randomInt(100_000_000, 1_000_000_000).toString();
   }
 
+  private async recordPaymentLedger(params: {
+    paymentId: string;
+    orderId: string;
+    txnRef?: string | null;
+    webhookEventId: string;
+    amount: number;
+    expectedAmount?: number | null;
+    paidBefore?: number;
+    remainingAfter?: number;
+    overpaidAmount?: number;
+    status: string;
+    note?: string;
+    rawPayload: WebhookDto;
+  }) {
+    if (typeof (this.paymentRepository as any).createPaymentTransaction !== 'function') {
+      this.logger.warn('Payment ledger repository method unavailable; skipping ledger write');
+      return;
+    }
+    await this.paymentRepository.createPaymentTransaction({
+      provider: 'sepay',
+      providerRef: this.buildWebhookEventKey(params.rawPayload),
+      ...params,
+      rawPayload: params.rawPayload as any,
+    }).catch((err) => {
+      this.logger.error(`Payment ledger write failed: ${err.message}`);
+      throw err;
+    });
+  }
+
   private isCurrentPaymentCode(txnRef?: string | null): boolean {
     return typeof txnRef === 'string' && /^\d{3,10}$/.test(txnRef);
   }
@@ -161,10 +190,12 @@ export class PaymentsService {
       throw new BadRequestException('Order has already been paid');
     }
 
-    // Bank config — read from env or use defaults
-    const bankCode = process.env.BANK_CODE || 'MB';
-    const bankAccount = process.env.BANK_ACCOUNT || '0389999999';
-    const accountName = process.env.BANK_ACCOUNT_NAME || 'NGUYEN VAN MINH';
+    const bankCode = process.env.BANK_CODE;
+    const bankAccount = process.env.BANK_ACCOUNT;
+    const accountName = process.env.BANK_ACCOUNT_NAME;
+    if (!bankCode || !bankAccount || !accountName) {
+      throw new BadRequestException('Bank transfer configuration is missing');
+    }
 
     const reusePending =
       !dto.forceRegenerate &&
@@ -233,10 +264,28 @@ export class PaymentsService {
       throw new ForbiddenException('Parent is not linked to this student');
     }
 
-    const amount = Math.round(Number(dto.amount) * 100) / 100;
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Refund amount must be greater than zero');
+    const payment = order.payment;
+    if (!payment || Number((payment as any).overpaidAmount || 0) <= 0) {
+      throw new BadRequestException('No overpaid amount is available for this order');
     }
+
+    const existingRefunds = await (this.prisma as any).refundRequest.aggregate({
+      where: {
+        orderId: order.id,
+        status: { in: ['PENDING', 'APPROVED', 'PAID'] },
+      },
+      _sum: { amount: true },
+    });
+    const alreadyRequested = Number(existingRefunds._sum.amount ?? 0);
+    const availableAmount = Math.round((Number((payment as any).overpaidAmount) - alreadyRequested) * 100) / 100;
+    if (!Number.isFinite(availableAmount) || availableAmount <= 0) {
+      throw new BadRequestException('Overpaid amount has already been requested for refund');
+    }
+    const requestedAmount = Math.round(Number(dto.amount) * 100) / 100;
+    if (Number.isFinite(requestedAmount) && requestedAmount > availableAmount + 0.01) {
+      throw new BadRequestException('Refund amount exceeds available overpaid amount');
+    }
+    const amount = availableAmount;
 
     const existing = await (this.prisma as any).refundRequest.findFirst({
       where: {
@@ -258,7 +307,7 @@ export class PaymentsService {
     const refund = await (this.prisma as any).refundRequest.create({
       data: {
         orderId: order.id,
-        paymentId: order.payment?.id,
+        paymentId: payment.id,
         parentId,
         childId: order.userId,
         amount,
@@ -411,6 +460,20 @@ export class PaymentsService {
             qrData,
           } as any);
 
+          await this.recordPaymentLedger({
+            paymentId: payment.id,
+            orderId: order.id,
+            txnRef: dto.txnRef,
+            webhookEventId,
+            amount: dtoAmount,
+            expectedAmount: paymentAmount,
+            paidBefore,
+            remainingAfter: remaining,
+            status: 'partial',
+            note: `Partial payment; new txnRef ${newTxnRef}`,
+            rawPayload: dto,
+          });
+
           // Notify parents about partial payment + new QR
           await this.notifyLinkedParents(order.userId, {
             title: 'Chuyển khoản thiếu tiền',
@@ -482,6 +545,20 @@ export class PaymentsService {
             `Overpayment: expected ${paymentAmount}, got ${dtoAmount}, refund ${overpaidAmount}`,
           );
 
+          await this.recordPaymentLedger({
+            paymentId: payment.id,
+            orderId: order.id,
+            txnRef: dto.txnRef,
+            webhookEventId,
+            amount: dtoAmount,
+            expectedAmount: paymentAmount,
+            paidBefore,
+            remainingAfter: 0,
+            overpaidAmount,
+            status: 'overpaid',
+            rawPayload: dto,
+          });
+
           await this.notifyLinkedParents(order.userId, {
             title: 'Thanh toán dư tiền',
             message: JSON.stringify({
@@ -522,6 +599,19 @@ export class PaymentsService {
           }),
           type: 'payment_issue',
         });
+        await this.recordPaymentLedger({
+          paymentId: payment.id,
+          orderId: order.id,
+          txnRef: dto.txnRef,
+          webhookEventId,
+          amount: dtoAmount,
+          expectedAmount: paymentAmount,
+          paidBefore,
+          remainingAfter: paymentAmount,
+          status: 'rejected',
+          note: `Amount mismatch: expected ${paymentAmount}, got ${dtoAmount}`,
+          rawPayload: dto,
+        });
         return { success: true, message: 'Amount mismatch — payment rejected for review' };
       }
 
@@ -543,6 +633,19 @@ export class PaymentsService {
           webhookEventId,
           'processed',
         );
+        await this.recordPaymentLedger({
+          paymentId: payment.id,
+          orderId: order.id,
+          txnRef: dto.txnRef,
+          webhookEventId,
+          amount: dtoAmount,
+          expectedAmount: paymentAmount,
+          paidBefore,
+          remainingAfter: paymentAmount,
+          status: 'failed',
+          note: `Bank returned final status: ${dto.status}`,
+          rawPayload: dto,
+        });
         return { success: true, message: 'Payment failed' };
       }
 
@@ -590,6 +693,19 @@ export class PaymentsService {
         webhookEventId,
         'processed',
       );
+
+      await this.recordPaymentLedger({
+        paymentId: payment.id,
+        orderId: order.id,
+        txnRef: dto.txnRef,
+        webhookEventId,
+        amount: dtoAmount,
+        expectedAmount: paymentAmount,
+        paidBefore,
+        remainingAfter: 0,
+        status: 'completed',
+        rawPayload: dto,
+      });
 
       await this.notifyLinkedParents(order.userId, {
         title: 'Thanh toán thành công',

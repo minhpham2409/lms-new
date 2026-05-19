@@ -20,6 +20,9 @@ function validateEnvironment() {
     { key: 'FRONTEND_URL' },
     { key: 'WEBHOOK_SECRET', prodOnly: true },
     { key: 'SEPAY_API_KEY', prodOnly: true },
+    { key: 'S3_ACCESS_KEY', prodOnly: true },
+    { key: 'S3_SECRET_KEY', prodOnly: true },
+    { key: 'S3_BUCKET', prodOnly: true },
   ];
 
   const missing: string[] = [];
