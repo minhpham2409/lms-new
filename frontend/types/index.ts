@@ -29,6 +29,8 @@ export interface Lesson {
   sectionId: string;
   completed?: boolean;
   watchTime?: number;
+  materials?: unknown[];
+  assignments?: Assignment[];
 }
 
 export interface Section {
@@ -48,6 +50,7 @@ export interface Course {
   level?: string;
   status?: 'draft' | 'pending' | 'published' | 'rejected';
   authorId?: string;
+  allowPlatformPromotions?: boolean;
   isPublished?: boolean;
   author: {
     id: string;

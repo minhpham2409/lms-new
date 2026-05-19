@@ -815,9 +815,12 @@ export default function TeacherPage() {
                           <h4 className="text-sm font-bold text-white mb-3">Lịch sử rút tiền</h4>
                           <div className="space-y-2 max-h-60 overflow-y-auto">
                             {myPayouts.map((p: any) => {
-                              const statusColors: Record<string, string> = { PENDING: "#f59e0b", APPROVED: "#10b981", REJECTED: "#ef4444" };
-                              const statusLabels: Record<string, string> = { PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối" };
-                              const sc = statusColors[p.status] || "#6b7280";
+                              const statusConfig: Record<string, { color: string; bg: string; border: string; icon: string; label: string }> = {
+                                PENDING: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.25)", icon: "⏳", label: "Chờ duyệt" },
+                                APPROVED: { color: "#10b981", bg: "rgba(16,185,129,0.15)", border: "rgba(16,185,129,0.35)", icon: "✅", label: "Thành công" },
+                                REJECTED: { color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.25)", icon: "❌", label: "Từ chối" },
+                              };
+                              const cfg = statusConfig[p.status] || { color: "#6b7280", bg: "rgba(107,114,128,0.1)", border: "rgba(107,114,128,0.25)", icon: "•", label: p.status };
                               return (
                                 <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/5">
                                   <div>
@@ -826,8 +829,8 @@ export default function TeacherPage() {
                                     {p.bankTransferRef && <p className="text-[10px] font-mono text-indigo-200/40">Ref: {p.bankTransferRef}</p>}
                                     {p.adminNote && <p className="text-[10px] text-indigo-200/40">{p.adminNote}</p>}
                                   </div>
-                                  <span className="px-2 py-1 rounded-full text-[10px] font-bold" style={{ background: `${sc}15`, color: sc, border: `1px solid ${sc}30` }}>
-                                    {statusLabels[p.status] || p.status}
+                                  <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+                                    {cfg.icon} {cfg.label}
                                   </span>
                                 </div>
                               );

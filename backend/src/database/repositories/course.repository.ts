@@ -118,6 +118,19 @@ export class CourseRepository extends BaseRepository<Course> {
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
+      (this.prisma as any).orderItem.findMany({
+        where: { course: { authorId }, order: { payment: { paidAmount: { gt: 0 } } } },
+        include: {
+          course: { select: { id: true, authorId: true } },
+          order: {
+            select: {
+              createdAt: true,
+              totalPrice: true,
+              payment: { select: { paidAmount: true } },
+            },
+          },
+        },
+      }),
     ]);
   }
 

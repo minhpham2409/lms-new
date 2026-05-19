@@ -17,6 +17,7 @@ import {
   LessonRepository,
   SectionRepository,
   AdminRepository,
+  NotificationRepository,
 } from '../database/repositories';
 import { PasswordService } from '../auth/services/password.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -35,6 +36,7 @@ export class AdminService implements OnApplicationBootstrap {
     private readonly lessonRepository: LessonRepository,
     private readonly sectionRepository: SectionRepository,
     private readonly adminRepository: AdminRepository,
+    private readonly notificationRepository: NotificationRepository,
     private readonly passwordService: PasswordService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     @InjectQueue(QueueNames.EMAIL) private readonly emailQueue: Queue,
@@ -454,6 +456,30 @@ export class AdminService implements OnApplicationBootstrap {
     const months = await this.adminRepository.getMonthlyRevenue();
     const totalRevenue = months.reduce((s, m) => s + m.revenue, 0);
     return { totalRevenue, months };
+  }
+
+  async getStatsRevenueDetail() {
+    return this.adminRepository.getRevenueDetails();
+  }
+
+  async getRefundRequests() {
+    return this.adminRepository.listRefundRequests();
+  }
+
+  async markRefundPaid(id: string, adminId: string, bankTransferRef?: string) {
+    const refund = await this.adminRepository.markRefundPaid(id, adminId, bankTransferRef);
+    await this.notificationRepository.create({
+      userId: refund.parentId,
+      title: 'Đã hoàn tiền chuyển khoản dư',
+      message: JSON.stringify({
+        refundRequestId: refund.id,
+        orderId: refund.orderId,
+        amount: Number(refund.amount),
+        bankTransferRef: refund.bankTransferRef,
+      }),
+      type: 'refund_paid',
+    }).catch(() => undefined);
+    return refund;
   }
 
   /** Course stats: enrollment count, average rating */

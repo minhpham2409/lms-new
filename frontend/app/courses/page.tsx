@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import {
   Search, BookOpen, Users, Star, Play, Grid3X3, List, Loader2,
-  Filter, ArrowRight, CheckCircle2
+  Filter, ArrowRight, CheckCircle2,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
@@ -65,9 +66,11 @@ function CoursesPageContent() {
   
   const [search, setSearch] = useState(initialSearch);
   const [activeCategory, setActiveCategory] = useState("Tất cả");
-  const [view, setView] = useState<"grid" | "list">("list"); // Udemy defaults to list
+  const [view, setView] = useState<"grid" | "list">("list");
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 9;
 
   useEffect(() => {
     const url = search.trim() ? `${API}/courses/search?q=${encodeURIComponent(search.trim())}` : `${API}/courses`;
@@ -80,10 +83,36 @@ function CoursesPageContent() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const filtered = courses.filter((c) => {
+  const filtered = useMemo(() => courses.filter((c) => {
     const cat = guessCategory(c.title);
     return activeCategory === "Tất cả" || cat === activeCategory;
-  });
+  }), [courses, activeCategory]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, activeCategory]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginatedCourses = filtered.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Generate page numbers for pagination buttons
+  const getPageNumbers = () => {
+    const pages: (number | '...')[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
@@ -118,6 +147,7 @@ function CoursesPageContent() {
            <div className="flex justify-between items-center mb-6">
               <div className="font-bold text-xl">
                  {filtered.length} kết quả
+                 {totalPages > 1 && <span className="text-sm font-normal text-foreground-muted ml-2">(Trang {currentPage}/{totalPages})</span>}
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setView("grid")} className={`p-2 rounded-md ${view === "grid" ? "bg-muted text-primary" : "text-foreground-muted hover:text-foreground"}`}>
@@ -185,8 +215,9 @@ function CoursesPageContent() {
                        <button onClick={() => {setSearch(""); setActiveCategory("Tất cả");}} className="btn-primary px-6 py-2">Xóa bộ lọc</button>
                     </div>
                  ) : (
+                    <>
                     <div className={view === "list" ? "space-y-4" : "grid sm:grid-cols-2 lg:grid-cols-3 gap-6"}>
-                       {filtered.map(course => {
+                       {paginatedCourses.map(course => {
                           const cat = guessCategory(course.title);
                           const authorName = course.author?.firstName || course.author?.username || "Giáo viên";
                           const lessons = course.sections?.reduce((acc, s) => acc + (s._count?.lessons || 0), 0) || 0;
@@ -256,6 +287,69 @@ function CoursesPageContent() {
                           )
                        })}
                     </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <nav className="flex items-center justify-center gap-1 mt-10 pt-8 border-t border-border" aria-label="Phân trang">
+                        {/* First page */}
+                        <button
+                          onClick={() => { setCurrentPage(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          disabled={currentPage === 1}
+                          className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Trang đầu"
+                        >
+                          <ChevronsLeft className="w-4 h-4" />
+                        </button>
+                        {/* Previous page */}
+                        <button
+                          onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          disabled={currentPage === 1}
+                          className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Trang trước"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+
+                        {/* Page numbers */}
+                        {getPageNumbers().map((page, idx) =>
+                          page === '...' ? (
+                            <span key={`ellipsis-${idx}`} className="px-2 text-foreground-muted select-none">…</span>
+                          ) : (
+                            <button
+                              key={page}
+                              onClick={() => { setCurrentPage(page as number); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                              className={`min-w-[40px] h-10 rounded-lg font-bold text-sm transition-colors ${
+                                currentPage === page
+                                  ? 'bg-primary text-white shadow-md'
+                                  : 'border border-border hover:bg-muted'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          )
+                        )}
+
+                        {/* Next page */}
+                        <button
+                          onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          disabled={currentPage === totalPages}
+                          className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Trang sau"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                        {/* Last page */}
+                        <button
+                          onClick={() => { setCurrentPage(totalPages); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          disabled={currentPage === totalPages}
+                          className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Trang cuối"
+                        >
+                          <ChevronsRight className="w-4 h-4" />
+                        </button>
+                      </nav>
+                    )}
+                    </>
                  )}
               </div>
            </div>

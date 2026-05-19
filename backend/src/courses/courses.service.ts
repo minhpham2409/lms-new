@@ -126,7 +126,7 @@ export class CoursesService {
   }
 
   async getTeacherStats(authorId: string) {
-    const [courses, enrollments, reviews, revenue, recentEnrollments] =
+    const [courses, enrollments, reviews, revenue, recentEnrollments, receivedPayments] =
       await this.courseRepository.getTeacherStatsData(authorId);
 
     // Use wallet transactions for accurate revenue (post-coupon, post-fee)
@@ -148,6 +148,16 @@ export class CoursesService {
       }
     } catch {}
 
+    const receivedRevenue = (receivedPayments as any[]).reduce((sum, item) => {
+      const totalPrice = Number(item.order?.totalPrice || 0);
+      const paidAmount = Number(item.order?.payment?.paidAmount || 0);
+      const itemPrice = Number(item.price || 0);
+      return sum + (totalPrice > 0 ? paidAmount * (itemPrice / totalPrice) : 0);
+    }, 0);
+    if (receivedRevenue > 0) {
+      totalRevenue = receivedRevenue;
+    }
+
     const totalStudents = new Set(enrollments.map((e) => e.userId)).size;
     const avgRating = reviews.length
       ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
@@ -166,8 +176,19 @@ export class CoursesService {
       };
     }).reverse();
 
-    // Use wallet earnings for monthly revenue (accurate post-coupon amounts)
-    if (walletEarnings.length > 0) {
+    // Use received bank payments for revenue chart, including partial payments.
+    if ((receivedPayments as any[]).length > 0) {
+      (receivedPayments as any[]).forEach((item: any) => {
+        if (!item.order?.createdAt) return;
+        const d = new Date(item.order.createdAt);
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const month = monthlyData.find(m => m.yearMonth === ym);
+        const totalPrice = Number(item.order?.totalPrice || 0);
+        const paidAmount = Number(item.order?.payment?.paidAmount || 0);
+        const itemPrice = Number(item.price || 0);
+        if (month) month.revenue += totalPrice > 0 ? paidAmount * (itemPrice / totalPrice) : 0;
+      });
+    } else if (walletEarnings.length > 0) {
       walletEarnings.forEach((t: any) => {
         if (!t.createdAt) return;
         const d = new Date(t.createdAt);

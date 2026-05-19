@@ -88,19 +88,19 @@ export function LandingPageClient() {
             {/* Banner image full width */}
             <div className="w-full">
               <img
-                src="/images/hero_banner_new.png"
+                src="/images/hero_banner_pro.png"
                 alt="Học trực tuyến"
-                className="w-full h-[280px] sm:h-[350px] md:h-[400px] lg:h-[480px] object-cover object-center"
+                className="w-full h-[280px] sm:h-[350px] md:h-[400px] lg:h-[480px] object-cover object-center shadow-md"
               />
             </div>
 
             {/* Floating text card - Udemy style */}
             <div className="absolute top-8 sm:top-12 lg:top-16 left-4 sm:left-8 lg:left-12 z-10">
-              <div className="bg-white dark:bg-[#2d2f31] shadow-lg p-6 sm:p-8 max-w-[420px] rounded">
-                <h1 className="text-2xl sm:text-3xl lg:text-[2.1rem] font-bold leading-tight mb-3 text-[#2d2f31] dark:text-white">
-                  Ngày xuất đã đến rồi
+              <div className="bg-white dark:bg-[#2d2f31] shadow-2xl p-6 sm:p-8 max-w-[420px] rounded-lg border border-gray-100 dark:border-gray-700">
+                <h1 className="text-2xl sm:text-3xl lg:text-[2.1rem] font-extrabold leading-tight mb-3 text-gray-900 dark:text-white">
+                  Nền tảng học tập hàng đầu
                 </h1>
-                <p className="text-sm sm:text-base text-[#6a6f73] dark:text-[#b0b5b9] leading-relaxed">
+                <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
                   Khóa học chất lượng cao dành cho học sinh cấp 2. Học từ những giáo viên xuất sắc nhất, mọi lúc mọi nơi.
                 </p>
               </div>
@@ -112,7 +112,7 @@ export function LandingPageClient() {
       {/* ===================== TRUSTED BY ===================== */}
       <section className="py-10 bg-[#f7f9fa] dark:bg-[#2d2f31] border-y border-[#d1d7dc] dark:border-[#3e4143]">
         <div className="max-w-[1340px] mx-auto px-4 text-center">
-          <p className="text-sm font-medium text-[#6a6f73] mb-6">
+          <p className="text-sm font-bold text-gray-600 dark:text-gray-400 mb-6 uppercase tracking-wider">
             Được tin tưởng bởi hơn 10,000+ học sinh và phụ huynh trên toàn quốc
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-70">
@@ -131,7 +131,7 @@ export function LandingPageClient() {
             <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-[#2d2f31] dark:text-white">
               Lựa chọn khóa học đa dạng
             </h2>
-            <p className="text-base text-[#6a6f73] dark:text-[#b0b5b9] mb-6 max-w-3xl">
+            <p className="text-base font-medium text-gray-600 dark:text-gray-300 mb-6 max-w-3xl">
               Chọn từ hàng trăm khóa học video trực tuyến với nội dung mới được cập nhật hàng tháng
             </p>
           </Reveal>
@@ -155,7 +155,7 @@ export function LandingPageClient() {
             <div className="border border-[#d1d7dc] dark:border-[#3e4143] p-6 sm:p-8 rounded">
               <div className="mb-6">
                 <h3 className="text-xl font-bold mb-2 text-[#2d2f31] dark:text-white">Đạt điểm cao môn Toán cùng các chuyên gia</h3>
-                <p className="text-[#6a6f73] dark:text-[#b0b5b9] max-w-2xl text-sm">
+                <p className="font-medium text-gray-700 dark:text-gray-300 max-w-2xl text-sm">
                   Toán học không hề khô khan khi bạn hiểu được bản chất. Khám phá các khóa học từ cơ bản đến nâng cao.
                 </p>
                 <Link href="/courses" className="inline-block mt-3 text-sm font-bold text-[#5624d0] dark:text-[#c0a5f7] hover:text-[#401b9c] underline">
@@ -165,10 +165,10 @@ export function LandingPageClient() {
 
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 {[
-                  { title: 'Toán Đại Số 9 - Ôn thi vào 10', author: 'Thầy Trần Văn A', rating: 4.8, students: 1240, price: '499.000₫', oldPrice: '899.000₫', img: '/images/new_course_thumbnail.png' },
-                  { title: 'Hình học phẳng nâng cao', author: 'Cô Nguyễn Thị B', rating: 4.9, students: 850, price: '599.000₫', oldPrice: '999.000₫', img: '/images/new_course_thumbnail.png' },
-                  { title: 'Luyện đề Toán 9 tổng hợp', author: 'Thầy Lê Văn C', rating: 4.7, students: 2100, price: '399.000₫', oldPrice: '699.000₫', img: '/images/new_course_thumbnail.png' },
-                  { title: 'Toán Cơ bản 8 - Lấy lại gốc', author: 'Thầy Trần Văn A', rating: 4.6, students: 530, price: '299.000₫', oldPrice: '599.000₫', img: '/images/new_course_thumbnail.png' },
+                  { title: 'Toán Đại Số 9 - Ôn thi vào 10', author: 'Thầy Trần Văn A', rating: 4.8, students: 1240, price: '499.000₫', oldPrice: '899.000₫', img: '/images/course_thumbnail_pro.png' },
+                  { title: 'Hình học phẳng nâng cao', author: 'Cô Nguyễn Thị B', rating: 4.9, students: 850, price: '599.000₫', oldPrice: '999.000₫', img: '/images/course_thumbnail_pro.png' },
+                  { title: 'Luyện đề Toán 9 tổng hợp', author: 'Thầy Lê Văn C', rating: 4.7, students: 2100, price: '399.000₫', oldPrice: '699.000₫', img: '/images/course_thumbnail_pro.png' },
+                  { title: 'Toán Cơ bản 8 - Lấy lại gốc', author: 'Thầy Trần Văn A', rating: 4.6, students: 530, price: '299.000₫', oldPrice: '599.000₫', img: '/images/course_thumbnail_pro.png' },
                 ].map((course, i) => (
                   <Link href="/courses" key={i} className="group cursor-pointer">
                     {/* Course thumbnail */}
@@ -262,7 +262,7 @@ export function LandingPageClient() {
                       </div>
                       <div>
                         <h3 className="text-lg font-bold mb-1 text-[#2d2f31] dark:text-white">{title}</h3>
-                        <p className="text-sm text-[#6a6f73] dark:text-[#b0b5b9] leading-relaxed">{desc}</p>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300 leading-relaxed">{desc}</p>
                       </div>
                     </div>
                   ))}
@@ -271,10 +271,10 @@ export function LandingPageClient() {
             </Reveal>
 
             <Reveal delay={200}>
-              <div className="relative">
-                <div className="border border-[#d1d7dc] dark:border-[#3e4143] rounded overflow-hidden">
-                  <img src="/images/hero_banner_new.png" alt="Platform Demo" className="w-full aspect-[4/3] object-cover" />
-                  <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative shadow-2xl rounded-xl border-4 border-white dark:border-gray-800">
+                <div className="rounded-lg overflow-hidden">
+                  <img src="/images/hero_banner_pro.png" alt="Platform Demo" className="w-full aspect-[4/3] object-cover" />
+                  <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
                     <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-xl">
                       <Play className="w-7 h-7 text-[#2d2f31] ml-1" />
                     </div>
@@ -298,10 +298,10 @@ export function LandingPageClient() {
             ].map(({ value, suffix, label }) => (
               <Reveal key={label}>
                 <div>
-                  <p className="text-3xl sm:text-4xl font-bold text-[#2d2f31] dark:text-white mb-1">
+                  <p className="text-3xl sm:text-4xl font-extrabold text-[#2d2f31] dark:text-white mb-1">
                     <Counter end={value} suffix={suffix} />
                   </p>
-                  <p className="text-sm text-[#6a6f73] dark:text-[#b0b5b9] font-medium">{label}</p>
+                  <p className="text-sm font-bold text-gray-600 dark:text-gray-300">{label}</p>
                 </div>
               </Reveal>
             ))}

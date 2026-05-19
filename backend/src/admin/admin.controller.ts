@@ -143,6 +143,25 @@ export class AdminController {
     return this.adminService.getStatsRevenue();
   }
 
+  @Get('stats/revenue/detail')
+  getStatsRevenueDetail() {
+    return this.adminService.getStatsRevenueDetail();
+  }
+
+  @Get('refund-requests')
+  getRefundRequests() {
+    return this.adminService.getRefundRequests();
+  }
+
+  @Patch('refund-requests/:id/paid')
+  markRefundPaid(
+    @Param('id') id: string,
+    @Body() body: { bankTransferRef?: string },
+    @GetUser() user: any,
+  ) {
+    return this.adminService.markRefundPaid(id, user.id, body.bankTransferRef);
+  }
+
   @Get('stats/courses')
   getStatsCourses() {
     return this.adminService.getStatsCourses();

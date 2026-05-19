@@ -4,16 +4,24 @@ import {
   BadRequestException,
   UnauthorizedException,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PaymentRepository, OrderRepository, EnrollmentRepository } from '../database/repositories';
-import { CreateQrDto, WebhookDto } from './dto';
+import {
+  PaymentRepository,
+  OrderRepository,
+  EnrollmentRepository,
+  ParentChildRepository,
+  NotificationRepository,
+} from '../database/repositories';
+import { CreateQrDto, CreateRefundRequestDto, WebhookDto } from './dto';
 import { AppEvents } from '../shared/events';
 import {
   PaymentCompletedPayload,
   PaymentFailedPayload,
 } from '../shared/events';
 import { randomInt, createHmac, timingSafeEqual, createHash } from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PaymentsService {
@@ -26,8 +34,30 @@ export class PaymentsService {
     private readonly paymentRepository: PaymentRepository,
     private readonly orderRepository: OrderRepository,
     private readonly enrollmentRepository: EnrollmentRepository,
+    private readonly parentChildRepository: ParentChildRepository,
+    private readonly notificationRepository: NotificationRepository,
+    private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
+
+  private async notifyLinkedParents(
+    childId: string,
+    payload: { title: string; message: string; type: string },
+  ) {
+    const links = await this.parentChildRepository.findParentLinks(childId);
+    await Promise.all(
+      links.map((link) =>
+        this.notificationRepository.create({
+          userId: link.parentId,
+          title: payload.title,
+          message: payload.message,
+          type: payload.type,
+        }).catch((err) => {
+          this.logger.warn(`Parent payment notification failed: ${err.message}`);
+        }),
+      ),
+    );
+  }
 
   /**
    * Verify HMAC-SHA256 signature from bank webhook.
@@ -76,6 +106,30 @@ export class PaymentsService {
     return createHash('sha256').update(canonicalPayload).digest('hex');
   }
 
+  async recordIgnoredWebhook(payload: unknown, reason: string, txnRef?: string) {
+    const eventKey = createHash('sha256')
+      .update(JSON.stringify({ provider: 'sepay', reason, txnRef: txnRef ?? '', payload }))
+      .digest('hex');
+
+    const webhookEvent = await this.paymentRepository.createWebhookEvent({
+      eventKey,
+      txnRef,
+      payload: payload as any,
+    });
+
+    if (webhookEvent.duplicate || !webhookEvent.event) {
+      return { success: true, message: 'Duplicate ignored webhook' };
+    }
+
+    await this.paymentRepository.updateWebhookEventStatus(
+      webhookEvent.event.id,
+      'rejected',
+      reason,
+    );
+
+    return { success: true, message: reason };
+  }
+
   getPaymentCodePrefix(): string {
     return (process.env.PAYMENT_CODE_PREFIX || 'HP').trim().toUpperCase();
   }
@@ -122,22 +176,25 @@ export class PaymentsService {
 
     if (reusePending) {
       const addInfo = `${this.getPaymentCodePrefix()}${existing.txnRef}`;
-      const amount = Number(order.finalPrice);
+      // Use payment.amount (may have been updated to remaining after partial payment)
+      const amount = Number((existing as any).remainingAmount || existing.amount);
       return {
         ...existing,
         bankCode,
         bankAccount,
         accountName,
         addInfo,
+        amount,
         vietQrUrl: `https://img.vietqr.io/image/${bankCode}-${bankAccount}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accountName)}`,
       };
     }
 
+    // Use existing payment amount (remaining after partial) or order finalPrice for new payments
+    const paymentAmount = existing ? Number((existing as any).remainingAmount || existing.amount) : Number(order.finalPrice);
     const txnRef = this.createPaymentCodeSuffix();
-    const finalPrice = Number(order.finalPrice);
     const addInfo = `${this.getPaymentCodePrefix()}${txnRef}`;
-    const vietQrUrl = `https://img.vietqr.io/image/${bankCode}-${bankAccount}-compact2.png?amount=${finalPrice}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accountName)}`;
-    const qrData = `VIETQR|${txnRef}|${finalPrice}|${addInfo}`;
+    const vietQrUrl = `https://img.vietqr.io/image/${bankCode}-${bankAccount}-compact2.png?amount=${paymentAmount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accountName)}`;
+    const qrData = `VIETQR|${txnRef}|${paymentAmount}|${addInfo}`;
 
     let payment;
     if (existing) {
@@ -150,9 +207,10 @@ export class PaymentsService {
       payment = await this.paymentRepository.create({
         orderId: dto.orderId,
         amount: order.finalPrice,
+        remainingAmount: order.finalPrice,
         txnRef,
         qrData,
-      });
+      } as any);
     }
 
     return {
@@ -161,8 +219,85 @@ export class PaymentsService {
       bankAccount,
       accountName,
       addInfo,
+      amount: paymentAmount,
       vietQrUrl,
     };
+  }
+
+  async createRefundRequest(dto: CreateRefundRequestDto, parentId: string) {
+    const order = await this.orderRepository.findByIdWithDetails(dto.orderId);
+    if (!order) throw new NotFoundException('Order not found');
+
+    const link = await this.parentChildRepository.findLink(parentId, order.userId);
+    if (!link || link.status !== 'accepted') {
+      throw new ForbiddenException('Parent is not linked to this student');
+    }
+
+    const amount = Math.round(Number(dto.amount) * 100) / 100;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Refund amount must be greater than zero');
+    }
+
+    const existing = await (this.prisma as any).refundRequest.findFirst({
+      where: {
+        orderId: order.id,
+        parentId,
+        amount,
+        status: { in: ['PENDING', 'APPROVED'] },
+      },
+    });
+    if (existing) return existing;
+
+    const bankCode = dto.bankName.trim().toUpperCase();
+    const bankAccount = dto.bankAccount.trim();
+    const bankOwner = dto.bankOwner.trim().toUpperCase();
+    const refundInfo = `HOAN TIEN ${order.id.substring(0, 8).toUpperCase()}`;
+    const refundQrUrl = `https://img.vietqr.io/image/${bankCode}-${bankAccount}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(refundInfo)}&accountName=${encodeURIComponent(bankOwner)}`;
+    const refundQrData = `VIETQR_REFUND|${bankCode}|${bankAccount}|${amount}|${refundInfo}`;
+
+    const refund = await (this.prisma as any).refundRequest.create({
+      data: {
+        orderId: order.id,
+        paymentId: order.payment?.id,
+        parentId,
+        childId: order.userId,
+        amount,
+        bankName: bankCode,
+        bankAccount,
+        bankOwner,
+        refundQrUrl,
+        refundQrData,
+        note: dto.note?.trim(),
+      },
+    });
+
+    const admins = await this.prisma.user.findMany({
+      where: { role: 'admin' },
+      select: { id: true },
+    });
+
+    await Promise.all(
+      admins.map((admin) =>
+        this.notificationRepository.create({
+          userId: admin.id,
+          title: 'Yêu cầu hoàn tiền chuyển khoản dư',
+          message: JSON.stringify({
+            refundRequestId: refund.id,
+            orderId: order.id,
+            amount,
+            bankName: refund.bankName,
+            bankAccount: refund.bankAccount,
+            bankOwner: refund.bankOwner,
+            refundQrUrl,
+          }),
+          type: 'refund_request',
+        }).catch((err) => {
+          this.logger.warn(`Admin refund notification failed: ${err.message}`);
+        }),
+      ),
+    );
+
+    return refund;
   }
 
   /**
@@ -192,7 +327,7 @@ export class PaymentsService {
 
     if (webhookEvent.duplicate) {
       this.logger.warn(`[Webhook replay] Duplicate event ignored for txnRef ${dto.txnRef}`);
-      return { message: 'Duplicate webhook ignored' };
+      return { success: true, message: 'Duplicate webhook ignored' };
     }
 
     const webhookEventId = webhookEvent.event!.id;
@@ -208,7 +343,7 @@ export class PaymentsService {
           webhookEventId,
           'duplicate',
         );
-        return { message: 'Already processed' };
+        return { success: true, message: 'Already processed' };
       }
 
       // 4. Payment must be pending
@@ -230,7 +365,7 @@ export class PaymentsService {
           webhookEventId,
           'processed',
         );
-        return { message: 'Payment status acknowledged' };
+        return { success: true, message: 'Payment status acknowledged' };
       }
 
       if (!this.successStatuses.has(normalizedStatus) && !this.finalFailureStatuses.has(normalizedStatus)) {
@@ -240,14 +375,136 @@ export class PaymentsService {
           'rejected',
           `Unknown status: ${dto.status}`,
         );
-        return { message: 'Payment status rejected for review' };
+        return { success: true, message: 'Payment status rejected for review' };
       }
 
       // 6. Amount verification — dto.amount must match payment.amount.
-      // Do not fail the order automatically; reject the event for manual review.
       const paymentAmount = Number(payment.amount);
+      const paidBefore = Number((payment as any).paidAmount || 0);
       const dtoAmount = Number(dto.amount);
       if (Math.abs(paymentAmount - dtoAmount) > 0.01) {
+        // ── UNDERPAYMENT: auto-generate new QR for remaining amount ──
+        if (dtoAmount < paymentAmount && this.successStatuses.has(normalizedStatus)) {
+          const remaining = Math.round((paymentAmount - dtoAmount) * 100) / 100;
+          this.logger.warn(
+            `[UNDERPAYMENT] Payment ${payment.id}: expected ${paymentAmount}, got ${dtoAmount}, remaining ${remaining}`,
+          );
+
+          // Record this partial payment event as processed
+          await this.paymentRepository.updateWebhookEventStatus(
+            webhookEventId,
+            'processed',
+            `Partial payment: received ${dtoAmount}, remaining ${remaining}`,
+          );
+
+          // Generate new txnRef for the remaining amount
+          const newTxnRef = this.createPaymentCodeSuffix();
+          const addInfo = `${this.getPaymentCodePrefix()}${newTxnRef}`;
+          const qrData = `VIETQR|${newTxnRef}|${remaining}|${addInfo}`;
+
+          // Update payment: new txnRef, new amount = remaining only
+          await this.paymentRepository.update(payment.id, {
+            amount: remaining,
+            paidAmount: paidBefore + dtoAmount,
+            remainingAmount: remaining,
+            txnRef: newTxnRef,
+            qrData,
+          } as any);
+
+          // Notify parents about partial payment + new QR
+          await this.notifyLinkedParents(order.userId, {
+            title: 'Chuyển khoản thiếu tiền',
+            message: JSON.stringify({
+              orderId: order.id,
+              expectedAmount: paymentAmount,
+              paidAmount: dtoAmount,
+              totalPaidAmount: paidBefore + dtoAmount,
+              remainingAmount: remaining,
+              newTxnRef,
+            }),
+            type: 'payment_issue',
+          });
+
+          // Also notify the student
+          await this.notificationRepository.create({
+            userId: order.userId,
+            title: '⚠️ Chuyển khoản thiếu tiền',
+            message: `Đơn hàng đã nhận ${dtoAmount.toLocaleString('vi-VN')} ₫, còn thiếu ${remaining.toLocaleString('vi-VN')} ₫. Mã QR mới đã được tạo tự động.`,
+            type: 'warning',
+          }).catch(() => undefined);
+
+          return { success: true, message: `Partial payment received. Remaining: ${remaining}` };
+        }
+
+        // ── OVERPAYMENT: complete the order, then ask parent for refund details ──
+        if (dtoAmount > paymentAmount && this.successStatuses.has(normalizedStatus)) {
+          const overpaidAmount = Math.round((dtoAmount - paymentAmount) * 100) / 100;
+          const totalPaidAmount = paidBefore + dtoAmount;
+          this.logger.warn(
+            `[OVERPAYMENT] Payment ${payment.id}: expected ${paymentAmount}, got ${dtoAmount}, overpaid ${overpaidAmount}`,
+          );
+
+          const courseItems = order.items.map((item) => ({ courseId: item.courseId }));
+          const result = await this.paymentRepository.completePaymentTransaction({
+            paymentId: payment.id,
+            orderId: payment.orderId,
+            userId: order.userId,
+            courseItems,
+            couponId: order.couponId ?? undefined,
+            paidAmount: totalPaidAmount,
+            overpaidAmount,
+          });
+
+          if (result?.alreadyProcessed) {
+            await this.paymentRepository.updateWebhookEventStatus(
+              webhookEventId,
+              'duplicate',
+            );
+            return { success: true, message: 'Already processed' };
+          }
+
+          const titles = order.items
+            .map((item) => item.course?.title)
+            .filter((t): t is string => !!t);
+
+          this.eventEmitter.emit(AppEvents.PAYMENT_COMPLETED, {
+            paymentId: payment.id,
+            orderId: order.id,
+            userId: order.userId,
+            amount: Number(order.finalPrice),
+            courseIds: courseItems.map((c) => c.courseId),
+            courseTitles: titles,
+          } as PaymentCompletedPayload);
+
+          await this.paymentRepository.updateWebhookEventStatus(
+            webhookEventId,
+            'processed',
+            `Overpayment: expected ${paymentAmount}, got ${dtoAmount}, refund ${overpaidAmount}`,
+          );
+
+          await this.notifyLinkedParents(order.userId, {
+            title: 'Thanh toán dư tiền',
+            message: JSON.stringify({
+              orderId: order.id,
+              expectedAmount: paymentAmount,
+              paidAmount: dtoAmount,
+              totalPaidAmount,
+              overpaidAmount,
+            }),
+            type: 'payment_overpaid',
+          });
+
+          await this.notificationRepository.create({
+            userId: order.userId,
+            title: 'Thanh toán thành công, có tiền chuyển dư',
+            message: `Đơn hàng đã được kích hoạt. Số tiền chuyển dư ${overpaidAmount.toLocaleString('vi-VN')} ₫ sẽ được hoàn sau khi phụ huynh gửi thông tin ngân hàng.`,
+            type: 'warning',
+          }).catch(() => undefined);
+
+          return { success: true, message: `Payment confirmed with overpayment. Refund: ${overpaidAmount}` };
+        }
+
+        // ── Non-success mismatch: keep for manual review ──
         this.logger.error(
           `[AMOUNT MISMATCH] Payment ${payment.id}: expected ${paymentAmount}, got ${dtoAmount}`,
         );
@@ -256,7 +513,16 @@ export class PaymentsService {
           'rejected',
           `Amount mismatch: expected ${paymentAmount}, got ${dtoAmount}`,
         );
-        return { message: 'Amount mismatch — payment rejected for review' };
+        await this.notifyLinkedParents(order.userId, {
+          title: 'Thanh toán chưa khớp',
+          message: JSON.stringify({
+            orderId: order.id,
+            expectedAmount: paymentAmount,
+            paidAmount: dtoAmount,
+          }),
+          type: 'payment_issue',
+        });
+        return { success: true, message: 'Amount mismatch — payment rejected for review' };
       }
 
       // ── Payment Failed ─────────────────────────────────────────────────────
@@ -277,7 +543,7 @@ export class PaymentsService {
           webhookEventId,
           'processed',
         );
-        return { message: 'Payment failed' };
+        return { success: true, message: 'Payment failed' };
       }
 
       // ── Payment Success: Atomic Transaction ────────────────────────────────
@@ -290,6 +556,7 @@ export class PaymentsService {
         userId: order.userId,
         courseItems,
         couponId: order.couponId ?? undefined,
+        paidAmount: paidBefore + dtoAmount,
       });
 
       // Duplicate webhook that arrived after we already processed — safe
@@ -298,7 +565,7 @@ export class PaymentsService {
           webhookEventId,
           'duplicate',
         );
-        return { message: 'Already processed' };
+        return { success: true, message: 'Already processed' };
       }
 
       this.logger.log(
@@ -324,7 +591,16 @@ export class PaymentsService {
         'processed',
       );
 
-      return { message: 'Payment confirmed, enrollments created' };
+      await this.notifyLinkedParents(order.userId, {
+        title: 'Thanh toán thành công',
+        message: JSON.stringify({
+          orderId: order.id,
+          amount: Number(order.finalPrice),
+        }),
+        type: 'payment_success',
+      });
+
+      return { success: true, message: 'Payment confirmed, enrollments created' };
     } catch (error) {
       await this.paymentRepository.updateWebhookEventStatus(
         webhookEventId,

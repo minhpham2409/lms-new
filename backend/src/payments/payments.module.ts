@@ -6,6 +6,8 @@ import {
   PaymentRepository,
   OrderRepository,
   EnrollmentRepository,
+  ParentChildRepository,
+  NotificationRepository,
 } from '../database/repositories';
 
 @Module({
@@ -16,6 +18,8 @@ import {
     PaymentRepository,
     OrderRepository,
     EnrollmentRepository,
+    ParentChildRepository,
+    NotificationRepository,
   ],
   exports: [PaymentsService],
 })

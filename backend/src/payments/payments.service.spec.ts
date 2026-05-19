@@ -1,8 +1,15 @@
 import { createHmac } from 'crypto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentsService } from './payments.service';
-import { PaymentRepository, OrderRepository, EnrollmentRepository } from '../database/repositories';
+import {
+  PaymentRepository,
+  OrderRepository,
+  EnrollmentRepository,
+  ParentChildRepository,
+  NotificationRepository,
+} from '../database/repositories';
 import { AppEvents } from '../shared/events';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
@@ -10,10 +17,14 @@ describe('PaymentsService', () => {
     createWebhookEvent: jest.Mock;
     updateWebhookEventStatus: jest.Mock;
     findByTxnRef: jest.Mock;
+    update: jest.Mock;
     completePaymentTransaction: jest.Mock;
     failPaymentTransaction: jest.Mock;
   };
   let orderRepository: { findByIdWithDetails: jest.Mock };
+  let parentChildRepository: { findParentLinks: jest.Mock };
+  let notificationRepository: { create: jest.Mock };
+  let prisma: { refundRequest: { findFirst: jest.Mock; create: jest.Mock }; orderItem: { findMany: jest.Mock } };
   let eventEmitter: { emit: jest.Mock };
 
   beforeEach(() => {
@@ -25,11 +36,27 @@ describe('PaymentsService', () => {
       }),
       updateWebhookEventStatus: jest.fn().mockResolvedValue({}),
       findByTxnRef: jest.fn(),
+      update: jest.fn().mockResolvedValue({}),
       completePaymentTransaction: jest.fn().mockResolvedValue({ alreadyProcessed: false }),
       failPaymentTransaction: jest.fn().mockResolvedValue({ alreadyProcessed: false }),
     };
     orderRepository = {
       findByIdWithDetails: jest.fn(),
+    };
+    parentChildRepository = {
+      findParentLinks: jest.fn().mockResolvedValue([]),
+    };
+    notificationRepository = {
+      create: jest.fn().mockResolvedValue({}),
+    };
+    prisma = {
+      refundRequest: {
+        findFirst: jest.fn(),
+        create: jest.fn(),
+      },
+      orderItem: {
+        findMany: jest.fn(),
+      },
     };
     eventEmitter = { emit: jest.fn() };
 
@@ -37,6 +64,9 @@ describe('PaymentsService', () => {
       paymentRepository as unknown as PaymentRepository,
       orderRepository as unknown as OrderRepository,
       {} as EnrollmentRepository,
+      parentChildRepository as unknown as ParentChildRepository,
+      notificationRepository as unknown as NotificationRepository,
+      prisma as unknown as PrismaService,
       eventEmitter as unknown as EventEmitter2,
     );
   });
@@ -76,13 +106,14 @@ describe('PaymentsService', () => {
       signature: sign('txn-1', 100, 'success'),
     });
 
-    expect(result).toEqual({ message: 'Payment confirmed, enrollments created' });
+    expect(result).toEqual({ success: true, message: 'Payment confirmed, enrollments created' });
     expect(paymentRepository.completePaymentTransaction).toHaveBeenCalledWith({
       paymentId: 'payment-1',
       orderId: 'order-1',
       userId: 'student-1',
       courseItems: [{ courseId: 'course-1' }],
       couponId: undefined,
+      paidAmount: 100,
     });
     expect(eventEmitter.emit).toHaveBeenCalledWith(
       AppEvents.PAYMENT_COMPLETED,
@@ -95,7 +126,7 @@ describe('PaymentsService', () => {
     );
   });
 
-  it('rejects amount mismatch without completing payment', async () => {
+  it('handles underpayment by creating a remaining payment QR', async () => {
     paymentRepository.findByTxnRef.mockResolvedValue({
       id: 'payment-1',
       orderId: 'order-1',
@@ -117,12 +148,13 @@ describe('PaymentsService', () => {
       signature: sign('txn-1', 50, 'success'),
     });
 
-    expect(result).toEqual({ message: 'Amount mismatch — payment rejected for review' });
+    expect(result).toEqual({ success: true, message: 'Partial payment received. Remaining: 50' });
     expect(paymentRepository.completePaymentTransaction).not.toHaveBeenCalled();
+    expect(paymentRepository.update).toHaveBeenCalledWith('payment-1', expect.objectContaining({ amount: 50 }));
     expect(paymentRepository.updateWebhookEventStatus).toHaveBeenCalledWith(
       'event-1',
-      'rejected',
-      'Amount mismatch: expected 100, got 50',
+      'processed',
+      'Partial payment: received 50, remaining 50',
     );
   });
 
@@ -139,7 +171,7 @@ describe('PaymentsService', () => {
       signature: sign('txn-1', 100, 'success'),
     });
 
-    expect(result).toEqual({ message: 'Duplicate webhook ignored' });
+    expect(result).toEqual({ success: true, message: 'Duplicate webhook ignored' });
     expect(paymentRepository.findByTxnRef).not.toHaveBeenCalled();
     expect(paymentRepository.completePaymentTransaction).not.toHaveBeenCalled();
   });

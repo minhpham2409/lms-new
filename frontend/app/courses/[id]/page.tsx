@@ -17,6 +17,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 interface CourseData {
   id: string; title: string; description: string; price: number; status: string;
+  allowPlatformPromotions?: boolean;
   author: { id: string; username: string; firstName?: string; lastName?: string };
   sections: { id: string; title: string; order: number; lessons: { id: string; title: string; duration?: number; order: number }[] }[];
   _count: { enrollments: number };
@@ -39,6 +40,9 @@ export default function CourseDetailPage() {
   const [hasParent, setHasParent] = useState<boolean | null>(null);
   const [sendingQR, setSendingQR] = useState(false);
   const [courseQrData, setCourseQrData] = useState<{ vietQrUrl: string; txnRef: string; addInfo: string; amount: number } | null>(null);
+  const [buyNowCoupon, setBuyNowCoupon] = useState("");
+  const [buyNowCouponPreview, setBuyNowCouponPreview] = useState<any | null>(null);
+  const [buyNowCouponLoading, setBuyNowCouponLoading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
@@ -46,11 +50,13 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     fetchCourse();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (token && course) checkEnrollment();
     if (token && user?.role === "student") checkParentLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, course]);
 
   async function checkParentLink() {
@@ -73,6 +79,7 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     if (course) fetchReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course]);
 
   async function fetchCourse() {
@@ -172,6 +179,7 @@ export default function CourseDetailPage() {
     }
     setShowQR(true);
     setSendingQR(true);
+    setBuyNowCouponPreview(null);
     setCourseQrData(null);
     try {
       await fetch(`${API}/cart/add`, {
@@ -183,7 +191,7 @@ export default function CourseDetailPage() {
       const orderRes = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
+        body: JSON.stringify(buyNowCoupon.trim() ? { couponCode: buyNowCoupon.trim().toUpperCase() } : {}),
       });
       if (!orderRes.ok) {
         const err = await orderRes.json().catch(() => ({}));
@@ -213,6 +221,41 @@ export default function CourseDetailPage() {
       }
     } catch { toast.error("Lỗi kết nối"); }
     finally { setSendingQR(false); }
+  }
+
+  async function previewBuyNowCoupon() {
+    if (!buyNowCoupon.trim()) return;
+    setBuyNowCouponLoading(true);
+    setBuyNowCouponPreview(null);
+    try {
+      const addRes = await fetch(`${API}/cart/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ courseId: id }),
+      });
+      if (!addRes.ok && addRes.status !== 409) {
+        const data = await addRes.json().catch(() => ({}));
+        toast.error(data.message || "Không thể kiểm tra mã giảm giá");
+        return;
+      }
+
+      const res = await fetch(`${API}/cart/apply-coupon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code: buyNowCoupon.trim().toUpperCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setBuyNowCouponPreview(data);
+        toast.success("Mã giảm giá hợp lệ");
+      } else {
+        toast.error(data.message || "Mã giảm giá không hợp lệ");
+      }
+    } catch {
+      toast.error("Lỗi kết nối");
+    } finally {
+      setBuyNowCouponLoading(false);
+    }
   }
 
   async function handleAddToCart() {
@@ -513,6 +556,35 @@ export default function CourseDetailPage() {
                            <button onClick={course.price > 0 ? handleAddToCart : handleEnrollFree} disabled={actionLoading} className="w-full bg-primary text-white font-bold py-3.5 hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center">
                               {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (course.price > 0 ? "Thêm vào giỏ" : "Đăng ký miễn phí")}
                            </button>
+                           {course.price > 0 && (
+                             <div className="flex gap-2">
+                               <input
+                                 value={buyNowCoupon}
+                                 onChange={(e) => {
+                                   setBuyNowCoupon(e.target.value.toUpperCase());
+                                   setBuyNowCouponPreview(null);
+                                 }}
+                                 placeholder="Mã giảm giá"
+                                 disabled={course.allowPlatformPromotions === false}
+                                 className="flex-1 px-3 py-2 border border-border bg-background text-sm outline-none focus:border-primary disabled:opacity-60"
+                               />
+                               <button
+                                 onClick={previewBuyNowCoupon}
+                                 disabled={buyNowCouponLoading || !buyNowCoupon.trim() || course.allowPlatformPromotions === false}
+                                 className="px-3 py-2 border border-border text-xs font-bold hover:bg-muted disabled:opacity-50"
+                               >
+                                 {buyNowCouponLoading ? "..." : "Áp dụng"}
+                               </button>
+                             </div>
+                           )}
+                           {course.price > 0 && course.allowPlatformPromotions === false && (
+                             <p className="text-[11px] text-yellow-500">Khóa học này không áp dụng mã giảm giá.</p>
+                           )}
+                           {buyNowCouponPreview && (
+                             <p className="text-[11px] text-emerald-500">
+                               Đã áp dụng {buyNowCouponPreview.code}: giảm {Number(buyNowCouponPreview.savings || 0).toLocaleString("vi-VN")} ₫
+                             </p>
+                           )}
                            {course.price > 0 && (
                              <button onClick={handleBuyNow} disabled={actionLoading} className="w-full border border-border font-bold py-3 hover:bg-muted transition-colors disabled:opacity-50">
                                Mua ngay

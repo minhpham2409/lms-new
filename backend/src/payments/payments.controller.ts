@@ -6,11 +6,13 @@ import {
   Logger,
   Headers,
   UnauthorizedException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
-import { CreateQrDto, WebhookDto, SepayWebhookDto } from './dto';
+import { CreateQrDto, CreateRefundRequestDto, WebhookDto, SepayWebhookDto } from './dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { GetUser } from '../common/decorators/get-user.decorator';
 
@@ -30,16 +32,27 @@ export class PaymentsController {
     return this.paymentsService.createQr(dto, user.id);
   }
 
+  @Post('refund-requests')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create refund request for overpaid parent payment' })
+  @ApiResponse({ status: 201, description: 'Refund request created' })
+  createRefundRequest(@Body() dto: CreateRefundRequestDto, @GetUser() user: any) {
+    return this.paymentsService.createRefundRequest(dto, user.id);
+  }
+
   /**
    * Generic webhook endpoint — accepts the internal WebhookDto format.
    * Used for direct integration or testing via Postman / manual calls.
    */
   @Post('webhook')
+  @HttpCode(HttpStatus.OK)
   @SkipThrottle()
   @ApiOperation({ summary: 'Bank webhook — confirm payment (generic format)' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
-  webhook(@Body() dto: WebhookDto) {
-    return this.paymentsService.handleWebhook(dto);
+  async webhook(@Body() dto: WebhookDto) {
+    const result = await this.paymentsService.handleWebhook(dto);
+    return { success: true, ...result };
   }
 
   /**
@@ -65,6 +78,7 @@ export class PaymentsController {
    * and converts to our internal WebhookDto format.
    */
   @Post('webhook/sepay')
+  @HttpCode(HttpStatus.OK)
   @SkipThrottle()
   @ApiOperation({ summary: 'SePay bank webhook — auto-confirm payment' })
   @ApiResponse({ status: 200, description: 'SePay webhook processed' })
@@ -97,7 +111,11 @@ export class PaymentsController {
 
     if (!match || !match[1]) {
       this.logger.warn(`[SePay] Cannot extract txnRef from content: "${dto.content}"`);
-      return { success: true, message: 'No matching txnRef found in content' };
+      const result = await this.paymentsService.recordIgnoredWebhook(
+        dto,
+        'No matching txnRef found in content',
+      );
+      return { success: true, ...result };
     }
 
     const txnRef = match[1];
@@ -114,8 +132,9 @@ export class PaymentsController {
       // No HMAC signature from SePay — verified via API key above
     };
 
-    return this.paymentsService.handleWebhook(webhookDto, {
+    const result = await this.paymentsService.handleWebhook(webhookDto, {
       skipSignatureVerification: true, // Already verified via SEPAY_API_KEY
     });
+    return { success: true, ...result };
   }
 }

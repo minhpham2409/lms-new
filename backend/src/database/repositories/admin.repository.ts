@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, WalletTransactionType } from '@prisma/client';
 
 /**
  * Admin-specific repository for dashboard stats and aggregate queries.
@@ -114,5 +114,178 @@ export class AdminRepository {
         : null,
       createdAt: c.createdAt,
     }));
+  }
+
+  /** Detailed revenue and payment reconciliation snapshot for admin finance view. */
+  async getRevenueDetails() {
+    const [
+      paidAgg,
+      receivedAgg,
+      pendingAgg,
+      remainingAgg,
+      failedAgg,
+      paidCount,
+      pendingCount,
+      failedCount,
+      teacherEarnings,
+      recentOrders,
+      webhookEvents,
+      refundRequests,
+    ] = await Promise.all([
+      this.prisma.order.aggregate({
+        where: { status: OrderStatus.paid },
+        _sum: { totalPrice: true, finalPrice: true },
+      }),
+      this.prisma.payment.aggregate({
+        _sum: { paidAmount: true, overpaidAmount: true },
+      } as any),
+      this.prisma.order.aggregate({
+        where: { status: OrderStatus.pending },
+        _sum: { finalPrice: true },
+      }),
+      this.prisma.payment.aggregate({
+        where: { status: 'pending' },
+        _sum: { remainingAmount: true },
+      } as any),
+      this.prisma.order.aggregate({
+        where: { status: OrderStatus.failed },
+        _sum: { finalPrice: true },
+      }),
+      this.prisma.order.count({ where: { status: OrderStatus.paid } }),
+      this.prisma.order.count({ where: { status: OrderStatus.pending } }),
+      this.prisma.order.count({ where: { status: OrderStatus.failed } }),
+      this.prisma.walletTransaction.aggregate({
+        where: { type: WalletTransactionType.EARNING },
+        _sum: { amount: true },
+      }),
+      this.prisma.order.findMany({
+        where: { status: OrderStatus.paid },
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        include: {
+          user: { select: { id: true, username: true, email: true } },
+          payment: true,
+          items: {
+            include: {
+              course: {
+                select: {
+                  id: true,
+                  title: true,
+                  author: { select: { id: true, username: true, firstName: true, lastName: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.webhookEvent.findMany({
+        where: { status: { in: ['rejected', 'failed'] } },
+        orderBy: { receivedAt: 'desc' },
+        take: 10,
+      }),
+      (this.prisma as any).refundRequest.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        include: {
+          parent: { select: { id: true, username: true, email: true, firstName: true, lastName: true } },
+          order: { select: { id: true, userId: true, status: true } },
+        },
+      }),
+    ]);
+
+    const paidOrders = await this.prisma.order.findMany({
+      where: { status: OrderStatus.paid },
+      include: {
+        items: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                title: true,
+                author: { select: { id: true, username: true, firstName: true, lastName: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const topCourses = new Map<string, {
+      id: string;
+      title: string;
+      teacher: unknown;
+      revenue: number;
+      orders: number;
+    }>();
+
+    for (const order of paidOrders) {
+      const totalPrice = Number(order.totalPrice);
+      const finalPrice = Number(order.finalPrice);
+      for (const item of order.items) {
+        const itemPrice = Number(item.price);
+        const allocatedRevenue = totalPrice > 0 ? finalPrice * (itemPrice / totalPrice) : 0;
+        const current = topCourses.get(item.courseId) ?? {
+          id: item.courseId,
+          title: item.course?.title ?? 'Khóa học',
+          teacher: item.course?.author ?? null,
+          revenue: 0,
+          orders: 0,
+        };
+        current.revenue += allocatedRevenue;
+        current.orders += 1;
+        topCourses.set(item.courseId, current);
+      }
+    }
+
+    const grossRevenue = Number(paidAgg._sum.finalPrice ?? 0);
+    const receivedRevenue = Number((receivedAgg as any)._sum.paidAmount ?? 0);
+    const listPriceRevenue = Number(paidAgg._sum.totalPrice ?? 0);
+    const discountTotal = Math.max(listPriceRevenue - grossRevenue, 0);
+    const teacherRevenue = Number(teacherEarnings._sum.amount ?? 0);
+
+    return {
+      summary: {
+        grossRevenue,
+        receivedRevenue,
+        listPriceRevenue,
+        discountTotal,
+        teacherRevenue,
+        platformRevenue: Math.max(grossRevenue - teacherRevenue, 0),
+        pendingAmount: Number((remainingAgg as any)._sum.remainingAmount ?? pendingAgg._sum.finalPrice ?? 0),
+        overpaidAmount: Number((receivedAgg as any)._sum.overpaidAmount ?? 0),
+        failedAmount: Number(failedAgg._sum.finalPrice ?? 0),
+        paidOrders: paidCount,
+        pendingOrders: pendingCount,
+        failedOrders: failedCount,
+      },
+      topCourses: Array.from(topCourses.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 8),
+      recentOrders,
+      paymentIssues: webhookEvents,
+      refundRequests,
+    };
+  }
+
+  listRefundRequests() {
+    return (this.prisma as any).refundRequest.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        parent: { select: { id: true, username: true, email: true, firstName: true, lastName: true } },
+        order: { select: { id: true, userId: true, status: true } },
+      },
+    });
+  }
+
+  markRefundPaid(id: string, adminId: string, bankTransferRef?: string) {
+    return (this.prisma as any).refundRequest.update({
+      where: { id },
+      data: {
+        status: 'PAID',
+        processedByAdminId: adminId,
+        processedAt: new Date(),
+        bankTransferRef,
+      },
+    });
   }
 }

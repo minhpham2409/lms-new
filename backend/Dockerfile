@@ -40,4 +40,4 @@ RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files
 EXPOSE 4000
 
 # Run migrations then start app
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main.js"]

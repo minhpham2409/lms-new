@@ -90,62 +90,14 @@ export default function Certificate({ courseId }: CertificateProps) {
       // Use html2canvas to convert the certificate to image
       const html2canvas = (await import('html2canvas')).default;
       
-      // Create a style element to override problematic CSS
-      const style = document.createElement('style');
-      style.textContent = `
-        .certificate-override * {
-          color: rgb(30, 64, 175) !important; /* blue-800 */
-          background-color: rgb(255, 255, 255) !important;
-          border-color: rgb(96, 165, 250) !important; /* blue-300 */
-        }
-        .certificate-override .bg-gradient-to-br {
-          background: linear-gradient(135deg, rgb(239, 246, 255), rgb(224, 231, 255)) !important;
-        }
-        .certificate-override .bg-blue-600 {
-          background-color: rgb(37, 99, 235) !important;
-        }
-        .certificate-override .text-blue-900 {
-          color: rgb(30, 58, 138) !important;
-        }
-        .certificate-override .text-blue-800 {
-          color: rgb(30, 64, 175) !important;
-        }
-        .certificate-override .text-blue-700 {
-          color: rgb(29, 78, 216) !important;
-        }
-        .certificate-override .text-blue-600 {
-          color: rgb(37, 99, 235) !important;
-        }
-        .certificate-override .border-blue-200 {
-          border-color: rgb(191, 219, 254) !important;
-        }
-        .certificate-override .border-blue-300 {
-          border-color: rgb(147, 197, 253) !important;
-        }
-        .certificate-override .text-white {
-          color: rgb(255, 255, 255) !important;
-        }
-      `;
-      document.head.appendChild(style);
-      
-      // Add the override class to the certificate element
-      certificateRef.current.classList.add('certificate-override');
-      
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
         allowTaint: false,
         logging: false,
-        ignoreElements: (element) => {
-          // Ignore elements that might cause issues
-          return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
-        }
+        ignoreElements: (element) => element.tagName === 'SCRIPT' || element.tagName === 'STYLE'
       });
-      
-      // Clean up
-      certificateRef.current.classList.remove('certificate-override');
-      document.head.removeChild(style);
       
       // Convert to blob and download
       canvas.toBlob((blob) => {
@@ -175,64 +127,76 @@ export default function Certificate({ courseId }: CertificateProps) {
               <head>
                 <title>Certificate - ${course?.title}</title>
                 <style>
-                  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+                  body { font-family: 'Times New Roman', serif; margin: 0; padding: 20px; display: flex; justify-content: center; background: #f1f5f9; }
                   .certificate { 
-                    background: linear-gradient(135deg, #eff6ff, #e0e7ff);
-                    border: 4px solid #bfdbfe;
-                    border-radius: 8px;
-                    padding: 48px;
+                    background: #ffffff;
+                    border: 16px solid #1e3a8a;
+                    box-shadow: inset 0 0 0 4px #eab308, 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                    padding: 60px;
                     text-align: center;
-                    min-height: 500px;
+                    width: 800px;
+                    height: 550px;
+                    position: relative;
+                    box-sizing: border-box;
                     display: flex;
                     flex-direction: column;
-                    justify-content: center;
+                    justify-content: space-between;
+                  }
+                  .inner-border {
+                    position: absolute;
+                    top: 16px; left: 16px; right: 16px; bottom: 16px;
+                    border: 2px solid #eab308;
+                    opacity: 0.5;
+                    pointer-events: none;
                   }
                   .icon { 
-                    background: #2563eb;
+                    background: linear-gradient(135deg, #fde047, #eab308, #ca8a04);
                     color: white;
                     width: 80px;
                     height: 80px;
                     border-radius: 50%;
+                    border: 2px solid #fef08a;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    margin: 0 auto 24px;
-                    font-size: 24px;
+                    margin: 0 auto 20px;
+                    font-size: 32px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
                   }
-                  .title { font-size: 32px; font-weight: bold; color: #1e3a8a; margin-bottom: 24px; }
-                  .text { font-size: 18px; color: #1e40af; margin-bottom: 12px; }
-                  .name { font-size: 24px; font-weight: bold; color: #1e3a8a; margin: 16px 0; }
-                  .course { font-size: 24px; font-weight: bold; color: #1e3a8a; margin: 16px 0 24px; }
-                  .details { display: flex; justify-content: center; gap: 32px; color: #1d4ed8; margin-top: 24px; }
-                  .detail { text-align: center; }
-                  .detail-label { font-weight: bold; margin-bottom: 4px; }
-                  .footer { margin-top: 32px; padding-top: 24px; border-top: 2px solid #93c5fd; font-size: 14px; color: #2563eb; }
+                  .title { font-size: 48px; font-weight: bold; color: #1e3a8a; margin: 0 0 10px; letter-spacing: 4px; }
+                  .subtitle { font-size: 18px; color: #64748b; letter-spacing: 6px; margin: 0 0 30px; }
+                  .text { font-size: 18px; color: #475569; font-style: italic; margin-bottom: 15px; }
+                  .name { font-size: 36px; font-weight: bold; color: #0f172a; margin: 0 0 15px; }
+                  .course { font-size: 28px; font-weight: bold; color: #1e3a8a; margin: 0 0 40px; }
+                  .signatures { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 40px; margin-top: auto; }
+                  .sig-block { text-align: center; width: 180px; }
+                  .sig-line { border-bottom: 1px solid #94a3b8; margin-bottom: 8px; padding-bottom: 8px; font-family: 'Brush Script MT', cursive; font-size: 24px; color: #334155; }
+                  .sig-label { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-family: Arial, sans-serif; }
+                  .seal { width: 60px; height: 60px; border-radius: 50%; background: #eff6ff; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: #2563eb; font-size: 24px; }
                 </style>
               </head>
               <body>
                 <div class="certificate">
-                  <div class="icon">🏆</div>
-                  <h1 class="title">Certificate of Completion</h1>
-                  <p class="text">This certifies that</p>
-                  <p class="name">${user?.firstName ?? user?.username ?? 'Student'}</p>
-                  <p class="text">has successfully completed</p>
-                  <p class="course">${course?.title}</p>
-                  <div class="details">
-                    <div class="detail">
-                      <div class="detail-label">Instructor</div>
-                      <div>${course?.author.username}</div>
-                    </div>
-                    <div class="detail">
-                      <div class="detail-label">Date</div>
-                      <div>${completedAt}</div>
-                    </div>
-                    <div class="detail">
-                      <div class="detail-label">Progress</div>
-                      <div>${Math.round(progress)}%</div>
-                    </div>
+                  <div class="inner-border"></div>
+                  <div>
+                    <div class="icon">★</div>
+                    <h1 class="title">CERTIFICATE</h1>
+                    <p class="subtitle">OF COMPLETION</p>
+                    <p class="text">This is to certify that</p>
+                    <p class="name">${user?.firstName ?? user?.username ?? 'Student'}</p>
+                    <p class="text">has successfully completed the course</p>
+                    <p class="course">${course?.title}</p>
                   </div>
-                  <div class="footer">
-                    Let's Learn - Online Learning Platform
+                  <div class="signatures">
+                    <div class="sig-block">
+                      <div class="sig-line">${course?.author.username}</div>
+                      <div class="sig-label">Instructor</div>
+                    </div>
+                    <div class="seal">✓</div>
+                    <div class="sig-block">
+                      <div class="sig-line" style="font-family: 'Times New Roman', serif; font-size: 18px;">${completedAt}</div>
+                      <div class="sig-label">Date Issued</div>
+                    </div>
                   </div>
                 </div>
               </body>
@@ -326,56 +290,105 @@ export default function Certificate({ courseId }: CertificateProps) {
             </div>
 
             {/* Certificate Preview */}
-            <div
-              ref={certificateRef}
-              className="p-12 rounded-lg border-4 text-center shadow-lg"
-              style={{ 
-                minHeight: '500px',
-                background: 'linear-gradient(135deg, #eff6ff, #e0e7ff)',
-                borderColor: '#bfdbfe'
-              }}
-            >
-              <div className="space-y-6">
-                <div className="flex justify-center mb-6">
-                  <div className="p-4 rounded-full" style={{ backgroundColor: '#2563eb', color: '#ffffff' }}>
-                    <Award className="h-12 w-12" />
-                  </div>
-                </div>
-                
-                <h1 className="text-4xl font-bold mb-4" style={{ color: '#1e3a8a' }}>
-                  Certificate of Completion
-                </h1>
-                
-                <div className="text-lg" style={{ color: '#1e40af' }}>
-                  <p className="mb-2">This certifies that</p>
-                  <p className="text-2xl font-bold mb-4" style={{ color: '#1e3a8a' }}>
-                    {user?.firstName ?? user?.username ?? 'Student'}
-                  </p>
-                  <p className="mb-2">has successfully completed</p>
-                  <p className="text-2xl font-bold mb-6" style={{ color: '#1e3a8a' }}>
-                    {course.title}
-                  </p>
-                </div>
-                
-                <div className="flex justify-center items-center gap-8" style={{ color: '#1d4ed8' }}>
+            <div className="overflow-x-auto pb-4 flex justify-center">
+              <div
+                ref={certificateRef}
+                className="relative bg-white shrink-0"
+                style={{ 
+                  width: '800px',
+                  height: '560px',
+                  border: '14px solid #1e3a8a', // Navy blue border
+                  boxShadow: 'inset 0 0 0 4px #eab308', // Gold inner accent
+                  padding: '40px',
+                  boxSizing: 'border-box',
+                  fontFamily: '"Times New Roman", Times, serif'
+                }}
+              >
+                {/* Decorative Inner Border */}
+                <div 
+                  style={{
+                    position: 'absolute',
+                    top: '16px', left: '16px', right: '16px', bottom: '16px',
+                    border: '2px solid #eab308',
+                    opacity: 0.4,
+                    pointerEvents: 'none'
+                  }}
+                />
+
+                <div className="relative z-10 h-full flex flex-col justify-between pt-4">
                   <div className="text-center">
-                    <p className="font-semibold">Instructor</p>
-                    <p>{course.author.username}</p>
+                    <div className="flex justify-center mb-4">
+                      {/* Gold Ribbon/Seal */}
+                      <div style={{
+                        width: '72px', height: '72px',
+                        background: 'linear-gradient(135deg, #fde047, #eab308, #ca8a04)',
+                        borderRadius: '50%',
+                        border: '2px solid #fef08a',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                      }}>
+                        <Award style={{ color: 'white', width: '36px', height: '36px' }} />
+                      </div>
+                    </div>
+                    
+                    <h1 style={{ color: '#1e3a8a', fontSize: '42px', fontWeight: 'bold', margin: '0 0 8px 0', letterSpacing: '4px' }}>
+                      CERTIFICATE
+                    </h1>
+                    <h2 style={{ color: '#64748b', fontSize: '16px', letterSpacing: '6px', margin: '0 0 24px 0' }}>
+                      OF COMPLETION
+                    </h2>
+                    
+                    <p style={{ color: '#475569', fontSize: '18px', fontStyle: 'italic', margin: '0 0 12px 0' }}>
+                      This is to certify that
+                    </p>
+                    
+                    <p style={{ color: '#0f172a', fontSize: '32px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
+                      {user?.firstName ?? user?.username ?? 'Student'}
+                    </p>
+                    
+                    <p style={{ color: '#475569', fontSize: '18px', fontStyle: 'italic', margin: '0 0 24px 0' }}>
+                      has successfully completed the course
+                    </p>
+                    
+                    <p style={{ color: '#1e3a8a', fontSize: '26px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
+                      {course.title}
+                    </p>
                   </div>
-                  <div className="text-center">
-                    <p className="font-semibold">Date</p>
-                    <p>{completedAt}</p>
+                  
+                  <div className="flex justify-between items-end px-12 pb-2">
+                    <div className="text-center w-48">
+                      <div style={{ borderBottom: '1px solid #94a3b8', paddingBottom: '4px', marginBottom: '8px' }}>
+                        {/* Simulated cursive signature font */}
+                        <span style={{ fontFamily: '"Brush Script MT", cursive', fontSize: '24px', color: '#334155' }}>
+                          {course.author.username}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'Arial, sans-serif' }}>
+                        Instructor
+                      </p>
+                    </div>
+                    
+                    <div className="text-center w-24">
+                      <div style={{
+                        width: '56px', height: '56px', margin: '0 auto',
+                        background: '#eff6ff', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <CheckCircle style={{ color: '#2563eb', width: '28px', height: '28px' }} />
+                      </div>
+                    </div>
+                    
+                    <div className="text-center w-48">
+                      <div style={{ borderBottom: '1px solid #94a3b8', paddingBottom: '8px', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '18px', color: '#334155' }}>
+                          {completedAt}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'Arial, sans-serif' }}>
+                        Date Issued
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="font-semibold">Progress</p>
-                    <p>{Math.round(progress)}%</p>
-                  </div>
-                </div>
-                
-                <div className="mt-8 pt-6 border-t-2" style={{ borderColor: '#93c5fd' }}>
-                  <p className="text-sm" style={{ color: '#2563eb' }}>
-                    Let&apos;s Learn - Online Learning Platform
-                  </p>
                 </div>
               </div>
             </div>

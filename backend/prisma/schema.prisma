@@ -36,6 +36,7 @@ model User {
   monthlyWins      MonthlyWinner[] @relation("MonthlyWinners")
   notifications    Notification[]
   orders           Order[]
+  refundRequests   RefundRequest[] @relation("ParentRefundRequests")
   childLinks       ParentChild[]   @relation("ChildRelations")
   parentLinks      ParentChild[]   @relation("ParentRelations")
   quizAttempts     QuizAttempt[]   @relation("QuizAttempts")
@@ -347,8 +348,37 @@ model Order {
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items      OrderItem[]
   payment    Payment?
+  refunds    RefundRequest[]
 
   @@index([userId, status, createdAt])
+}
+
+model RefundRequest {
+  id          String              @id @default(uuid())
+  orderId     String
+  paymentId   String?
+  parentId    String
+  childId     String
+  amount      Decimal             @db.Decimal(10, 2)
+  bankName    String
+  bankAccount String
+  bankOwner   String
+  refundQrUrl String?
+  refundQrData String?
+  processedByAdminId String?
+  processedAt DateTime?
+  bankTransferRef String?
+  note        String?
+  status      RefundRequestStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  order       Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  parent      User                @relation("ParentRefundRequests", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([parentId])
+  @@index([childId])
+  @@index([status, createdAt])
 }
 
 model OrderItem {
@@ -365,6 +395,9 @@ model Payment {
   id        String        @id @default(uuid())
   orderId   String        @unique
   amount    Decimal       @db.Decimal(10, 2)
+  paidAmount Decimal      @default(0) @db.Decimal(10, 2)
+  remainingAmount Decimal @default(0) @db.Decimal(10, 2)
+  overpaidAmount Decimal  @default(0) @db.Decimal(10, 2)
   status    PaymentStatus @default(pending)
   qrData    String?
   txnRef    String?       @unique
@@ -606,4 +639,11 @@ enum PayoutStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
 }
