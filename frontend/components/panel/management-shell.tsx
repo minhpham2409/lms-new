@@ -33,10 +33,21 @@ export function ManagementShell({
   requiredRole: 'teacher' | 'parent' | 'admin';
   navItems: PanelNavItem[];
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoggedIn, loading, logout } = useAuth();
+
+  useEffect(() => {
+    const syncSidebar = () => setOpen(window.innerWidth >= 768);
+    syncSidebar();
+    window.addEventListener('resize', syncSidebar);
+    return () => window.removeEventListener('resize', syncSidebar);
+  }, []);
+
+  const closeSidebarOnSmallScreen = () => {
+    if (window.innerWidth < 768) setOpen(false);
+  };
 
   useEffect(() => {
     if (!loading && !isLoggedIn) router.push('/auth/login');
@@ -118,7 +129,7 @@ export function ManagementShell({
         )}
         <aside
           className={cn(
-            'fixed left-0 top-16 z-20 h-[calc(100vh-64px)] w-72 shrink-0 border-r bg-white shadow-sm transition-transform duration-300 ease-out',
+            'fixed left-0 top-16 z-20 h-[calc(100vh-64px)] w-[min(18rem,calc(100vw-2rem))] shrink-0 overflow-y-auto border-r bg-white shadow-sm transition-transform duration-300 ease-out sm:w-72',
             open ? 'translate-x-0' : '-translate-x-full',
           )}
         >
@@ -132,6 +143,7 @@ export function ManagementShell({
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={closeSidebarOnSmallScreen}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
                     active

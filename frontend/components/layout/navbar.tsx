@@ -237,7 +237,14 @@ export function Navbar() {
       </nav>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-[#d1d7dc] dark:border-[#3e4143] bg-white dark:bg-[#1c1d1f]">
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 top-[70px] z-40 bg-black/30 md:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close navigation"
+          />
+          <aside className="fixed left-0 top-[70px] z-50 h-[calc(100vh-70px)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto border-r border-[#d1d7dc] bg-white shadow-xl dark:border-[#3e4143] dark:bg-[#1c1d1f] md:hidden">
           <div className="px-4 py-4 space-y-1">
              <form onSubmit={handleSearch} className="mb-4">
                 <input 
@@ -255,6 +262,15 @@ export function Navbar() {
             {isLoggedIn && user ? (
               <div className="pt-3 flex flex-col gap-2 border-t border-[#d1d7dc] dark:border-[#3e4143]">
                 <Link href={dashboardLink} onClick={() => setMobileOpen(false)} className="w-full text-center py-2.5 text-sm font-bold border border-[#2d2f31] dark:border-white text-[#2d2f31] dark:text-white rounded">Dashboard</Link>
+                <Link href="/notifications" onClick={() => setMobileOpen(false)} className="w-full text-center py-2.5 text-sm font-bold border border-[#d1d7dc] dark:border-[#3e4143] text-[#2d2f31] dark:text-white rounded">
+                  Thông báo{notifCount > 0 ? ` (${notifCount > 99 ? "99+" : notifCount})` : ""}
+                </Link>
+                {user.role === "student" && (
+                  <Link href="/cart" onClick={() => setMobileOpen(false)} className="w-full text-center py-2.5 text-sm font-bold border border-[#d1d7dc] dark:border-[#3e4143] text-[#2d2f31] dark:text-white rounded">
+                    Giỏ hàng{cartCount > 0 ? ` (${cartCount})` : ""}
+                  </Link>
+                )}
+                <Link href="/profile" onClick={() => setMobileOpen(false)} className="w-full text-center py-2.5 text-sm font-bold border border-[#d1d7dc] dark:border-[#3e4143] text-[#2d2f31] dark:text-white rounded">Hồ sơ</Link>
                 <button onClick={handleLogout} className="w-full text-center py-2.5 text-sm font-bold text-[#ef4444] hover:bg-[#fef2f2] rounded">Đăng xuất</button>
               </div>
             ) : (
@@ -264,7 +280,8 @@ export function Navbar() {
               </div>
             )}
           </div>
-        </div>
+          </aside>
+        </>
       )}
     </header>
   );

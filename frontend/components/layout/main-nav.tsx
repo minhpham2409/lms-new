@@ -157,8 +157,15 @@ export function MainNav() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-16 z-50 bg-background md:hidden overflow-y-auto">
-          <div className="container py-6 flex flex-col gap-4 px-4">
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 top-16 z-40 bg-black/30 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close navigation"
+          />
+          <aside className="fixed left-0 top-16 z-50 h-[calc(100vh-64px)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto border-r bg-background shadow-xl md:hidden">
+          <div className="flex flex-col gap-4 p-4">
             <nav className="flex flex-col gap-1">
               {navItems.map((item) => (
                 <Link
@@ -218,7 +225,8 @@ export function MainNav() {
               )}
             </div>
           </div>
-        </div>
+          </aside>
+        </>
       )}
     </header>
   );

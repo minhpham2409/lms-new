@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-state';
@@ -27,11 +27,22 @@ function dashboardHref(role: string | undefined) {
 }
 
 export function StudentAppShell({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoggedIn, logout } = useAuth();
   const role = user?.role;
+
+  useEffect(() => {
+    const syncSidebar = () => setOpen(window.innerWidth >= 768);
+    syncSidebar();
+    window.addEventListener('resize', syncSidebar);
+    return () => window.removeEventListener('resize', syncSidebar);
+  }, []);
+
+  const closeSidebarOnSmallScreen = () => {
+    if (window.innerWidth < 768) setOpen(false);
+  };
 
   const dash = dashboardHref(role);
   const DashIcon =
@@ -125,7 +136,7 @@ export function StudentAppShell({ children }: { children: React.ReactNode }) {
         )}
         <aside
           className={cn(
-            'fixed left-0 top-16 z-20 h-[calc(100vh-64px)] w-72 shrink-0 border-r bg-white shadow-sm transition-transform duration-300 ease-out',
+            'fixed left-0 top-16 z-20 h-[calc(100vh-64px)] w-[min(18rem,calc(100vw-2rem))] shrink-0 overflow-y-auto border-r bg-white shadow-sm transition-transform duration-300 ease-out sm:w-72',
             open ? 'translate-x-0' : '-translate-x-full',
           )}
         >
@@ -142,6 +153,7 @@ export function StudentAppShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={closeSidebarOnSmallScreen}
                     className={cn(
                       'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
                       active
