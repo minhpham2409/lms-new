@@ -15,6 +15,7 @@ import {
   ParentChildRepository,
 } from '../database/repositories';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateAssignmentDto,
   UpdateAssignmentDto,
@@ -32,6 +33,7 @@ export class AssignmentsService {
     private readonly userRepository: UserRepository,
     private readonly parentChildRepository: ParentChildRepository,
     private readonly notificationsService: NotificationsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /** Admin: all; teacher: own course; student: published course + enrolled. */
@@ -178,6 +180,33 @@ export class AssignmentsService {
       status: 'graded',
       gradedAt: new Date(),
     });
+
+    await (this.prisma as any).auditLog.create({
+      data: {
+        actorId: authorId,
+        actorRole: 'teacher',
+        action: 'submission.grade',
+        entityType: 'Submission',
+        entityId: submissionId,
+        before: {
+          score: submission.score,
+          feedback: submission.feedback,
+          status: submission.status,
+          gradedAt: submission.gradedAt,
+        },
+        after: {
+          score: updated.score,
+          feedback: updated.feedback,
+          status: updated.status,
+          gradedAt: updated.gradedAt,
+        },
+        metadata: {
+          assignmentId: assignment.id,
+          courseId: assignment.lesson.section.courseId,
+          studentId: submission.studentId,
+        },
+      },
+    }).catch(() => undefined);
 
     const fb = dto.feedback?.trim();
     const lessonId = assignment.lesson.id;

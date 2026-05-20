@@ -122,4 +122,144 @@ export class StudentDashboardRepository {
       },
     });
   }
+
+  getActiveEnrollmentsWithLessons(userId: string) {
+    return this.prisma.enrollment.findMany({
+      where: { userId, status: 'active' },
+      include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+            thumbnail: true,
+            author: { select: { id: true, username: true, firstName: true, lastName: true } },
+            sections: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true,
+                title: true,
+                order: true,
+                lessons: {
+                  orderBy: { order: 'asc' },
+                  select: { id: true, title: true, order: true, duration: true, videoUrl: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  getVideoProgressForCourses(userId: string, courseIds: string[]) {
+    if (courseIds.length === 0) return Promise.resolve([]);
+    return this.prisma.videoProgress.findMany({
+      where: { userId, lesson: { section: { courseId: { in: courseIds } } } },
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+            order: true,
+            section: { select: { courseId: true, title: true, order: true } },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  getPendingLearningTasks(userId: string, courseIds: string[], take = 12) {
+    if (courseIds.length === 0) return Promise.resolve([]);
+    return this.prisma.assignment.findMany({
+      where: {
+        lesson: { section: { courseId: { in: courseIds } } },
+      },
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+            section: { select: { courseId: true, title: true, course: { select: { title: true } } } },
+          },
+        },
+        quiz: {
+          select: {
+            id: true,
+            attempts: {
+              where: { studentId: userId },
+              select: { id: true, score: true, maxScore: true, createdAt: true },
+            },
+          },
+        },
+        submissions: {
+          where: { studentId: userId },
+          select: { id: true, status: true, score: true, feedback: true, createdAt: true, gradedAt: true },
+        },
+      },
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+      take: take * 2,
+    });
+  }
+
+  getRecentGradedSubmissions(userId: string, courseIds: string[], take = 6) {
+    if (courseIds.length === 0) return Promise.resolve([]);
+    return this.prisma.submission.findMany({
+      where: {
+        studentId: userId,
+        status: 'graded',
+        assignment: { lesson: { section: { courseId: { in: courseIds } } } },
+      },
+      include: {
+        assignment: {
+          select: {
+            id: true,
+            title: true,
+            maxScore: true,
+            lesson: {
+              select: {
+                id: true,
+                title: true,
+                section: { select: { courseId: true, course: { select: { title: true } } } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { gradedAt: 'desc' },
+      take,
+    });
+  }
+
+  getRecentQuizResults(userId: string, courseIds: string[], take = 6) {
+    if (courseIds.length === 0) return Promise.resolve([]);
+    return this.prisma.quizAttempt.findMany({
+      where: {
+        studentId: userId,
+        quiz: { assignment: { lesson: { section: { courseId: { in: courseIds } } } } },
+      },
+      include: {
+        quiz: {
+          select: {
+            assignment: {
+              select: {
+                id: true,
+                title: true,
+                lesson: {
+                  select: {
+                    id: true,
+                    title: true,
+                    section: { select: { courseId: true, course: { select: { title: true } } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take,
+    });
+  }
 }

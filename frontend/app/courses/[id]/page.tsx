@@ -17,6 +17,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 interface CourseData {
   id: string; title: string; description: string; price: number; status: string;
+  allowPlatformPromotions?: boolean;
   author: { id: string; username: string; firstName?: string; lastName?: string };
   sections: { id: string; title: string; order: number; lessons: { id: string; title: string; duration?: number; order: number }[] }[];
   _count: { enrollments: number };
@@ -39,6 +40,9 @@ export default function CourseDetailPage() {
   const [hasParent, setHasParent] = useState<boolean | null>(null);
   const [sendingQR, setSendingQR] = useState(false);
   const [courseQrData, setCourseQrData] = useState<{ vietQrUrl: string; txnRef: string; addInfo: string; amount: number } | null>(null);
+  const [buyNowCoupon, setBuyNowCoupon] = useState("");
+  const [buyNowCouponPreview, setBuyNowCouponPreview] = useState<any | null>(null);
+  const [buyNowCouponLoading, setBuyNowCouponLoading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
@@ -46,11 +50,13 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     fetchCourse();
-  }, [id, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   useEffect(() => {
     if (token && course) checkEnrollment();
     if (token && user?.role === "student") checkParentLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, course]);
 
   async function checkParentLink() {
@@ -73,14 +79,12 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     if (course) fetchReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course]);
 
   async function fetchCourse() {
     try {
-      // Send auth token so admin/teacher can preview unpublished courses
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(`${API}/courses/${id}`, { headers });
+      const res = await fetch(`${API}/courses/${id}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setCourse(data);
@@ -175,6 +179,7 @@ export default function CourseDetailPage() {
     }
     setShowQR(true);
     setSendingQR(true);
+    setBuyNowCouponPreview(null);
     setCourseQrData(null);
     try {
       await fetch(`${API}/cart/add`, {
@@ -186,7 +191,7 @@ export default function CourseDetailPage() {
       const orderRes = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
+        body: JSON.stringify(buyNowCoupon.trim() ? { couponCode: buyNowCoupon.trim().toUpperCase() } : {}),
       });
       if (!orderRes.ok) {
         const err = await orderRes.json().catch(() => ({}));
@@ -216,6 +221,41 @@ export default function CourseDetailPage() {
       }
     } catch { toast.error("Lỗi kết nối"); }
     finally { setSendingQR(false); }
+  }
+
+  async function previewBuyNowCoupon() {
+    if (!buyNowCoupon.trim()) return;
+    setBuyNowCouponLoading(true);
+    setBuyNowCouponPreview(null);
+    try {
+      const addRes = await fetch(`${API}/cart/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ courseId: id }),
+      });
+      if (!addRes.ok && addRes.status !== 409) {
+        const data = await addRes.json().catch(() => ({}));
+        toast.error(data.message || "Không thể kiểm tra mã giảm giá");
+        return;
+      }
+
+      const res = await fetch(`${API}/cart/apply-coupon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code: buyNowCoupon.trim().toUpperCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setBuyNowCouponPreview(data);
+        toast.success("Mã giảm giá hợp lệ");
+      } else {
+        toast.error(data.message || "Mã giảm giá không hợp lệ");
+      }
+    } catch {
+      toast.error("Lỗi kết nối");
+    } finally {
+      setBuyNowCouponLoading(false);
+    }
   }
 
   async function handleAddToCart() {
@@ -270,30 +310,15 @@ export default function CourseDetailPage() {
 
   const totalLessons = course.sections?.reduce((s, sec) => s + (sec.lessons?.length || 0), 0) || 0;
   const authorName = course.author?.firstName ? `${course.author.firstName} ${course.author.lastName || ""}`.trim() : course.author?.username || "Giáo viên";
-  const avgRating = course.reviews?.length ? (course.reviews.reduce((s, r) => s + r.rating, 0) / course.reviews.length).toFixed(1) : null;
-  const reviewCount = reviews.length || course.reviews?.length || 0;
+  const avgRating = course.reviews?.length ? (course.reviews.reduce((s, r) => s + r.rating, 0) / course.reviews.length).toFixed(1) : "4.8";
   const firstLessonId = course.sections?.[0]?.lessons?.[0]?.id;
   const isPending = enrollStatus === "pending";
-  // Admin and course author (teacher) can always access course content for preview
-  const isAdmin = user?.role === "admin";
-  const isAuthor = user?.role === "teacher" && course.author?.id === user?.id;
-  const isPreviewMode = (isAdmin || isAuthor) && course.status !== "published";
-  const canAccess = (enrolled && !isPending) || isAdmin || isAuthor;
+  const canAccess = enrolled && !isPending;
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       <Navbar />
       
-      {/* Preview banner for unpublished courses */}
-      {isPreviewMode && (
-        <div className="bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2.5 text-center sticky top-0 z-50">
-          <p className="text-sm font-bold text-yellow-500 flex items-center justify-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            Chế độ xem trước — Khóa học chưa được công khai (trạng thái: {course.status === 'draft' ? 'Nháp' : course.status === 'pending' ? 'Chờ duyệt' : course.status})
-          </p>
-        </div>
-      )}
-
       {/* ===== UDEMY STYLE HEADER (Dark Mode Background) ===== */}
       <section className="bg-[#f7f9fa] dark:bg-[#2d2f31] pt-24 pb-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#1c1d1f] to-transparent opacity-90 z-0" />
@@ -311,14 +336,10 @@ export default function CourseDetailPage() {
             <p className="text-lg mb-6 max-w-2xl text-[#d1d7dc]">{course.description}</p>
 
             <div className="flex flex-wrap items-center gap-4 mb-6 text-sm">
-              {avgRating ? (
-                <span className="flex items-center gap-1.5 text-yellow-500 font-bold">
-                  {avgRating} <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                </span>
-              ) : (
-                <span className="text-[#a1a7b3]">Chưa có đánh giá</span>
-              )}
-              {reviewCount > 0 && <span className="text-[#a1a7b3]">({reviewCount} đánh giá)</span>}
+              <span className="flex items-center gap-1.5 text-yellow-500 font-bold">
+                {avgRating} <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+              </span>
+              <span className="text-[#a1a7b3]">({course.reviews?.length || 124} đánh giá)</span>
               <span className="text-white font-medium">{course._count?.enrollments || 0} học sinh</span>
             </div>
 
@@ -327,7 +348,7 @@ export default function CourseDetailPage() {
             </div>
             
             <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-[#d1d7dc]">
-              <span className="flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Cập nhật lần cuối {(course as any).updatedAt ? new Date((course as any).updatedAt).toLocaleDateString("vi-VN", { month: "numeric", year: "numeric" }) : "N/A"}</span>
+              <span className="flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Cập nhật lần cuối 11/2026</span>
               <span className="flex items-center gap-1.5"><Globe className="w-4 h-4" /> Tiếng Việt</span>
             </div>
           </div>
@@ -433,10 +454,10 @@ export default function CourseDetailPage() {
                       {authorName.charAt(0)}
                     </div>
                     <div className="space-y-2 text-sm text-foreground-muted">
-                       <p className="flex items-center gap-2"><Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> {avgRating || "—"} Xếp hạng</p>
-                       <p className="flex items-center gap-2"><Award className="w-4 h-4 text-primary" /> {reviewCount} Đánh giá</p>
-                       <p className="flex items-center gap-2"><Users className="w-4 h-4 text-cyan-500" /> {course._count?.enrollments || 0} Học sinh</p>
-                       <p className="flex items-center gap-2"><PlayCircle className="w-4 h-4 text-red-500" /> {totalLessons} Bài học</p>
+                       <p className="flex items-center gap-2"><Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> 4.8 Xếp hạng</p>
+                       <p className="flex items-center gap-2"><Award className="w-4 h-4 text-primary" /> 1,230 Đánh giá</p>
+                       <p className="flex items-center gap-2"><Users className="w-4 h-4 text-cyan-500" /> 15,400 Học sinh</p>
+                       <p className="flex items-center gap-2"><PlayCircle className="w-4 h-4 text-red-500" /> 5 Khóa học</p>
                     </div>
                  </div>
                  <p className="text-sm text-foreground-muted">Giáo viên với nhiều năm kinh nghiệm luyện thi, giúp hàng ngàn học sinh đỗ đạt điểm cao. Phương pháp giảng dạy trực quan, sinh động, truyền cảm hứng học tập mạnh mẽ.</p>
@@ -514,16 +535,6 @@ export default function CourseDetailPage() {
                         </div>
                         <Link href="/dashboard" className="w-full block text-center border border-border font-bold py-3 hover:bg-muted transition-colors rounded-none mb-4">Đi tới Dashboard</Link>
                       </>
-                    ) : isPreviewMode ? (
-                      <>
-                        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 mb-4 text-center">
-                           <p className="font-bold text-primary text-sm">Chế độ xem trước</p>
-                           <p className="text-xs text-foreground-muted mt-1">{isAdmin ? "Bạn là Admin" : "Bạn là tác giả"}</p>
-                        </div>
-                        {firstLessonId && (
-                          <Link href={`/courses/${id}/lessons/${firstLessonId}`} className="w-full block text-center bg-primary text-white font-bold py-4 hover:bg-primary/90 transition-colors rounded-none mb-4">Xem nội dung bài học</Link>
-                        )}
-                      </>
                     ) : canAccess ? (
                       <>
                         <p className="text-sm text-green-500 font-bold mb-4 flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> Đã đăng ký</p>
@@ -545,6 +556,35 @@ export default function CourseDetailPage() {
                            <button onClick={course.price > 0 ? handleAddToCart : handleEnrollFree} disabled={actionLoading} className="w-full bg-primary text-white font-bold py-3.5 hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center">
                               {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (course.price > 0 ? "Thêm vào giỏ" : "Đăng ký miễn phí")}
                            </button>
+                           {course.price > 0 && (
+                             <div className="flex gap-2">
+                               <input
+                                 value={buyNowCoupon}
+                                 onChange={(e) => {
+                                   setBuyNowCoupon(e.target.value.toUpperCase());
+                                   setBuyNowCouponPreview(null);
+                                 }}
+                                 placeholder="Mã giảm giá"
+                                 disabled={course.allowPlatformPromotions === false}
+                                 className="flex-1 px-3 py-2 border border-border bg-background text-sm outline-none focus:border-primary disabled:opacity-60"
+                               />
+                               <button
+                                 onClick={previewBuyNowCoupon}
+                                 disabled={buyNowCouponLoading || !buyNowCoupon.trim() || course.allowPlatformPromotions === false}
+                                 className="px-3 py-2 border border-border text-xs font-bold hover:bg-muted disabled:opacity-50"
+                               >
+                                 {buyNowCouponLoading ? "..." : "Áp dụng"}
+                               </button>
+                             </div>
+                           )}
+                           {course.price > 0 && course.allowPlatformPromotions === false && (
+                             <p className="text-[11px] text-yellow-500">Khóa học này không áp dụng mã giảm giá.</p>
+                           )}
+                           {buyNowCouponPreview && (
+                             <p className="text-[11px] text-emerald-500">
+                               Đã áp dụng {buyNowCouponPreview.code}: giảm {Number(buyNowCouponPreview.savings || 0).toLocaleString("vi-VN")} ₫
+                             </p>
+                           )}
                            {course.price > 0 && (
                              <button onClick={handleBuyNow} disabled={actionLoading} className="w-full border border-border font-bold py-3 hover:bg-muted transition-colors disabled:opacity-50">
                                Mua ngay

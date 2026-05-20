@@ -39,5 +39,5 @@ RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files
 
 EXPOSE 4000
 
-# Run migrations then start app
+# Run versioned migrations then start app. Never use db push in production.
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

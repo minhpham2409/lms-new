@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -10,6 +10,8 @@ import {
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth/auth-state";
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+
 const allNavLinks = [
   { href: "/courses", label: "Khóa học", roles: ["student", null] },
   { href: "/teachers", label: "Giáo viên", roles: null },
@@ -18,36 +20,23 @@ const allNavLinks = [
   { href: "/about", label: "Giới thiệu", roles: null }, // visible to all
 ];
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
-  const { user, token, isLoggedIn, logout, loading } = useAuth();
+  const { user, isLoggedIn, logout, loading, token } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Fetch unread notifications count
-  useEffect(() => {
-    if (!token || !isLoggedIn) { setUnreadCount(0); return; }
-    fetch(`${API}/notifications`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        const unread = Array.isArray(data) ? data.filter((n: any) => !n.isRead).length : 0;
-        setUnreadCount(unread);
-      })
-      .catch(() => setUnreadCount(0));
-  }, [token, isLoggedIn, pathname]);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -57,6 +46,36 @@ export function Navbar() {
       return () => document.removeEventListener("click", handleClick);
     }
   }, [userMenuOpen]);
+
+  // Fetch notification count and cart count
+  const fetchCounts = useCallback(async () => {
+    if (!token || !isLoggedIn) return;
+    try {
+      const [notifRes, cartRes] = await Promise.all([
+        fetch(`${API}/notifications`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+        user?.role === "student"
+          ? fetch(`${API}/cart`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      if (notifRes?.ok) {
+        const notifs = await notifRes.json();
+        setNotifCount(Array.isArray(notifs) ? notifs.filter((n: any) => !n.isRead).length : 0);
+      }
+      if (cartRes?.ok) {
+        const cart = await cartRes.json();
+        setCartCount(Array.isArray(cart) ? cart.length : 0);
+      }
+    } catch {}
+  }, [token, isLoggedIn, user?.role]);
+
+  useEffect(() => {
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 15000);
+    return () => clearInterval(interval);
+  }, [fetchCounts]);
+
+  // Re-fetch counts when pathname changes (e.g. after checkout)
+  useEffect(() => { fetchCounts(); }, [pathname, fetchCounts]);
 
   const handleLogout = () => {
     logout();
@@ -140,9 +159,9 @@ export function Navbar() {
                 {/* Notifications */}
                 <Link href="/notifications" className="relative p-2 rounded-full hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] text-[#2d2f31] dark:text-white">
                   <Bell className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[#a435f0] text-white text-[10px] font-bold px-1">
-                      {unreadCount > 99 ? "99+" : unreadCount}
+                  {notifCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ef4444] text-white text-[10px] font-bold flex items-center justify-center">
+                      {notifCount > 99 ? "99+" : notifCount}
                     </span>
                   )}
                 </Link>
@@ -151,6 +170,11 @@ export function Navbar() {
                 {user.role === "student" && (
                   <Link href="/cart" className="relative p-2 rounded-full hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] text-[#2d2f31] dark:text-white">
                     <ShoppingCart className="w-5 h-5" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#a435f0] text-white text-[10px] font-bold flex items-center justify-center">
+                        {cartCount}
+                      </span>
+                    )}
                   </Link>
                 )}
 

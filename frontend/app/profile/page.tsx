@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
@@ -14,12 +13,13 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 const TAB_ITEMS = [
   { id: "info", label: "Hồ sơ công khai", icon: User },
   { id: "security", label: "Bảo mật tài khoản", icon: Shield },
+  { id: "sessions", label: "Phiên đăng nhập", icon: Settings },
 ];
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, token, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<"info" | "security">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "security" | "sessions">("info");
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", address: "", bio: "" });
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -132,17 +132,13 @@ export default function ProfilePage() {
               {TAB_ITEMS.map(({ id, label, icon: Icon }, i) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id as "info" | "security")}
+                  onClick={() => setActiveTab(id as "info" | "security" | "sessions")}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors text-left ${i < TAB_ITEMS.length - 1 ? "border-b border-[#d1d7dc] dark:border-[#3e4143]" : ""} ${activeTab === id ? "bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.1)] text-[#5624d0] dark:text-[#c0a5f7] font-bold" : "text-[#2d2f31] dark:text-[#b0b5b9] hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]"}`}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   {label}
                 </button>
               ))}
-              <Link href="/settings" className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium border-t border-[#d1d7dc] dark:border-[#3e4143] text-[#2d2f31] dark:text-[#b0b5b9] hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors">
-                <Settings className="w-4 h-4 flex-shrink-0" />
-                Phiên đăng nhập
-              </Link>
             </nav>
           </aside>
 
@@ -280,6 +276,37 @@ export default function ProfilePage() {
                         {pwSaving ? "Đang đổi..." : "Đổi mật khẩu"}
                       </button>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sessions Tab */}
+            {activeTab === "sessions" && (
+              <div className="bg-white dark:bg-[#2d2f31] border border-[#d1d7dc] dark:border-[#3e4143] rounded">
+                <div className="px-6 py-5 border-b border-[#d1d7dc] dark:border-[#3e4143]">
+                  <h2 className="text-lg font-bold text-[#2d2f31] dark:text-white">Phiên đăng nhập</h2>
+                  <p className="text-sm text-[#6a6f73] mt-1">Quản lý các phiên đăng nhập hiện tại của bạn</p>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-4 max-w-2xl">
+                    <div className="flex items-center gap-4 p-4 border border-[#d1d7dc] dark:border-[#3e4143] rounded bg-[#f7f9fa] dark:bg-[#1c1d1f]">
+                      <div className="w-10 h-10 rounded-full bg-[#10b981]/10 flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-[#10b981]" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-[#2d2f31] dark:text-white">Phiên hiện tại</p>
+                        <p className="text-xs text-[#6a6f73]">
+                          Trình duyệt web • Đang hoạt động
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold bg-[#10b981]/10 text-[#10b981]">
+                        <CheckCircle2 className="w-3 h-3" /> Hiện tại
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#6a6f73]">
+                      Nếu bạn nghi ngờ tài khoản bị truy cập trái phép, hãy đổi mật khẩu ngay trong tab &quot;Bảo mật tài khoản&quot;.
+                    </p>
                   </div>
                 </div>
               </div>

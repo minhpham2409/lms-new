@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
@@ -23,10 +23,62 @@ import {
   CreditCard,
   Clock,
   QrCode,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+
+/** Auto-fetch QR for remaining payment amount */
+function IssueQrBlock({ orderId, remainingAmount, token }: { orderId: string; remainingAmount: number; token: string | null }) {
+  const [qrData, setQrData] = useState<{ vietQrUrl: string; addInfo: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!orderId || !token) return;
+    setLoading(true);
+    fetch(`${API}/payments/qr`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orderId }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setQrData({ vietQrUrl: data.vietQrUrl, addInfo: data.addInfo });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [orderId, token]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="w-8 h-8 animate-spin text-yellow-500" />
+        <span className="ml-2 text-sm">Đang tạo mã QR...</span>
+      </div>
+    );
+  }
+
+  if (!qrData) return <p className="text-xs text-red-400">Không thể tạo mã QR.</p>;
+
+  return (
+    <div className="text-center">
+      <div className="w-48 h-48 mx-auto rounded-xl flex items-center justify-center mb-3 bg-white border-2 border-yellow-500/30">
+        <img src={qrData.vietQrUrl} alt="QR Thanh toán phần còn thiếu" className="w-44 h-44 object-contain" />
+      </div>
+      <p className="text-xs font-mono px-2 py-1.5 rounded-lg inline-block bg-yellow-500/10 mb-2">
+        Nội dung CK: <span className="font-bold">{qrData.addInfo}</span>
+      </p>
+      <div className="flex justify-between px-4 py-3 rounded-lg bg-yellow-500/10 text-sm mt-2">
+        <span style={{ color: "#6a6f73" }}>Số tiền cần chuyển</span>
+        <span className="font-extrabold text-yellow-600">{Number(remainingAmount).toLocaleString("vi-VN")} ₫</span>
+      </div>
+      <p className="text-[10px] mt-2" style={{ color: "#6a6f73" }}>
+        ⚠️ Nội dung chuyển khoản phải chứa đúng mã trên
+      </p>
+    </div>
+  );
+}
 
 export default function ParentPage() {
   const router = useRouter();
@@ -42,14 +94,32 @@ export default function ParentPage() {
   const [linkUsername, setLinkUsername] = useState("");
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [childGrades, setChildGrades] = useState<any[]>([]);
+  const [childTransactions, setChildTransactions] = useState<any[]>([]);
   const [tab, setTab] = useState<
-    "overview" | "courses" | "grades" | "payments" | "requests"
+    "overview" | "courses" | "grades" | "payments" | "history" | "requests"
   >("overview");
   const [qrPopup, setQrPopup] = useState<{
     url: string;
     amount: number;
     id: string;
   } | null>(null);
+  const [paymentSuccessPopup, setPaymentSuccessPopup] = useState<any | null>(
+    null,
+  );
+  const [paymentIssuePopup, setPaymentIssuePopup] = useState<any | null>(null);
+  const [refundForm, setRefundForm] = useState({
+    bankName: "",
+    bankAccount: "",
+    bankOwner: "",
+  });
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const pageOpenedAtRef = useRef(Date.now());
+  const shownPaidOrderIdsRef = useRef<Set<string>>(new Set());
+  const shownPaymentIssueIdsRef = useRef<Set<string>>(new Set());
+  const shownPaymentNotificationIdsRef = useRef<Set<string>>(new Set());
+
+  const isOrderPaid = (order: any) =>
+    order?.status === "paid" || order?.payment?.status === "completed";
 
   useEffect(() => {
     if (authLoading) return;
@@ -64,10 +134,211 @@ export default function ParentPage() {
     }
   }, [user, isLoggedIn, authLoading, router]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (token && user?.role === "parent") fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
+
+  useEffect(() => {
+    if (!token || user?.role !== "parent" || children.length === 0) return;
+
+    const pendingIds = new Set(pendingOrders.map((order) => order.id));
+    let cancelled = false;
+
+    const pollPaidOrders = async () => {
+      const headers = { Authorization: `Bearer ${token}` };
+      for (const kid of children) {
+        const childId = kid.child?.id || kid.childId;
+        if (!childId) continue;
+
+        try {
+          const res = await fetch(`${API}/parents/children/${childId}/orders`, {
+            headers,
+          });
+          if (!res.ok) continue;
+
+          const orders = await res.json();
+          const issueOrder = Array.isArray(orders)
+            ? orders.find((order: any) => {
+                const issue = order.paymentIssue;
+                if (!issue || shownPaymentIssueIdsRef.current.has(issue.id)) {
+                  return false;
+                }
+
+                const issueTime = issue.receivedAt
+                  ? new Date(issue.receivedAt).getTime()
+                  : 0;
+                return pendingIds.has(order.id) || issueTime >= pageOpenedAtRef.current;
+              })
+            : null;
+
+          if (issueOrder && !cancelled) {
+            shownPaymentIssueIdsRef.current.add(issueOrder.paymentIssue.id);
+            const childName = kid.child?.firstName || kid.child?.username || "Con";
+            setQrPopup((current) =>
+              current?.id === issueOrder.id ? null : current,
+            );
+            setPaymentIssuePopup({ ...issueOrder, childName });
+            setChildTransactions((prev) =>
+              prev.map((order) => (order.id === issueOrder.id ? issueOrder : order)),
+            );
+            toast.error("Thanh toán chưa khớp số tiền. Vui lòng kiểm tra lại.");
+            fetchAll();
+            if (selectedChild) selectChild(selectedChild);
+            break;
+          }
+
+          const paidOrder = Array.isArray(orders)
+            ? orders.find((order: any) => {
+                if (!isOrderPaid(order) || shownPaidOrderIdsRef.current.has(order.id)) {
+                  return false;
+                }
+
+                const paidAt = order.payment?.paidAt || order.updatedAt || order.createdAt;
+                const paidTime = paidAt ? new Date(paidAt).getTime() : 0;
+                return pendingIds.has(order.id) || paidTime >= pageOpenedAtRef.current;
+              })
+            : null;
+
+          if (!paidOrder || cancelled) continue;
+
+          shownPaidOrderIdsRef.current.add(paidOrder.id);
+          const childName = kid.child?.firstName || kid.child?.username || "Con";
+          const popupOrder = { ...paidOrder, childName };
+          setQrPopup((current) =>
+            current?.id === paidOrder.id ? null : current,
+          );
+          setPaymentSuccessPopup(popupOrder);
+          setPendingOrders((prev) =>
+            prev.filter((order) => order.id !== paidOrder.id),
+          );
+          setChildTransactions((prev) =>
+            prev.map((order) => (order.id === paidOrder.id ? paidOrder : order)),
+          );
+          toast.success("Thanh toán thành công! Khóa học đã được kích hoạt.");
+          fetchAll();
+          if (selectedChild) selectChild(selectedChild);
+          break;
+        } catch {}
+      }
+    };
+
+    pollPaidOrders();
+    const interval = setInterval(pollPaidOrders, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [children, pendingOrders, selectedChild, token, user?.role]);
+
+  useEffect(() => {
+    if (!token || user?.role !== "parent" || children.length === 0) return;
+
+    let cancelled = false;
+    const pollPaymentNotifications = async () => {
+      try {
+        const res = await fetch(`${API}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+
+        const notifications = await res.json();
+        if (!Array.isArray(notifications)) return;
+
+        const notification = notifications.find((n: any) =>
+          (n.type === "payment_success" || n.type === "payment_issue" || n.type === "payment_overpaid" || n.type === "refund_paid") &&
+          !shownPaymentNotificationIdsRef.current.has(n.id) &&
+          new Date(n.createdAt).getTime() >= pageOpenedAtRef.current,
+        );
+        if (!notification || cancelled) return;
+
+        shownPaymentNotificationIdsRef.current.add(notification.id);
+        const payload = JSON.parse(notification.message || "{}");
+        const order = await findLinkedChildOrder(payload.orderId);
+        if (!order || cancelled) return;
+
+        if (notification.type === "refund_paid") {
+          toast.success("Admin đã xác nhận hoàn tiền chuyển khoản dư.");
+          fetchAll();
+          if (selectedChild) selectChild(selectedChild);
+          return;
+        }
+
+        if (notification.type === "payment_success") {
+          shownPaidOrderIdsRef.current.add(order.id);
+          setPaymentSuccessPopup(order);
+          toast.success("Thanh toán thành công! Khóa học đã được kích hoạt.");
+        } else {
+          shownPaymentIssueIdsRef.current.add(notification.id);
+          setPaymentIssuePopup({
+            ...order,
+            paymentIssue: {
+              id: notification.id,
+              payload: {
+                amount: payload.paidAmount,
+                expectedAmount: payload.expectedAmount,
+                overpaidAmount: payload.overpaidAmount,
+              },
+            },
+            payment: {
+              ...(order.payment || {}),
+              amount: payload.expectedAmount,
+            },
+            remainingAmount: payload.remainingAmount || null,
+            overpaidAmount: payload.overpaidAmount || null,
+          });
+          if (payload.remainingAmount) {
+            toast.warning(`Chuyển thiếu ${Number(payload.remainingAmount).toLocaleString("vi-VN")} ₫. Mã QR mới đã được tạo.`);
+          } else if (payload.overpaidAmount) {
+            toast.warning(`Thanh toán dư ${Number(payload.overpaidAmount).toLocaleString("vi-VN")} ₫. Vui lòng nhập thông tin hoàn tiền.`);
+          } else {
+            toast.error("Thanh toán chưa khớp số tiền. Vui lòng kiểm tra lại.");
+          }
+        }
+
+        fetchAll();
+        if (selectedChild) selectChild(selectedChild);
+      } catch {}
+    };
+
+    pollPaymentNotifications();
+    const interval = setInterval(pollPaymentNotifications, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [children, selectedChild, token, user?.role]);
+
+  async function findLinkedChildOrder(orderId: string) {
+    if (!orderId) return null;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    for (const kid of children) {
+      const childId = kid.child?.id || kid.childId;
+      if (!childId) continue;
+
+      try {
+        const res = await fetch(`${API}/parents/children/${childId}/orders`, {
+          headers,
+        });
+        if (!res.ok) continue;
+        const orders = await res.json();
+        const order = Array.isArray(orders)
+          ? orders.find((item: any) => item.id === orderId)
+          : null;
+        if (order) {
+          return {
+            ...order,
+            childName: kid.child?.firstName || kid.child?.username || "Con",
+          };
+        }
+      } catch {}
+    }
+
+    return null;
+  }
 
   async function fetchAll() {
     setDataLoading(true);
@@ -120,6 +391,23 @@ export default function ParentPage() {
         } catch {}
       }
       setPendingOrders(allOrders);
+
+      // Auto-generate QR codes for pending orders
+      for (const order of allOrders) {
+        if (order._qrData) continue; // already has QR
+        try {
+          const qrRes = await fetch(`${API}/payments/qr`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ orderId: order.id }),
+          });
+          if (qrRes.ok) {
+            const qr = await qrRes.json();
+            order._qrData = { vietQrUrl: qr.vietQrUrl, addInfo: qr.addInfo, txnRef: qr.txnRef };
+          }
+        } catch {}
+      }
+      setPendingOrders([...allOrders]); // trigger re-render with QR data
     } catch {
     } finally {
       setDataLoading(false);
@@ -131,7 +419,7 @@ export default function ParentPage() {
     const childId = c.child?.id || c.childId;
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const [coursesR, dashR, progressR, gradesR] = await Promise.all([
+      const [coursesR, dashR, progressR, gradesR, txR] = await Promise.all([
         fetch(`${API}/parents/children/${childId}/courses`, { headers }).then(
           (r) => (r.ok ? r.json() : []),
         ),
@@ -144,11 +432,15 @@ export default function ParentPage() {
         fetch(`${API}/parents/children/${childId}/grades`, { headers }).then(
           (r) => (r.ok ? r.json() : []),
         ),
+        fetch(`${API}/parents/children/${childId}/orders`, { headers }).then(
+          (r) => (r.ok ? r.json() : []),
+        ),
       ]);
       setChildCourses(Array.isArray(coursesR) ? coursesR : []);
       setChildDashboard(dashR);
       setChildProgress(progressR);
       setChildGrades(Array.isArray(gradesR) ? gradesR : []);
+      setChildTransactions(Array.isArray(txR) ? txR : []);
     } catch {}
   }
 
@@ -234,6 +526,37 @@ export default function ParentPage() {
     }
   }
 
+  async function submitRefundRequest() {
+    if (!paymentIssuePopup?.overpaidAmount) return;
+    if (!refundForm.bankName.trim() || !refundForm.bankAccount.trim() || !refundForm.bankOwner.trim()) {
+      toast.error("Vui lòng nhập đủ thông tin ngân hàng");
+      return;
+    }
+
+    setRefundSubmitting(true);
+    try {
+      const res = await fetch(`${API}/payments/refund-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          orderId: paymentIssuePopup.id,
+          amount: paymentIssuePopup.overpaidAmount,
+          ...refundForm,
+        }),
+      });
+      if (!res.ok) throw new Error("refund_failed");
+
+      toast.success("Đã gửi yêu cầu hoàn tiền cho giáo viên");
+      setPaymentIssuePopup(null);
+      setRefundForm({ bankName: "", bankAccount: "", bankOwner: "" });
+      fetchAll();
+    } catch {
+      toast.error("Không thể gửi yêu cầu hoàn tiền");
+    } finally {
+      setRefundSubmitting(false);
+    }
+  }
+
   if (authLoading || !user || user.role !== "parent") {
     return (
       <div
@@ -246,6 +569,19 @@ export default function ParentPage() {
   }
 
   const child = selectedChild?.child || selectedChild;
+  const issuePayload = paymentIssuePopup?.paymentIssue?.payload || {};
+  const issuePaidAmount = Number(
+    issuePayload.transferAmount ?? issuePayload.amount ?? 0,
+  );
+  const issueExpectedAmount = Number(
+    issuePayload.expectedAmount ||
+      paymentIssuePopup?.payment?.amount ||
+      paymentIssuePopup?.finalPrice ||
+      paymentIssuePopup?.totalPrice ||
+      0,
+  );
+  const issueDifference = Number(paymentIssuePopup?.overpaidAmount || 0) ||
+    issuePaidAmount - issueExpectedAmount;
   const gradedCount = childGrades.filter(
     (g: any) => g.status === "graded",
   ).length;
@@ -265,6 +601,7 @@ export default function ParentPage() {
       icon: CreditCard,
       badge: pendingOrders.length,
     },
+    { id: "history" as const, label: "Lịch sử giao dịch", icon: Clock },
   ];
 
   return (
@@ -316,6 +653,186 @@ export default function ParentPage() {
             <p className="text-xs" style={{ color: "#f59e0b" }}>
               Dùng ứng dụng ngân hàng để quét mã QR
             </p>
+          </div>
+        </div>
+      )}
+
+      {paymentSuccessPopup && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 backdrop-blur-sm"
+          style={{ background: "rgba(0,0,0,0.7)" }}
+          onClick={() => setPaymentSuccessPopup(null)}
+        >
+          <div
+            className="bg-card border border-border shadow-lg max-w-md w-full text-center relative p-8 animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setPaymentSuccessPopup(null)}
+              className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition-opacity"
+              aria-label="Đóng"
+            >
+              <XCircle className="w-6 h-6" />
+            </button>
+            <div className="w-16 h-16 rounded-full mx-auto mb-5 flex items-center justify-center bg-emerald-500/10 text-emerald-500">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+            <h2 className="text-2xl font-extrabold mb-2">
+              Thanh toán thành công
+            </h2>
+            <p className="text-sm mb-5" style={{ color: "#6a6f73" }}>
+              Đơn hàng{" "}
+              <span className="font-mono font-bold">
+                #{paymentSuccessPopup.id?.substring(0, 8)}
+              </span>{" "}
+              của {paymentSuccessPopup.childName || "con"} đã được xác nhận.
+            </p>
+            <div className="rounded-xl p-4 mb-6 bg-emerald-500/10 border border-emerald-500/20">
+              <p className="text-sm font-semibold text-emerald-600">
+                Khóa học đã được kích hoạt cho học sinh.
+              </p>
+              <p className="text-2xl font-extrabold mt-2 gradient-text">
+                {Number(
+                  paymentSuccessPopup.finalPrice ||
+                    paymentSuccessPopup.totalPrice ||
+                    0,
+                ).toLocaleString("vi-VN")}{" "}
+                ₫
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setPaymentSuccessPopup(null);
+                setTab("history");
+              }}
+              className="btn-primary w-full justify-center"
+            >
+              Xem lịch sử giao dịch
+            </button>
+          </div>
+        </div>
+      )}
+
+      {paymentIssuePopup && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 backdrop-blur-sm"
+          style={{ background: "rgba(0,0,0,0.7)" }}
+          onClick={() => setPaymentIssuePopup(null)}
+        >
+          <div
+            className="bg-card border border-border shadow-lg max-w-md w-full text-center relative p-8 animate-scale-in overflow-y-auto max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setPaymentIssuePopup(null)}
+              className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition-opacity"
+              aria-label="Đóng"
+            >
+              <XCircle className="w-6 h-6" />
+            </button>
+            <div className="w-16 h-16 rounded-full mx-auto mb-5 flex items-center justify-center bg-yellow-500/10 text-yellow-500">
+              <AlertTriangle className="w-9 h-9" />
+            </div>
+            <h2 className="text-2xl font-extrabold mb-2">
+              {paymentIssuePopup.remainingAmount
+                ? "Chuyển khoản thiếu tiền"
+                : paymentIssuePopup.overpaidAmount
+                  ? "Thanh toán dư tiền"
+                  : "Thanh toán chưa khớp"}
+            </h2>
+            <p className="text-sm mb-5" style={{ color: "#6a6f73" }}>
+              Đơn hàng{" "}
+              <span className="font-mono font-bold">
+                #{paymentIssuePopup.id?.substring(0, 8)}
+              </span>{" "}
+              của {paymentIssuePopup.childName || "con"}{" "}
+              {paymentIssuePopup.overpaidAmount ? "đã được kích hoạt." : "chưa được kích hoạt."}
+            </p>
+            <div className="rounded-xl p-4 mb-4 bg-yellow-500/10 border border-yellow-500/20 text-left space-y-2">
+              <div className="flex justify-between text-sm">
+                <span style={{ color: "#6a6f73" }}>Cần thanh toán</span>
+                <span className="font-bold">
+                  {issueExpectedAmount.toLocaleString("vi-VN")} ₫
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: "#6a6f73" }}>Đã chuyển</span>
+                <span className="font-bold text-green-500">
+                  {issuePaidAmount.toLocaleString("vi-VN")} ₫
+                </span>
+              </div>
+              <div className="flex justify-between text-sm pt-2 border-t border-yellow-500/20">
+                <span className="font-bold">
+                  {issueDifference < 0 ? "Còn thiếu" : "Chuyển thừa"}
+                </span>
+                <span className="font-extrabold text-yellow-600">
+                  {Math.abs(issueDifference).toLocaleString("vi-VN")} ₫
+                </span>
+              </div>
+            </div>
+
+            {/* Auto QR for remaining amount */}
+            {paymentIssuePopup.remainingAmount && issueDifference < 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-bold mb-3 text-yellow-600">
+                  Mã QR mới đã được tạo tự động cho số tiền còn thiếu
+                </p>
+                <IssueQrBlock orderId={paymentIssuePopup.id} remainingAmount={paymentIssuePopup.remainingAmount} token={token} />
+              </div>
+            )}
+
+            {paymentIssuePopup.overpaidAmount && (
+              <div className="mb-4 text-left space-y-3">
+                <p className="text-xs" style={{ color: "#6a6f73" }}>
+                  Nhập tài khoản nhận hoàn tiền để giáo viên xử lý số tiền chuyển dư.
+                </p>
+                <input
+                  value={refundForm.bankName}
+                  onChange={(e) => setRefundForm((prev) => ({ ...prev, bankName: e.target.value }))}
+                  placeholder="Tên ngân hàng"
+                  className="w-full px-4 py-3 border border-border bg-transparent outline-none focus:border-primary"
+                />
+                <input
+                  value={refundForm.bankAccount}
+                  onChange={(e) => setRefundForm((prev) => ({ ...prev, bankAccount: e.target.value }))}
+                  placeholder="Số tài khoản"
+                  className="w-full px-4 py-3 border border-border bg-transparent outline-none focus:border-primary"
+                />
+                <input
+                  value={refundForm.bankOwner}
+                  onChange={(e) => setRefundForm((prev) => ({ ...prev, bankOwner: e.target.value }))}
+                  placeholder="Tên chủ tài khoản"
+                  className="w-full px-4 py-3 border border-border bg-transparent outline-none focus:border-primary"
+                />
+              </div>
+            )}
+
+            {!paymentIssuePopup.remainingAmount && !paymentIssuePopup.overpaidAmount && (
+              <p className="text-xs mb-6" style={{ color: "#6a6f73" }}>
+                Vui lòng liên hệ giáo viên hoặc bộ phận hỗ trợ để được đối soát và xử lý thanh toán.
+              </p>
+            )}
+            {paymentIssuePopup.overpaidAmount ? (
+              <button
+                onClick={submitRefundRequest}
+                disabled={refundSubmitting}
+                className="btn-primary w-full justify-center disabled:opacity-60"
+              >
+                {refundSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Gửi yêu cầu hoàn tiền
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setPaymentIssuePopup(null);
+                  fetchAll();
+                  if (selectedChild) selectChild(selectedChild);
+                }}
+                className="btn-secondary w-full justify-center"
+              >
+                {paymentIssuePopup.remainingAmount ? "Đóng & Xem đơn hàng" : "Xem lịch sử giao dịch"}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1297,12 +1814,18 @@ export default function ParentPage() {
                           <div className="text-center mt-4">
                             <p className="text-2xl font-extrabold gradient-text mb-3">
                               {(
+                                order.payment?.remainingAmount ||
                                 order.finalPrice ||
                                 order.totalPrice ||
                                 0
                               ).toLocaleString()}{" "}
                               ₫
                             </p>
+                            {Number(order.payment?.paidAmount || 0) > 0 && (
+                              <div className="mb-3 text-xs rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-2">
+                                Đã nộp {Number(order.payment.paidAmount).toLocaleString("vi-VN")} ₫ · Còn thiếu {Number(order.payment.remainingAmount || 0).toLocaleString("vi-VN")} ₫
+                              </div>
+                            )}
                             {order._qrData ? (
                               <>
                                 <div
@@ -1315,7 +1838,7 @@ export default function ParentPage() {
                                     setQrPopup({
                                       url: order._qrData.vietQrUrl,
                                       amount:
-                                        order.finalPrice || order.totalPrice || 0,
+                                        order.payment?.remainingAmount || order.finalPrice || order.totalPrice || 0,
                                       id: order.id,
                                     })
                                   }
@@ -1375,6 +1898,115 @@ export default function ParentPage() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Transaction History */}
+              {tab === "history" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-extrabold flex items-center gap-3">
+                      <div className="p-2 bg-cyan-500/10 rounded-xl">
+                        <Clock className="w-6 h-6 text-cyan-500" />
+                      </div>
+                      Lịch sử giao dịch{child ? ` của ${child.firstName || child.username}` : ""}
+                    </h3>
+                    <span className="text-sm font-medium" style={{ color: "#6a6f73" }}>
+                      {childTransactions.length} giao dịch
+                    </span>
+                  </div>
+
+                  {!child ? (
+                    <div className="bg-card border border-border p-6 text-center py-12">
+                      <Users className="w-12 h-12 mx-auto mb-4" style={{ color: "#6a6f73" }} />
+                      <p className="text-sm" style={{ color: "#6a6f73" }}>Vui lòng chọn con để xem lịch sử</p>
+                    </div>
+                  ) : childTransactions.length === 0 ? (
+                    <div className="bg-card border border-border p-6 text-center py-16 border-dashed border-2 border-gray-200 dark:border-gray-800 bg-transparent">
+                      <Clock className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-700" />
+                      <h3 className="font-bold text-lg mb-2 text-gray-400">Chưa có giao dịch nào</h3>
+                      <p className="text-sm text-gray-500">Khi con đặt mua khóa học, lịch sử sẽ hiện ở đây.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Summary row */}
+                      <div className="grid grid-cols-3 gap-4 mb-2">
+                        {[
+                          { label: "Tổng đơn", value: childTransactions.length, color: "#5624d0" },
+                          { label: "Đã thanh toán", value: childTransactions.filter((o: any) => isOrderPaid(o)).length, color: "#10b981" },
+                          { label: "Chờ xử lý", value: childTransactions.filter((o: any) => o.status === "pending").length, color: "#f59e0b" },
+                        ].map(({ label, value, color }) => (
+                          <div key={label} className="bg-card border border-border p-4 text-center">
+                            <p className="text-2xl font-extrabold" style={{ color }}>{value}</p>
+                            <p className="text-xs mt-1" style={{ color: "#6a6f73" }}>{label}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {childTransactions.map((order: any) => {
+                        const statusMap: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+                          paid:      { label: "Đã thanh toán", color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: "✅" },
+                          completed: { label: "Đã thanh toán", color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: "✅" },
+                          pending:   { label: "Chờ thanh toán", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", icon: "⏳" },
+                          cancelled: { label: "Đã hủy",        color: "#ef4444", bg: "rgba(239,68,68,0.1)",  icon: "❌" },
+                          failed:    { label: "Thất bại",      color: "#ef4444", bg: "rgba(239,68,68,0.1)",  icon: "❌" },
+                        };
+                        const st = statusMap[order.status] || { label: order.status, color: "#6b7280", bg: "rgba(107,114,128,0.1)", icon: "•" };
+                        const total = order.finalPrice || order.totalPrice || 0;
+                        const paidAmount = Number(order.payment?.paidAmount || 0);
+                        const remainingAmount = Number(order.payment?.remainingAmount || 0);
+                        return (
+                          <div key={order.id} className="bg-card border border-border p-5 hover:shadow-md transition-shadow">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <p className="font-bold text-sm">Đơn #{order.id?.substring(0, 8).toUpperCase()}</p>
+                                <p className="text-xs mt-0.5" style={{ color: "#6a6f73" }}>
+                                  {order.createdAt ? new Date(order.createdAt).toLocaleString("vi-VN") : ""}
+                                </p>
+                              </div>
+                              <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
+                                style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}40` }}>
+                                {st.icon} {st.label}
+                              </span>
+                            </div>
+
+                            {order.items && order.items.length > 0 && (
+                              <div className="mb-3 space-y-1">
+                                {order.items.map((item: any) => (
+                                  <div key={item.id} className="flex items-center gap-2 text-sm" style={{ color: "#6a6f73" }}>
+                                    <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span className="truncate">{item.course?.title || "Khóa học"}</span>
+                                    <span className="ml-auto font-semibold whitespace-nowrap" style={{ color: "var(--foreground)" }}>
+                                      {(item.price || 0).toLocaleString("vi-VN")} ₫
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--border)" }}>
+                              <span className="text-xs" style={{ color: "#6a6f73" }}>Tổng cộng</span>
+                              <span className="text-lg font-extrabold" style={{ color: "#5624d0" }}>
+                                {total.toLocaleString("vi-VN")} ₫
+                              </span>
+                            </div>
+                            {paidAmount > 0 && order.status === "pending" && (
+                              <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                                <div className="p-2 rounded border border-emerald-500/20 bg-emerald-500/10">
+                                  <p style={{ color: "#6a6f73" }}>Đã nộp</p>
+                                  <p className="font-bold text-emerald-500">{paidAmount.toLocaleString("vi-VN")} ₫</p>
+                                </div>
+                                <div className="p-2 rounded border border-yellow-500/20 bg-yellow-500/10">
+                                  <p style={{ color: "#6a6f73" }}>Còn thiếu</p>
+                                  <p className="font-bold text-yellow-600">{remainingAmount.toLocaleString("vi-VN")} ₫</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

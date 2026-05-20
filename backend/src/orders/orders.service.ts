@@ -51,12 +51,9 @@ export class OrdersService {
       if ((coupon.type === 'streak') && coupon.userId && coupon.userId !== userId) {
         throw new BadRequestException('Mã giảm giá này không thuộc về bạn');
       }
-      // Platform promotions: check allowPlatformPromotions on each course
-      if (coupon.type === 'platform') {
-        const blocked = availableItems.some(item => !(item.course as any).allowPlatformPromotions);
-        if (blocked) {
-          throw new BadRequestException('Some courses in your cart do not accept platform promotions');
-        }
+      const blocked = availableItems.some(item => !(item.course as any).allowPlatformPromotions);
+      if (blocked) {
+        throw new BadRequestException('Giỏ hàng chứa khóa học không áp dụng mã giảm giá.');
       }
       finalPrice = totalPrice * (1 - coupon.discount / 100);
       couponId = coupon.id;

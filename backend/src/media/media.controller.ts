@@ -81,8 +81,7 @@ export class MediaController {
     // Prefer Bearer token (sent by hls.js XHR) over cookies
     const token =
       req.headers.authorization?.split(' ')[1] ||
-      req.cookies?.['access_token'] ||
-      req.cookies?.['refresh_token'];
+      req.cookies?.['access_token'];
 
     if (!token) {
       throw new UnauthorizedException('Media access denied. Authentication required.');

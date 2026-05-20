@@ -32,6 +32,13 @@ export class UsersController {
     return this.usersService.getStudentDashboard(req.user.id);
   }
 
+  /** GET /users/me/learning-summary — progress, todos, feedback, resume lesson */
+  @UseGuards(JwtAuthGuard)
+  @Get('me/learning-summary')
+  getLearningSummary(@Request() req: { user: { id: string } }) {
+    return this.usersService.getLearningSummary(req.user.id);
+  }
+
   /** POST /users/me/streak/check-in */
   @UseGuards(JwtAuthGuard)
   @Put('me/streak/check-in')

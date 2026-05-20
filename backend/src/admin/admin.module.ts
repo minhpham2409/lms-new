@@ -11,6 +11,7 @@ import {
   LessonRepository,
   SectionRepository,
   AdminRepository,
+  NotificationRepository,
 } from '../database/repositories';
 import { QueueNames } from '../shared/queues';
 
@@ -35,6 +36,7 @@ import { QueueNames } from '../shared/queues';
     LessonRepository,
     SectionRepository,
     AdminRepository,
+    NotificationRepository,
   ],
 })
 export class AdminModule {}

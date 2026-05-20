@@ -28,13 +28,21 @@ export default function CartPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; savings: number } | null>(null);
   const [qrPayment, setQrPayment] = useState<{ vietQrUrl: string; txnRef: string; addInfo: string; amount: number } | null>(null);
 
+  const couponUnsupportedItems = items.filter(
+    (item) => item.course?.allowPlatformPromotions === false,
+  );
+  const hasCouponUnsupportedItems = couponUnsupportedItems.length > 0;
+
   useEffect(() => {
+    if (!loading && !isLoggedIn) { router.push("/auth/login"); return; }
     if (!loading && isLoggedIn && user?.role !== "student") router.push("/dashboard");
   }, [user, isLoggedIn, loading, router]);
 
   useEffect(() => {
     if (token) { fetchCart(); checkParent(); fetchMyCoupons(); }
-  }, [token]);
+    else if (!loading) { setCartLoading(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, loading]);
 
   async function fetchCart() {
     try {
@@ -89,6 +97,10 @@ export default function CartPage() {
   async function applyCoupon(code?: string) {
     const couponCode = code || coupon.trim();
     if (!couponCode) return;
+    if (hasCouponUnsupportedItems) {
+      toast.error("Giỏ hàng có khóa học không áp dụng mã giảm giá.");
+      return;
+    }
     try {
       const res = await fetch(`${API}/cart/apply-coupon`, {
         method: "POST",
@@ -244,6 +256,11 @@ export default function CartPage() {
                       <p className="text-xs text-foreground-muted mt-1">{item.course?.author?.firstName || item.course?.author?.username || "Giáo viên"}</p>
                       <div className="mt-2 text-xs flex items-center gap-2 text-foreground-muted">
                          <span className="bg-muted px-2 py-1 rounded">Tất cả trình độ</span>
+                         {item.course?.allowPlatformPromotions === false && (
+                           <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-1 rounded">
+                             Không áp dụng mã giảm giá
+                           </span>
+                         )}
                       </div>
                     </div>
                     <div className="flex flex-col items-end justify-between sm:w-28 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border">
@@ -278,10 +295,40 @@ export default function CartPage() {
                 <hr className="border-border my-6" />
 
                 <p className="font-bold mb-2">Mã giảm giá</p>
+                {hasCouponUnsupportedItems && (
+                  <div className="mb-4 rounded border border-yellow-500/30 bg-yellow-500/10 p-3">
+                    <p className="text-xs font-bold text-yellow-500 mb-2 flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" />
+                      Không thể áp dụng mã giảm giá cho giỏ hàng hiện tại
+                    </p>
+                    <p className="text-xs text-foreground-muted mb-2">
+                      Các khóa học sau không nhận mã giảm giá:
+                    </p>
+                    <ul className="space-y-1">
+                      {couponUnsupportedItems.map((item) => (
+                        <li key={item.id} className="text-xs font-semibold text-foreground">
+                          • {item.course?.title || "Khóa học"}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {!appliedCoupon ? (
                    <div className="flex gap-2 mb-4">
-                     <input value={coupon} onChange={(e) => setCoupon(e.target.value)} placeholder="Nhập mã giảm giá" className="w-full px-3 py-2 border border-border bg-background focus:outline-none focus:border-primary text-sm" />
-                     <button onClick={() => applyCoupon()} className="px-4 py-2 bg-foreground text-background font-bold hover:bg-foreground/90 transition-colors text-sm">Áp dụng</button>
+                     <input
+                       value={coupon}
+                       onChange={(e) => setCoupon(e.target.value)}
+                       placeholder="Nhập mã giảm giá"
+                       disabled={hasCouponUnsupportedItems}
+                       className="w-full px-3 py-2 border border-border bg-background focus:outline-none focus:border-primary text-sm disabled:opacity-60"
+                     />
+                     <button
+                       onClick={() => applyCoupon()}
+                       disabled={hasCouponUnsupportedItems}
+                       className="px-4 py-2 bg-foreground text-background font-bold hover:bg-foreground/90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                       Áp dụng
+                     </button>
                    </div>
                 ) : (
                    <p className="text-sm text-foreground-muted mb-4 italic">Đã áp dụng mã: <strong>{appliedCoupon.code}</strong></p>

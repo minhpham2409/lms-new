@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import DOMPurify from "isomorphic-dompurify";
 import { Navbar } from "@/components/layout/navbar";
@@ -12,8 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play, ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Clock,
   MessageCircle, Send, List, X, Loader2, Image as ImageIcon,
-  FileText, PenTool, Maximize2, Minimize2, Download, PlayCircle,
-  ChevronDown, ArrowRight, Sparkles
+  FileText, PenTool, Maximize2, Minimize2, Download, PlayCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -115,7 +114,6 @@ function isYoutubeUrl(url: string): boolean {
 
 export default function LessonPage() {
   const { id, lessonId } = useParams();
-  const router = useRouter();
   const { user, token } = useAuth();
   const [lesson, setLesson] = useState<any>(null);
   const [course, setCourse] = useState<any>(null);
@@ -125,6 +123,8 @@ export default function LessonPage() {
   const [canComplete, setCanComplete] = useState(true);
   const [videoWatched, setVideoWatched] = useState(true);
   const [watchedPercentage, setWatchedPercentage] = useState(0);
+  const [resumeWatchTime, setResumeWatchTime] = useState(0);
+  const [lessonProgress, setLessonProgress] = useState<Record<string, { completed: boolean; watchTime: number; watchedPercentage: number }>>({});
   const [comment, setComment] = useState("");
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -161,6 +161,7 @@ export default function LessonPage() {
     lastSentPercent.current = 0;
     completionProgressSavedRef.current = false;
     setWatchedPercentage(0);
+    setResumeWatchTime(0);
   }, [lessonId]);
 
   async function persistVideoProgress(seconds: number, pct: number, checkAfter = false) {
@@ -200,6 +201,7 @@ export default function LessonPage() {
       lastSentPercent.current = Math.max(lastSentPercent.current, pct);
       persistVideoProgress(Math.floor(player.getCurrentTime()), pct, true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
 
   useEffect(() => {
@@ -215,6 +217,7 @@ export default function LessonPage() {
     if (token !== undefined) {
       fetchData(); 
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId, id, token]);
 
   useEffect(() => {
@@ -283,6 +286,21 @@ export default function LessonPage() {
       ]);
       setLesson(lessonData);
       setCourse(courseData);
+      if (token) {
+        progressApi.getCourseVideos(id as string).then((rows: any) => {
+          const map: Record<string, { completed: boolean; watchTime: number; watchedPercentage: number }> = {};
+          if (Array.isArray(rows)) {
+            rows.forEach((row: any) => {
+              map[row.lessonId] = {
+                completed: Boolean(row.completed),
+                watchTime: Number(row.watchTime || 0),
+                watchedPercentage: Number(row.watchedPercentage || 0),
+              };
+            });
+          }
+          setLessonProgress(map);
+        }).catch(() => setLessonProgress({}));
+      }
       for (const sec of courseData.sections || []) {
         for (const les of sec.lessons || []) {
           if (les.id === lessonId) {
@@ -299,10 +317,20 @@ export default function LessonPage() {
     if (token) {
       progressApi.getLesson(lessonId as string).then((progress: any) => {
         const pct = Math.max(0, Math.min(100, Math.round(Number(progress?.watchedPercentage || 0))));
+        const watchTime = Math.max(0, Math.round(Number(progress?.watchTime || 0)));
         watchedPctRef.current = pct;
         lastSentPercent.current = pct;
         completionProgressSavedRef.current = pct >= 90;
         setWatchedPercentage(pct);
+        setResumeWatchTime(watchTime);
+        setLessonProgress((prev) => ({
+          ...prev,
+          [lessonId as string]: {
+            completed: Boolean(progress?.completed),
+            watchTime,
+            watchedPercentage: pct,
+          },
+        }));
       }).catch(() => {});
     }
   }
@@ -371,6 +399,10 @@ export default function LessonPage() {
     }
     try {
       await progressApi.updateVideo({ lessonId: lessonId as string, watchTime: 0, watchedPercentage: 100 });
+      setLessonProgress((prev) => ({
+        ...prev,
+        [lessonId as string]: { completed: true, watchTime: prev[lessonId as string]?.watchTime ?? 0, watchedPercentage: 100 },
+      }));
       toast.success("🎉 Hoàn thành bài học!");
       const allL = course?.sections?.flatMap((s: any) => s.lessons?.sort((a: any, b: any) => a.order - b.order) || []) || [];
       const idx = allL.findIndex((l: any) => l.id === lessonId);
@@ -379,7 +411,7 @@ export default function LessonPage() {
       } else {
         toast.success("🏆 Chúc mừng! Bạn đã hoàn thành khóa học!");
         setTimeout(() => {
-          router.push(`/courses/${id}/certificate`);
+          window.location.href = `/courses/${id}/certificate`;
         }, 1500);
       }
     } catch (err: any) { 
@@ -398,6 +430,8 @@ export default function LessonPage() {
   const prevLesson = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
   const nextLesson = currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
 
+  const completedLessons = allLessons.filter((l: any) => lessonProgress[l.id]?.completed).length;
+  const courseProgressPct = allLessons.length ? Math.round((completedLessons / allLessons.length) * 100) : 0;
   const initials = (user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?").toUpperCase();
 
   const hasAssignment = assignments.length > 0;
@@ -406,32 +440,27 @@ export default function LessonPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       
-      {/* ─── Header with Breadcrumb & Progress ─────────────────────── */}
-      <div className="h-[52px] flex items-center justify-between px-4 bg-[#1c1d1f] text-white border-b border-white/[0.08] sticky top-0 z-40">
-        <div className="flex items-center gap-2 min-w-0">
-          <Link href={`/courses/${id}`} className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-white/10 transition-all text-white/80 hover:text-white" title="Quay lại khóa học">
+      {/* ─── Udemy Style Dark Header ─────────────────────────────────────────── */}
+      <div className="h-14 flex items-center justify-between px-4 bg-[#1c1d1f] text-white border-b border-gray-800 sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          <Link href={`/courses/${id}`} className="flex items-center justify-center w-8 h-8 rounded hover:bg-white/10 transition-colors text-white" title="Quay lại khóa học">
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <div className="hidden sm:flex items-center gap-1.5 min-w-0 text-xs">
-            <Link href={`/courses/${id}`} className="text-white/50 hover:text-white/80 transition-colors truncate max-w-[180px]">{course?.title || ""}</Link>
-            <ChevronRight className="w-3 h-3 text-white/30 flex-shrink-0" />
-            <span className="text-white/90 font-semibold truncate max-w-[200px]">{lesson?.title || ""}</span>
-          </div>
+          <div className="w-px h-5 bg-gray-600 hidden sm:block" />
+          <span className="font-bold text-sm truncate max-w-md hidden sm:block">{course?.title || ""}</span>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Lesson counter pill */}
-          <div className="hidden sm:flex items-center gap-2 bg-white/[0.08] rounded-full px-3 py-1">
-            <span className="text-[11px] text-white/60">Bài</span>
-            <span className="text-xs font-bold text-white">{currentIdx + 1}<span className="text-white/40">/{allLessons.length}</span></span>
-            <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-primary to-[#c084fc] rounded-full transition-all duration-700" style={{ width: `${allLessons.length ? ((currentIdx + 1) / allLessons.length) * 100 : 0}%` }} />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-32 h-1.5 bg-gray-700 rounded-full overflow-hidden hidden sm:block">
+              <div className="bg-primary h-full" style={{ width: `${courseProgressPct}%` }} />
             </div>
+            <span className="hidden text-xs font-bold text-white/70 sm:inline">{completedLessons}/{allLessons.length} bài</span>
           </div>
-          <button onClick={() => setTheaterMode(!theaterMode)} className="p-1.5 rounded-lg hover:bg-white/10 transition-all text-white/70 hover:text-white" title={theaterMode ? "Thu nhỏ" : "Mở rộng"}>
-            {theaterMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          <button onClick={() => setTheaterMode(!theaterMode)} className="p-1.5 rounded hover:bg-white/10 transition-colors text-white" title={theaterMode ? "Thu nhỏ" : "Mở rộng"}>
+            {theaterMode ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
           </button>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg hover:bg-white/10 transition-all text-white/70 hover:text-white hidden md:block">
-            <List className="w-4 h-4" />
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded hover:bg-white/10 transition-colors text-white hidden md:block">
+            <List className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -465,7 +494,7 @@ export default function LessonPage() {
                         ytPlayerRef.current = new (window as any).YT.Player(el, {
                           videoId: ytVideoId,
                           width: '100%', height: '100%',
-                          playerVars: { autoplay: 0, rel: 0, modestbranding: 1 },
+                          playerVars: { autoplay: 0, rel: 0, modestbranding: 1, start: resumeWatchTime > 5 ? Math.max(0, resumeWatchTime - 3) : 0 },
                           events: {
                             onStateChange: (e: any) => {
                               if (e.data === 1) {
@@ -495,6 +524,12 @@ export default function LessonPage() {
                       controls
                       controlsList="nodownload"
                       playsInline
+                      onLoadedMetadata={(e) => {
+                        const video = e.target as HTMLVideoElement;
+                        if (resumeWatchTime > 5 && resumeWatchTime < video.duration - 5) {
+                          video.currentTime = resumeWatchTime;
+                        }
+                      }}
                       onTimeUpdate={(e) => {
                         const video = e.target as HTMLVideoElement;
                         if (!video.duration) return;
@@ -517,6 +552,14 @@ export default function LessonPage() {
                           lastSentPercent.current = Math.max(lastSentPercent.current, pct);
                           persistVideoProgress(seconds, pct, true);
                         }
+                        setLessonProgress((prev) => ({
+                          ...prev,
+                          [lessonId as string]: {
+                            completed: prev[lessonId as string]?.completed || pct >= 90,
+                            watchTime: Math.max(prev[lessonId as string]?.watchTime ?? 0, seconds),
+                            watchedPercentage: Math.max(prev[lessonId as string]?.watchedPercentage ?? 0, pct),
+                          },
+                        }));
                       }}
                     />
                   </div>
@@ -586,28 +629,9 @@ export default function LessonPage() {
 
 
           {/* ─── Lesson Info & Tabs ─────────────────────────── */}
-          <div className="p-6 md:p-10 max-w-5xl animate-fade-in">
+          <div className="p-6 md:p-10 max-w-5xl">
             
-            {/* Lesson title with type badge */}
-            <div className="flex items-start gap-4 mb-8 pb-5 border-b border-border">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                    lesson?.videoUrl
-                      ? 'bg-blue-500/10 text-blue-500 dark:bg-blue-400/15 dark:text-blue-400'
-                      : 'bg-purple-500/10 text-purple-500 dark:bg-purple-400/15 dark:text-purple-400'
-                  }`}>
-                    {lesson?.videoUrl ? <><PlayCircle className="w-3 h-3" /> Video</> : <><BookOpen className="w-3 h-3" /> Lý thuyết</>}
-                  </span>
-                  {lesson?.duration && (
-                    <span className="text-[10px] text-foreground-muted flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {lesson.duration} phút
-                    </span>
-                  )}
-                </div>
-                <h1 className="text-2xl md:text-3xl font-extrabold leading-tight">{lesson?.title || "Bài học"}</h1>
-              </div>
-            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold mb-8 pb-4 border-b border-border">{lesson?.title || "Bài học"}</h1>
             
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full justify-start gap-6 bg-transparent border-b border-border rounded-none px-0 h-auto pb-0">
@@ -621,7 +645,7 @@ export default function LessonPage() {
                   <PenTool className="w-4 h-4" /> Bài tập {assignments.length > 0 && `(${assignments.length})`}
                 </TabsTrigger>
                 <TabsTrigger value="discussion" className="bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none rounded-none px-0 py-3 text-sm font-bold gap-2">
-                  <MessageCircle className="w-4 h-4" /> Hỏi đáp ({comments.length})
+                  <MessageCircle className="w-4 h-4" /> Hỏi đáp theo bài ({comments.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -785,119 +809,68 @@ export default function LessonPage() {
               </TabsContent>
             </Tabs>
 
-            {/* ─── Sticky Bottom Action Bar ──────────────── */}
-            <div className="mt-16" />
+            {/* ─── Bottom Navigation ──────────────── */}
+            <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+              {prevLesson ? (
+                <Link href={`/courses/${id}/lessons/${prevLesson.id}`} className="px-6 py-3 border border-border font-bold rounded hover:bg-muted transition-colors flex items-center gap-2 w-full sm:w-auto justify-center">
+                  <ChevronLeft className="w-4 h-4" /> Bài trước
+                </Link>
+              ) : <div className="hidden sm:block w-32" />}
+              
+              <button
+                onClick={markComplete}
+                disabled={!canComplete}
+                className={`w-full sm:w-auto px-8 py-3 font-bold rounded flex items-center justify-center gap-2 ${canComplete ? "bg-primary text-white hover:bg-primary/90" : "bg-muted text-foreground-muted cursor-not-allowed"}`}
+              >
+                {!canComplete ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" /> Chờ hoàn thành
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" /> Hoàn thành & tiếp tục
+                  </>
+                )}
+              </button>
+
+              {nextLesson ? (
+                <Link href={`/courses/${id}/lessons/${nextLesson.id}`} className="px-6 py-3 border border-border font-bold rounded hover:bg-muted transition-colors flex items-center gap-2 w-full sm:w-auto justify-center">
+                  Bài tiếp <ChevronRight className="w-4 h-4" />
+                </Link>
+              ) : <div className="hidden sm:block w-32" />}
+            </div>
           </div>
         </div>
 
-        {/* Floating bottom bar - always visible */}
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ marginRight: !theaterMode && sidebarOpen ? '380px' : '0', transition: 'margin-right 0.3s ease' }}>
-          <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between gap-3">
-            {/* Prev */}
-            {prevLesson ? (
-              <Link href={`/courses/${id}/lessons/${prevLesson.id}`} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-all text-sm font-semibold group">
-                <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-                <span className="hidden sm:inline">Bài trước</span>
-              </Link>
-            ) : <div className="w-10" />}
-
-            {/* Complete button - prominent */}
-            <button
-              onClick={markComplete}
-              disabled={!canComplete}
-              className={`px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${
-                canComplete
-                  ? 'bg-gradient-to-r from-primary to-[#8710d8] text-white hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02] active:scale-[0.98]'
-                  : 'bg-muted text-foreground-muted cursor-not-allowed'
-              }`}
-            >
-              {canComplete ? (
-                <><Sparkles className="w-4 h-4" /> Hoàn thành & tiếp tục</>
-              ) : (
-                <><Clock className="w-4 h-4" /> {!videoWatched ? `Xem video (${watchedPercentage}%)` : 'Chờ hoàn thành'}</>
-              )}
-            </button>
-
-            {/* Next */}
-            {nextLesson ? (
-              <Link href={`/courses/${id}/lessons/${nextLesson.id}`} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-all text-sm font-semibold group">
-                <span className="hidden sm:inline">Bài tiếp</span>
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            ) : <div className="w-10" />}
-          </div>
-        </div>
-        {/* ─── Improved Right Sidebar ────────────────────────────────── */}
+        {/* ─── Udemy Style Right Sidebar Curriculum ────────────────────────────────── */}
         <div className={`border-l border-border bg-background flex-shrink-0 flex flex-col transition-all duration-300 ${theaterMode ? 'hidden' : 'hidden md:flex'}`} style={{ width: sidebarOpen ? '380px' : '0px', overflow: 'hidden' }}>
-          <div className="p-4 border-b border-border flex items-center justify-between bg-card/80 backdrop-blur-sm">
-             <div>
-               <h3 className="font-bold text-sm">Nội dung khóa học</h3>
-               <p className="text-[11px] text-foreground-muted mt-0.5">Bài {currentIdx + 1}/{allLessons.length}</p>
-             </div>
-             <button onClick={() => setSidebarOpen(false)} className="w-7 h-7 rounded-lg hover:bg-muted flex items-center justify-center transition-colors"><X className="w-3.5 h-3.5" /></button>
+          <div className="p-4 border-b border-border flex items-center justify-between bg-card">
+             <h3 className="font-bold">Nội dung khóa học</h3>
+             <button onClick={() => setSidebarOpen(false)} className="hover:text-primary transition-colors"><X className="w-4 h-4" /></button>
           </div>
-
-          {/* Progress bar */}
-          <div className="px-4 py-2.5 border-b border-border/50 bg-muted/30">
-            <div className="flex items-center justify-between text-[11px] mb-1.5">
-              <span className="text-foreground-muted">Tiến trình</span>
-              <span className="font-bold text-primary">{allLessons.length ? Math.round(((currentIdx + 1) / allLessons.length) * 100) : 0}%</span>
-            </div>
-            <div className="h-1 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-primary to-[#c084fc] rounded-full transition-all duration-700" style={{ width: `${allLessons.length ? ((currentIdx + 1) / allLessons.length) * 100 : 0}%` }} />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto hide-scrollbar">
+          <div className="flex-1 overflow-y-auto">
              {course?.sections?.sort((a: any, b: any) => a.order - b.order).map((sec: any, si: number) => (
-               <div key={sec.id} className="border-b border-border/50">
-                 <div className="px-4 py-3 bg-muted/20">
-                    <p className="font-bold text-xs">Chương {si + 1}: {sec.title}</p>
-                    <p className="text-[10px] text-foreground-muted mt-0.5">{sec.lessons?.length || 0} bài học</p>
+               <div key={sec.id} className="border-b border-border">
+                 <div className="p-4 bg-muted/30">
+                    <p className="font-bold text-sm">Chương {si + 1}: {sec.title}</p>
+                    <p className="text-xs text-foreground-muted mt-1">{sec.lessons?.length || 0} bài học</p>
                  </div>
-                 <div className="py-0.5">
+                 <div>
                     {sec.lessons?.sort((a: any, b: any) => a.order - b.order).map((l: any, li: number) => {
                        const isCurrent = l.id === lessonId;
-                       const isCompleted = l.completed || l.progress?.completed;
+                       const progress = lessonProgress[l.id];
                        return (
-                         <Link key={l.id} href={`/courses/${id}/lessons/${l.id}`}
-                           className={`flex items-center gap-3 px-3 py-2.5 mx-1.5 mb-0.5 rounded-lg transition-all duration-200 relative group ${
-                             isCurrent
-                               ? 'bg-primary/10 ring-1 ring-primary/20'
-                               : isCompleted
-                                 ? 'opacity-60 hover:opacity-100 hover:bg-muted/50'
-                                 : 'hover:bg-muted/50'
-                           }`}>
-                            {/* Status icon */}
-                            <div className="flex-shrink-0">
-                              {isCompleted ? (
-                                <div className="w-6 h-6 rounded-full bg-green-500/15 flex items-center justify-center">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                                </div>
-                              ) : isCurrent ? (
-                                <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
-                                  <PlayCircle className="w-3.5 h-3.5 text-primary" />
-                                </div>
-                              ) : (
-                                <div className="w-6 h-6 rounded-full border border-border flex items-center justify-center">
-                                  <span className="text-[10px] font-bold text-foreground-muted">{li + 1}</span>
-                                </div>
-                              )}
+                         <Link key={l.id} href={`/courses/${id}/lessons/${l.id}`} className={`flex items-start gap-3 p-4 transition-colors ${isCurrent ? 'bg-primary/10 hover:bg-primary/20' : 'hover:bg-muted'}`}>
+                            <div className="mt-0.5">
+                               {progress?.completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : isCurrent ? <PlayCircle className="w-4 h-4 text-primary" /> : <div className="w-4 h-4 rounded-full border border-foreground-muted" />}
                             </div>
-                            {/* Lesson info */}
-                            <div className="min-w-0 flex-1">
-                               <p className={`text-xs leading-tight line-clamp-2 ${isCurrent ? 'font-bold text-primary' : isCompleted ? 'line-through' : 'font-medium'}`}>{l.title}</p>
-                               <div className="flex items-center gap-2 mt-0.5">
-                                 {l.videoUrl ? (
-                                   <span className="text-[10px] text-foreground-muted flex items-center gap-0.5"><PlayCircle className="w-2.5 h-2.5" /> Video</span>
-                                 ) : (
-                                   <span className="text-[10px] text-foreground-muted flex items-center gap-0.5"><BookOpen className="w-2.5 h-2.5" /> Lý thuyết</span>
-                                 )}
-                                 {l.duration && <span className="text-[10px] text-foreground-muted flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {l.duration}p</span>}
-                               </div>
+                            <div>
+                               <p className={`text-sm ${isCurrent ? 'font-bold' : ''}`}>{li + 1}. {l.title}</p>
+                               <p className="text-xs text-foreground-muted mt-1 flex items-center gap-1">
+                                 <Clock className="w-3 h-3"/>
+                                 {l.duration ? `${l.duration} phút` : progress?.watchedPercentage ? `${Math.round(progress.watchedPercentage)}% đã xem` : "Chưa học"}
+                               </p>
                             </div>
-                            {/* Active indicator */}
-                            {isCurrent && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />}
                          </Link>
                        );
                     })}
@@ -908,9 +881,6 @@ export default function LessonPage() {
         </div>
 
       </div>
-
-      {/* Add bottom padding for floating bar */}
-      <div className="h-16" />
     </div>
   );
 }

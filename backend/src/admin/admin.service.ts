@@ -17,6 +17,7 @@ import {
   LessonRepository,
   SectionRepository,
   AdminRepository,
+  NotificationRepository,
 } from '../database/repositories';
 import { PasswordService } from '../auth/services/password.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -35,6 +36,7 @@ export class AdminService implements OnApplicationBootstrap {
     private readonly lessonRepository: LessonRepository,
     private readonly sectionRepository: SectionRepository,
     private readonly adminRepository: AdminRepository,
+    private readonly notificationRepository: NotificationRepository,
     private readonly passwordService: PasswordService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     @InjectQueue(QueueNames.EMAIL) private readonly emailQueue: Queue,
@@ -284,7 +286,7 @@ export class AdminService implements OnApplicationBootstrap {
     return result;
   }
 
-  async rejectCourse(id: string) {
+  async rejectCourse(id: string, reason?: string) {
     const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
     if (course.status !== 'pending') {
@@ -294,6 +296,18 @@ export class AdminService implements OnApplicationBootstrap {
     }
     const result = await this.courseRepository.update(id, { status: 'draft' });
     await this.invalidateCourseCaches(id);
+
+    // Notify the course author about the rejection
+    if (course.authorId) {
+      const reasonText = reason?.trim() || 'Không có lý do cụ thể';
+      await this.notificationRepository.create({
+        userId: course.authorId,
+        title: `Khóa học "${course.title}" bị từ chối`,
+        message: `Khóa học của bạn đã bị từ chối duyệt. Lý do: ${reasonText}. Vui lòng chỉnh sửa và gửi lại.`,
+        type: 'course_rejected',
+      }).catch(() => undefined);
+    }
+
     return result;
   }
 
@@ -454,6 +468,38 @@ export class AdminService implements OnApplicationBootstrap {
     const months = await this.adminRepository.getMonthlyRevenue();
     const totalRevenue = months.reduce((s, m) => s + m.revenue, 0);
     return { totalRevenue, months };
+  }
+
+  async getStatsRevenueDetail() {
+    return this.adminRepository.getRevenueDetails();
+  }
+
+  async getRefundRequests() {
+    return this.adminRepository.listRefundRequests();
+  }
+
+  async markRefundPaid(id: string, adminId: string, bankTransferRef?: string) {
+    const transferRef = bankTransferRef?.trim();
+    if (!transferRef) {
+      throw new BadRequestException('bankTransferRef is required to confirm a refund');
+    }
+    const result = await this.adminRepository.markRefundPaid(id, adminId, transferRef);
+    if (!result) throw new NotFoundException('Refund request not found');
+    const refund = result.refund;
+    if (result.alreadyPaid) return refund;
+
+    await this.notificationRepository.create({
+      userId: refund.parentId,
+      title: 'Đã hoàn tiền chuyển khoản dư',
+      message: JSON.stringify({
+        refundRequestId: refund.id,
+        orderId: refund.orderId,
+        amount: Number(refund.amount),
+        bankTransferRef: refund.bankTransferRef,
+      }),
+      type: 'refund_paid',
+    }).catch(() => undefined);
+    return refund;
   }
 
   /** Course stats: enrollment count, average rating */

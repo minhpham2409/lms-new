@@ -164,7 +164,24 @@ export class ParentsService {
     if (!link || link.status !== 'accepted') {
       throw new ForbiddenException('Not linked to this student');
     }
-    return this.dashboardRepository.getChildOrders(childId);
+    const orders = await this.dashboardRepository.getChildOrders(childId);
+    const txnRefs = orders
+      .map((order: any) => order.payment?.txnRef)
+      .filter((txnRef): txnRef is string => !!txnRef);
+    const issues = await this.dashboardRepository.getPaymentIssuesByTxnRefs(txnRefs);
+    const issueByTxnRef = new Map<string, any>();
+    for (const issue of issues) {
+      if (issue.txnRef && !issueByTxnRef.has(issue.txnRef)) {
+        issueByTxnRef.set(issue.txnRef, issue);
+      }
+    }
+
+    return orders.map((order: any) => ({
+      ...order,
+      paymentIssue: order.payment?.txnRef
+        ? issueByTxnRef.get(order.payment.txnRef) ?? null
+        : null,
+    }));
   }
 
   /** Parent views child's graded submissions (bảng điểm) */

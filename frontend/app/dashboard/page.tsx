@@ -7,9 +7,11 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
-  ChevronRight, Loader2, Gift, PlayCircle, Clock, CheckCircle2, Award, AlertCircle
+  Loader2, PlayCircle, Clock, CheckCircle2, Award, AlertCircle, ClipboardList, MessageSquareText
 } from "lucide-react";
 import { toast } from "sonner";
+import { studentLearningApi } from "@/lib/api-service";
+import type { LearningSummary } from "@/types";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
@@ -41,7 +43,8 @@ export default function DashboardPage() {
   const [parentRequests, setParentRequests] = useState<any[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData>({ streak: 0, nextReward: null, activities: [] });
   const [achievements, setAchievements] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"courses" | "stats" | "requests">("courses");
+  const [learningSummary, setLearningSummary] = useState<LearningSummary | null>(null);
+  const [activeTab, setActiveTab] = useState<"courses" | "todos" | "feedback" | "stats" | "requests">("courses");
 
   useEffect(() => {
     if (loading) return;
@@ -55,6 +58,9 @@ export default function DashboardPage() {
     if (token && user?.role === "student") {
       fetchEnrolledCourses();
       fetchParentRequests();
+      studentLearningApi.getSummary()
+        .then(setLearningSummary)
+        .catch(() => setLearningSummary(null));
       fetch(`${API}/users/me/dashboard`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d) setDashboard(d); }).catch(() => {});
@@ -66,6 +72,7 @@ export default function DashboardPage() {
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d?.badges) setAchievements(d.badges); }).catch(() => {});
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
   async function fetchEnrolledCourses() {
@@ -139,6 +146,12 @@ export default function DashboardPage() {
              <button onClick={() => setActiveTab("courses")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "courses" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
                 Tất cả khóa học
              </button>
+             <button onClick={() => setActiveTab("todos")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "todos" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
+                Việc cần làm {learningSummary?.todos.length ? `(${learningSummary.todos.length})` : ""}
+             </button>
+             <button onClick={() => setActiveTab("feedback")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "feedback" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
+                Điểm & nhận xét
+             </button>
              <button onClick={() => setActiveTab("stats")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "stats" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
                 Thống kê & Thành tích
              </button>
@@ -158,6 +171,27 @@ export default function DashboardPage() {
            {/* TAB: COURSES */}
            {activeTab === "courses" && (
              <div>
+                {learningSummary?.continueLearning && (
+                  <Link
+                    href={learningSummary.continueLearning.url}
+                    className="mb-6 flex flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/50 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <PlayCircle className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase text-foreground-muted">Học tiếp</p>
+                        <h2 className="font-bold">{learningSummary.continueLearning.lessonTitle}</h2>
+                        <p className="text-sm text-foreground-muted">
+                          Đã xem {Math.round(learningSummary.continueLearning.watchedPercentage)}%
+                          {learningSummary.continueLearning.watchTime > 0 ? ` · tiếp tục từ ${Math.floor(learningSummary.continueLearning.watchTime / 60)}:${String(learningSummary.continueLearning.watchTime % 60).padStart(2, "0")}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-primary">Vào bài học</span>
+                  </Link>
+                )}
                 {coursesLoading ? (
                   <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
                 ) : activeCourses.length === 0 ? (
@@ -199,6 +233,71 @@ export default function DashboardPage() {
                      })}
                   </div>
                 )}
+             </div>
+           )}
+
+           {/* TAB: TODOS */}
+           {activeTab === "todos" && (
+             <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+                <div className="space-y-3">
+                  {(learningSummary?.todos.length ?? 0) === 0 ? (
+                    <div className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+                      <ClipboardList className="mx-auto mb-3 h-9 w-9 text-foreground-muted" />
+                      <h3 className="font-bold">Không có việc cần làm</h3>
+                      <p className="mt-1 text-sm text-foreground-muted">Bài tập và quiz chưa làm sẽ xuất hiện tại đây.</p>
+                    </div>
+                  ) : learningSummary?.todos.map((item) => (
+                    <Link key={item.id} href={item.url} className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/50">
+                      <div className="min-w-0">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{item.type === "quiz" ? "Quiz" : "Bài tập"}</span>
+                          {item.dueDate && <span className="text-xs text-foreground-muted">Hạn: {new Date(item.dueDate).toLocaleDateString("vi-VN")}</span>}
+                        </div>
+                        <h3 className="truncate font-bold">{item.title}</h3>
+                        <p className="truncate text-sm text-foreground-muted">{item.courseTitle} · {item.lessonTitle}</p>
+                      </div>
+                      <span className="shrink-0 text-sm font-bold text-primary">Làm ngay</span>
+                    </Link>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-border bg-card p-5 shadow-sm h-fit">
+                  <h3 className="mb-3 font-bold">Tổng quan học tập</h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between"><span className="text-foreground-muted">Khóa đang học</span><b>{learningSummary?.stats.activeCourses ?? activeCourses.length}</b></div>
+                    <div className="flex justify-between"><span className="text-foreground-muted">Việc cần làm</span><b>{learningSummary?.stats.pendingTasks ?? 0}</b></div>
+                    <div className="flex justify-between"><span className="text-foreground-muted">Đã hoàn thành</span><b>{learningSummary?.stats.completedCourses ?? 0}</b></div>
+                  </div>
+                </div>
+             </div>
+           )}
+
+           {/* TAB: FEEDBACK */}
+           {activeTab === "feedback" && (
+             <div className="space-y-3">
+                {(learningSummary?.feedback.length ?? 0) === 0 ? (
+                  <div className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+                    <MessageSquareText className="mx-auto mb-3 h-9 w-9 text-foreground-muted" />
+                    <h3 className="font-bold">Chưa có điểm hoặc nhận xét mới</h3>
+                    <p className="mt-1 text-sm text-foreground-muted">Kết quả quiz và bài tập đã chấm sẽ được gom ở đây.</p>
+                  </div>
+                ) : learningSummary?.feedback.map((item) => (
+                  <Link key={`${item.kind}-${item.id}`} href={item.url} className="block rounded-lg border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/50">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span className="rounded bg-green-500/10 px-2 py-0.5 text-xs font-bold text-green-600">{item.kind === "quiz" ? "Quiz" : "Bài tập"}</span>
+                          <span className="text-xs text-foreground-muted">{item.courseTitle} · {item.lessonTitle}</span>
+                        </div>
+                        <h3 className="font-bold">{item.title}</h3>
+                        {item.feedback && <p className="mt-2 text-sm text-foreground-muted line-clamp-2">Nhận xét: {item.feedback}</p>}
+                      </div>
+                      <div className="shrink-0 text-left sm:text-right">
+                        <p className="text-2xl font-black text-green-600">{item.score ?? 0}<span className="text-sm text-foreground-muted">/{item.maxScore}</span></p>
+                        {item.gradedAt && <p className="text-xs text-foreground-muted">{new Date(item.gradedAt).toLocaleDateString("vi-VN")}</p>}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
              </div>
            )}
 

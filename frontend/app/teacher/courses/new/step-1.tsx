@@ -36,6 +36,33 @@ export function Step1BasicInfo({ title, setTitle, description, setDescription, c
           <div>
             <label className="block text-sm font-semibold mb-1.5">Giá tiền (VNĐ)</label>
             <input type="number" value={price} onChange={e => setPrice(e.target.value)} className="input-base" placeholder="0 = Miễn phí" />
+            {Number(price) > 0 && (
+              <div className="mt-3 p-4 rounded-lg border" style={{ background: "var(--muted)", borderColor: "var(--border)" }}>
+                <p className="text-xs font-bold mb-2.5 flex items-center gap-1.5" style={{ color: "var(--foreground-muted)" }}>
+                  💰 Chi tiết doanh thu dự kiến
+                </p>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: "var(--foreground-muted)" }}>Giá bán cho học sinh</span>
+                    <span className="font-bold">{Number(price).toLocaleString("vi-VN")} ₫</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: "#ef4444" }}>Phí nền tảng (20%)</span>
+                    <span className="font-semibold" style={{ color: "#ef4444" }}>
+                      −{Math.round(Number(price) * 0.2).toLocaleString("vi-VN")} ₫
+                    </span>
+                  </div>
+                  <div className="border-t pt-1.5 mt-1.5" style={{ borderColor: "var(--border)" }}>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-bold" style={{ color: "#10b981" }}>✅ Bạn nhận được</span>
+                      <span className="font-extrabold text-base" style={{ color: "#10b981" }}>
+                        {Math.round(Number(price) * 0.8).toLocaleString("vi-VN")} ₫
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="pt-4 mt-2" style={{ borderTop: "1px solid var(--border)" }}>

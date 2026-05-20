@@ -74,6 +74,42 @@ export class PaymentRepository extends BaseRepository<Payment> {
     });
   }
 
+  createPaymentTransaction(params: {
+    paymentId: string;
+    orderId: string;
+    txnRef?: string | null;
+    provider?: string;
+    providerRef?: string | null;
+    webhookEventId?: string | null;
+    amount: number;
+    expectedAmount?: number | null;
+    paidBefore?: number;
+    remainingAfter?: number;
+    overpaidAmount?: number;
+    status: string;
+    note?: string;
+    rawPayload?: Prisma.InputJsonValue;
+  }) {
+    return (this.prisma as any).paymentTransaction.create({
+      data: {
+        paymentId: params.paymentId,
+        orderId: params.orderId,
+        txnRef: params.txnRef,
+        provider: params.provider ?? 'sepay',
+        providerRef: params.providerRef,
+        webhookEventId: params.webhookEventId,
+        amount: params.amount,
+        expectedAmount: params.expectedAmount,
+        paidBefore: params.paidBefore ?? 0,
+        remainingAfter: params.remainingAfter ?? 0,
+        overpaidAmount: params.overpaidAmount ?? 0,
+        status: params.status,
+        note: params.note,
+        rawPayload: params.rawPayload,
+      },
+    });
+  }
+
   /**
    * ATOMIC TRANSACTION: Complete payment → mark order paid → create enrollments.
    *
@@ -88,13 +124,21 @@ export class PaymentRepository extends BaseRepository<Payment> {
     userId: string;
     courseItems: { courseId: string }[];
     couponId?: string;
+    paidAmount?: number;
+    overpaidAmount?: number;
   }) {
     return this.prisma.$transaction(async (tx) => {
       // 1. Conditional update: only proceed if payment is STILL pending.
       //    If another webhook beat us, this will update 0 rows.
       const paymentUpdate = await tx.payment.updateMany({
         where: { id: params.paymentId, status: 'pending' },
-        data: { status: 'completed', paidAt: new Date() },
+        data: {
+          status: 'completed',
+          paidAt: new Date(),
+          ...(params.paidAmount !== undefined ? { paidAmount: params.paidAmount } : {}),
+          remainingAmount: 0,
+          overpaidAmount: params.overpaidAmount ?? 0,
+        } as any,
       });
 
       if (paymentUpdate.count === 0) {

@@ -9,7 +9,7 @@ import {
   Users, BookOpen, DollarSign, TrendingUp, Shield, BarChart3, Search,
   Eye, Trash2, UserCheck, UserX,
   Tag, Package, RefreshCw, Activity, Wallet,
-  CheckCircle2, Clock, XCircle, Loader2, BanknoteIcon,
+  CheckCircle2, Clock, XCircle, Loader2, BanknoteIcon, AlertTriangle,
   Server, Percent, Flag, Lock, Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ const statusIcons: Record<string, { color: string; Icon: any }> = {
   active: { color: "#10b981", Icon: CheckCircle2 }, expired: { color: "#ef4444", Icon: XCircle },
 };
 
-type Tab = "overview" | "users" | "courses" | "orders" | "coupons" | "payouts" | "queues" | "race" | "fee";
+type Tab = "overview" | "revenue" | "users" | "courses" | "orders" | "coupons" | "payouts" | "queues" | "race" | "fee";
 
 function CreateTeacherModal({ onClose, onCreate }: { onClose: () => void; onCreate: (data: any) => Promise<void> }) {
   const [form, setForm] = useState({ username: "", email: "", firstName: "", lastName: "", password: "" });
@@ -156,7 +156,9 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
+  const [refundRequests, setRefundRequests] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any>(null);
+  const [revenueDetails, setRevenueDetails] = useState<any>(null);
   const [courseStats, setCourseStats] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [queues, setQueues] = useState<any>(null);
@@ -175,21 +177,24 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (token && user?.role === "admin") fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
   async function fetchAll() {
     setDataLoading(true);
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const [statsR, usersR, coursesR, ordersR, couponsR, revR, csR, payoutsR, queuesR, raceR, feeR] = await Promise.all([
+      const [statsR, usersR, coursesR, ordersR, couponsR, revR, revDetailR, csR, payoutsR, refundsR, queuesR, raceR, feeR] = await Promise.all([
         fetch(`${API}/admin/dashboard`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/admin/users`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/courses`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/orders`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/coupons`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/stats/revenue`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${API}/admin/stats/revenue/detail`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/admin/stats/courses`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/wallets/admin/payouts`, { headers }).then(r => r.ok ? r.json() : { data: [] }),
+        fetch(`${API}/admin/refund-requests`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/queues/health`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/monthly-race/xp-config`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/wallets/admin/configs/fee`, { headers }).then(r => r.ok ? r.json() : null),
@@ -200,7 +205,9 @@ export default function AdminPage() {
       setOrders(Array.isArray(ordersR) ? ordersR : Array.isArray(ordersR?.data) ? ordersR.data : []);
       setCoupons(Array.isArray(couponsR) ? couponsR : Array.isArray(couponsR?.data) ? couponsR.data : []);
       setPayouts(Array.isArray(payoutsR) ? payoutsR : Array.isArray(payoutsR?.data) ? payoutsR.data : []);
+      setRefundRequests(Array.isArray(refundsR) ? refundsR : []);
       setRevenueData(revR);
+      setRevenueDetails(revDetailR);
       setCourseStats(Array.isArray(csR) ? csR : Array.isArray(csR?.data) ? csR.data : []);
       setQueues(queuesR);
       setRaceConfig(raceR);
@@ -299,6 +306,30 @@ export default function AdminPage() {
     } catch { toast.error("Lỗi kết nối"); }
   }
 
+  async function markRefundPaid(refundId: string) {
+    const bankTransferRef = prompt("Nhập mã giao dịch hoàn tiền")?.trim() || "";
+    if (!bankTransferRef) {
+      toast.error("Cần nhập mã giao dịch hoàn tiền để audit");
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/admin/refund-requests/${refundId}/paid`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bankTransferRef }),
+      });
+      if (res.ok) {
+        toast.success("Đã xác nhận hoàn tiền");
+        fetchAll();
+      } else {
+        const d = await res.json();
+        toast.error(d.message || "Lỗi");
+      }
+    } catch {
+      toast.error("Lỗi kết nối");
+    }
+  }
+
   async function rejectPayout(payoutId: string) {
     const adminNote = prompt("Lý do từ chối:");
     if (!adminNote) return;
@@ -344,6 +375,7 @@ export default function AdminPage() {
 
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "overview", label: "Tổng quan", icon: BarChart3 },
+    { id: "revenue", label: "Doanh thu", icon: BanknoteIcon },
     { id: "users", label: "Người dùng", icon: Users },
     { id: "courses", label: "Khóa học", icon: BookOpen },
     { id: "orders", label: "Đơn hàng", icon: Package },
@@ -611,6 +643,185 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </>
+                );
+              })()}
+
+              {tab === "revenue" && (() => {
+                const detail = revenueDetails || {};
+                const summary = detail.summary || {};
+                const money = (value: any) => `${Number(value || 0).toLocaleString("vi-VN")} ₫`;
+                const topCourses = detail.topCourses || [];
+                const recentOrders = detail.recentOrders || [];
+                const paymentIssues = detail.paymentIssues || [];
+                const refunds = refundRequests.length ? refundRequests : detail.refundRequests || [];
+
+                return (
+                  <div className="space-y-6">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[
+                        { label: "Tiền đã nhận", value: money(summary.receivedRevenue || summary.grossRevenue), icon: DollarSign, color: "#10b981", sub: "Gồm cả đơn còn thiếu" },
+                        { label: "Nền tảng giữ lại", value: money(summary.platformRevenue), icon: Percent, color: "#5624d0", sub: "Sau chia giáo viên" },
+                        { label: "Đã ghi nhận GV", value: money(summary.teacherRevenue), icon: Wallet, color: "#0891b2", sub: "Ví giáo viên" },
+                        { label: "Giảm giá", value: money(summary.discountTotal), icon: Tag, color: "#f59e0b", sub: "Từ coupon/ưu đãi" },
+                      ].map(({ label, value, icon: Icon, color, sub }) => (
+                        <div key={label} className="bg-card border border-border p-5 shadow-sm">
+                          <div className="w-10 h-10 rounded flex items-center justify-center mb-3" style={{ background: `${color}18` }}>
+                            <Icon className="w-5 h-5" style={{ color }} />
+                          </div>
+                          <p className="text-xl font-extrabold">{value}</p>
+                          <p className="text-xs font-bold mt-1">{label}</p>
+                          <p className="text-[10px]" style={{ color }}>{sub}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid lg:grid-cols-3 gap-6">
+                      <div className="bg-card border border-border p-6 shadow-sm">
+                        <h3 className="font-bold mb-4 flex items-center gap-2">
+                          <Activity className="w-4 h-4 text-[#a435f0]" /> Trạng thái thanh toán
+                        </h3>
+                        <div className="space-y-3">
+                          {[
+                            { label: "Đã thanh toán", count: summary.paidOrders, amount: summary.grossRevenue, color: "#10b981" },
+                            { label: "Chờ thanh toán", count: summary.pendingOrders, amount: summary.pendingAmount, color: "#f59e0b" },
+                            { label: "Chuyển thừa", count: refunds.filter((r: any) => r.status !== "PAID").length, amount: summary.overpaidAmount, color: "#0891b2" },
+                            { label: "Thất bại", count: summary.failedOrders, amount: summary.failedAmount, color: "#ef4444" },
+                          ].map((row) => (
+                            <div key={row.label} className="p-3 rounded border border-border">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-semibold">{row.label}</span>
+                                <span className="text-xs font-bold" style={{ color: row.color }}>{row.count || 0} đơn</span>
+                              </div>
+                              <p className="text-sm mt-1" style={{ color: "#6a6f73" }}>{money(row.amount)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-2 bg-card border border-border p-6 shadow-sm">
+                        <h3 className="font-bold mb-4 flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-[#10b981]" /> Top khóa học theo doanh thu
+                        </h3>
+                        {topCourses.length === 0 ? (
+                          <p className="text-sm py-8 text-center" style={{ color: "#6a6f73" }}>Chưa có doanh thu khóa học</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {topCourses.map((course: any, index: number) => (
+                              <div key={course.id} className="flex items-center gap-3">
+                                <span className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold bg-[#a435f0]/10 text-[#a435f0]">{index + 1}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold truncate">{course.title}</p>
+                                  <p className="text-xs" style={{ color: "#6a6f73" }}>
+                                    {course.teacher?.firstName || course.teacher?.username || "Giáo viên"} · {course.orders} lượt mua
+                                  </p>
+                                </div>
+                                <span className="font-extrabold text-sm text-[#10b981]">{money(course.revenue)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid lg:grid-cols-2 gap-6">
+                      <div className="bg-card border border-border p-6 shadow-sm">
+                        <h3 className="font-bold mb-4 flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-[#10b981]" /> Đơn đã thu gần đây
+                        </h3>
+                        <div className="space-y-3">
+                          {recentOrders.length === 0 ? (
+                            <p className="text-sm py-6 text-center" style={{ color: "#6a6f73" }}>Chưa có đơn đã thanh toán</p>
+                          ) : recentOrders.map((order: any) => (
+                            <div key={order.id} className="p-3 rounded border border-border">
+                              <div className="flex justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold">#{order.id?.substring(0, 8)} · {order.user?.username || "Khách hàng"}</p>
+                                  <p className="text-xs truncate" style={{ color: "#6a6f73" }}>
+                                    {(order.items || []).map((i: any) => i.course?.title).filter(Boolean).join(", ") || "Khóa học"}
+                                  </p>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-sm font-extrabold text-[#10b981]">{money(order.payment?.paidAmount || order.finalPrice)}</p>
+                                  {Number(order.payment?.overpaidAmount || 0) > 0 && (
+                                    <p className="text-[10px] text-[#f59e0b]">Dư {money(order.payment.overpaidAmount)}</p>
+                                  )}
+                                  <p className="text-[10px] font-mono" style={{ color: "#6a6f73" }}>{order.payment?.txnRef || "—"}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-card border border-border p-6 shadow-sm">
+                        <h3 className="font-bold mb-4 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-[#f59e0b]" /> Cần đối soát
+                        </h3>
+                        <div className="space-y-3">
+                          {paymentIssues.length === 0 ? (
+                            <p className="text-sm py-6 text-center" style={{ color: "#6a6f73" }}>Không có webhook lỗi hoặc chuyển sai mã</p>
+                          ) : paymentIssues.map((event: any) => {
+                            const payload = event.payload || {};
+                            return (
+                              <div key={event.id} className="p-3 rounded border border-[#f59e0b]/30 bg-[#f59e0b]/5">
+                                <div className="flex justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-bold text-[#f59e0b]">{event.error || "Webhook cần kiểm tra"}</p>
+                                    <p className="text-xs truncate" style={{ color: "#6a6f73" }}>
+                                      Nội dung: {payload.content || payload.description || "—"}
+                                    </p>
+                                  </div>
+                                  <div className="text-right flex-shrink-0">
+                                    <p className="text-xs font-mono">{event.txnRef || "Không có mã"}</p>
+                                    <p className="text-[10px]" style={{ color: "#6a6f73" }}>{new Date(event.receivedAt).toLocaleString("vi-VN")}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-card border border-border p-6 shadow-sm">
+                      <h3 className="font-bold mb-4 flex items-center gap-2">
+                        <BanknoteIcon className="w-4 h-4 text-[#0891b2]" /> Yêu cầu hoàn tiền chuyển dư
+                      </h3>
+                      {refunds.length === 0 ? (
+                        <p className="text-sm py-6 text-center" style={{ color: "#6a6f73" }}>Chưa có yêu cầu hoàn tiền</p>
+                      ) : (
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {refunds.map((refund: any) => (
+                            <div key={refund.id} className="p-4 rounded border border-border flex gap-4">
+                              {refund.refundQrUrl && (
+                                <img src={refund.refundQrUrl} alt="QR hoàn tiền" className="w-28 h-28 object-contain bg-white rounded" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between gap-2">
+                                  <p className="text-sm font-bold truncate">#{refund.orderId?.substring(0, 8)}</p>
+                                  <span className="text-[10px] font-bold" style={{ color: refund.status === "PAID" ? "#10b981" : "#f59e0b" }}>
+                                    {refund.status === "PAID" ? "Đã hoàn" : "Chờ hoàn"}
+                                  </span>
+                                </div>
+                                <p className="text-lg font-extrabold text-[#0891b2]">{money(refund.amount)}</p>
+                                <p className="text-xs truncate" style={{ color: "#6a6f73" }}>
+                                  {refund.bankName} · {refund.bankAccount} · {refund.bankOwner}
+                                </p>
+                                <p className="text-[10px] truncate" style={{ color: "#6a6f73" }}>
+                                  {refund.parent?.username || "Phụ huynh"} · {new Date(refund.createdAt).toLocaleString("vi-VN")}
+                                </p>
+                                {refund.status !== "PAID" && (
+                                  <button onClick={() => markRefundPaid(refund.id)} className="btn-primary mt-3 text-xs px-3 py-2">
+                                    Xác nhận đã chuyển
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 );
               })()}
 

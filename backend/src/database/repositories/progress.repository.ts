@@ -39,7 +39,11 @@ export class ProgressRepository {
     return this.prisma.lesson.findUnique({
       where: { id: lessonId },
       include: {
-        section: true,
+        section: {
+          include: {
+            course: { select: { id: true, title: true } },
+          },
+        },
         assignments: { select: { id: true } },
       },
     });
@@ -156,6 +160,15 @@ export class ProgressRepository {
     return this.prisma.submission.findFirst({
       where: { studentId: userId, assignmentId },
       select: { id: true, status: true, score: true },
+    });
+  }
+
+  // ─── Course Queries ──────────────────────────────────────────────────────
+
+  findCourseById(courseId: string) {
+    return this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { id: true, title: true },
     });
   }
 }

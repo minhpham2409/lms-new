@@ -35,8 +35,11 @@ export class StorageService implements OnModuleInit {
   constructor(private readonly config: ConfigService) {
     const endpoint = this.config.get<string>('S3_ENDPOINT', 'http://localhost:9000');
     const region = this.config.get<string>('S3_REGION', 'us-east-1');
-    const accessKey = this.config.get<string>('S3_ACCESS_KEY', 'minioadmin');
-    const secretKey = this.config.get<string>('S3_SECRET_KEY', 'minioadmin');
+    const accessKey = this.config.get<string>('S3_ACCESS_KEY');
+    const secretKey = this.config.get<string>('S3_SECRET_KEY');
+    if (process.env.NODE_ENV === 'production' && (!accessKey || !secretKey)) {
+      throw new Error('S3_ACCESS_KEY and S3_SECRET_KEY are required in production');
+    }
     this.forcePathStyle = this.config.get<string>('S3_FORCE_PATH_STYLE', 'true') === 'true';
     this.bucket = this.config.get<string>('S3_BUCKET', 'lms-assets');
     this.publicEndpoint = this.config.get<string>('S3_PUBLIC_ENDPOINT', endpoint);
@@ -45,8 +48,8 @@ export class StorageService implements OnModuleInit {
     const clientConfig: ConstructorParameters<typeof S3Client>[0] = {
       region,
       credentials: {
-        accessKeyId: accessKey,
-        secretAccessKey: secretKey,
+        accessKeyId: accessKey || 'dev-minio-access-key',
+        secretAccessKey: secretKey || 'dev-minio-secret-key',
       },
       forcePathStyle: this.forcePathStyle,
     };

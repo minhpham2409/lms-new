@@ -19,7 +19,7 @@ export class OrderRepository extends BaseRepository<Order> {
       include: {
         items: { include: { course: { select: { id: true, title: true, thumbnail: true } } } },
         coupon: { select: { code: true, discount: true } },
-        payment: { select: { status: true, paidAt: true, txnRef: true } },
+        payment: true,
       },
       orderBy: { createdAt: 'desc' },
     });

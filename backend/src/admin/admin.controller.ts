@@ -84,8 +84,8 @@ export class AdminController {
   }
 
   @Put('courses/:id/reject')
-  rejectCourse(@Param('id') id: string) {
-    return this.adminService.rejectCourse(id);
+  rejectCourse(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.adminService.rejectCourse(id, body.reason);
   }
 
   @Get('courses/pending')
@@ -100,7 +100,7 @@ export class AdminController {
 
   @Post('courses/:id/reject')
   rejectCoursePost(@Param('id') id: string, @Body() body: { reason?: string }) {
-    return this.adminService.rejectCourse(id);
+    return this.adminService.rejectCourse(id, body.reason);
   }
 
   @Get('stats')
@@ -141,6 +141,25 @@ export class AdminController {
   @Get('stats/revenue')
   getStatsRevenue() {
     return this.adminService.getStatsRevenue();
+  }
+
+  @Get('stats/revenue/detail')
+  getStatsRevenueDetail() {
+    return this.adminService.getStatsRevenueDetail();
+  }
+
+  @Get('refund-requests')
+  getRefundRequests() {
+    return this.adminService.getRefundRequests();
+  }
+
+  @Patch('refund-requests/:id/paid')
+  markRefundPaid(
+    @Param('id') id: string,
+    @Body() body: { bankTransferRef?: string },
+    @GetUser() user: any,
+  ) {
+    return this.adminService.markRefundPaid(id, user.id, body.bankTransferRef);
   }
 
   @Get('stats/courses')

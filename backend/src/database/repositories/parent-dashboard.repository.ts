@@ -150,8 +150,20 @@ export class ParentDashboardRepository {
             course: { select: { id: true, title: true, price: true, thumbnail: true } },
           },
         },
+        payment: true,
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  getPaymentIssuesByTxnRefs(txnRefs: string[]) {
+    if (txnRefs.length === 0) return Promise.resolve([]);
+    return this.prisma.webhookEvent.findMany({
+      where: {
+        txnRef: { in: txnRefs },
+        status: { in: ['rejected', 'failed'] },
+      },
+      orderBy: { receivedAt: 'desc' },
     });
   }
 
