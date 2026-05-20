@@ -571,7 +571,7 @@ export default function CourseDetailPage() {
                                <button
                                  onClick={previewBuyNowCoupon}
                                  disabled={buyNowCouponLoading || !buyNowCoupon.trim() || course.allowPlatformPromotions === false}
-                                 className="px-3 py-2 border border-border text-xs font-bold hover:bg-muted disabled:opacity-50"
+                                 className="px-3 py-2 border border-border text-xs font-bold hover:bg-muted disabled:opacity-50 whitespace-nowrap shrink-0"
                                >
                                  {buyNowCouponLoading ? "..." : "Áp dụng"}
                                </button>
