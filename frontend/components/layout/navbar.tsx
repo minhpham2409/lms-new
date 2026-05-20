@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth/auth-state";
+import { Logo } from "@/components/ui/logo";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
@@ -114,13 +115,8 @@ export function Navbar() {
       <nav className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[70px] gap-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group shrink-0">
-            <div className="w-8 h-8 bg-[#5624d0] rounded-full flex items-center justify-center">
-              <GraduationCap className="w-4.5 h-4.5 text-white" />
-            </div>
-            <span className="font-bold text-lg tracking-tight hidden sm:block text-[#2d2f31] dark:text-white">
-              HọcLộ Trình
-            </span>
+          <Link href="/" className="shrink-0">
+            <Logo />
           </Link>
 
           {/* Desktop nav links */}

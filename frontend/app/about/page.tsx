@@ -47,7 +47,7 @@ export default function AboutPage() {
                 Sứ mệnh đổi mới <span style={{ background: "linear-gradient(135deg,#a435f0,#5624d0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>giáo dục Việt Nam</span>
               </h1>
               <p className="text-base leading-relaxed text-[#6a6f73] mb-8 max-w-lg">
-                HọcLộ Trình ra đời với khát vọng mang công nghệ hiện đại vào giáo dục,
+                LumiLearn ra đời với khát vọng mang công nghệ hiện đại vào giáo dục,
                 giúp học sinh Việt Nam tiếp cận kiến thức chất lượng cao mọi lúc, mọi nơi.
                 Chúng tôi tin rằng mọi học sinh đều xứng đáng được học tập tốt nhất.
               </p>
@@ -137,7 +137,7 @@ export default function AboutPage() {
               <h3 className="text-lg font-bold mb-6 text-[#2d2f31] dark:text-white">Câu chuyện của chúng tôi</h3>
               <div className="space-y-4 text-sm text-[#6a6f73] leading-relaxed">
                 <p>
-                  HọcLộ Trình được thành lập năm 2024 bởi nhóm kỹ sư và giáo viên với đam mê cải thiện chất lượng giáo dục tại Việt Nam.
+                  LumiLearn được thành lập năm 2024 bởi nhóm kỹ sư và giáo viên với đam mê cải thiện chất lượng giáo dục tại Việt Nam.
                 </p>
                 <p>
                   Chúng tôi nhận thấy rằng dù công nghệ phát triển mạnh mẽ, nhiều học sinh ở vùng nông thôn và các gia đình khó khăn vẫn không có cơ hội tiếp cận giáo dục chất lượng.
@@ -163,7 +163,7 @@ export default function AboutPage() {
             Sẵn sàng bắt đầu hành trình học tập?
           </h2>
           <p className="text-base text-[#6a6f73] mb-8">
-            Tham gia cùng hơn 10,000 học sinh đang học tập mỗi ngày trên HọcLộ Trình
+            Tham gia cùng hơn 10,000 học sinh đang học tập mỗi ngày trên LumiLearn
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/auth/register" className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold transition-colors rounded">

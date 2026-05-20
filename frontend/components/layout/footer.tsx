@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { GraduationCap, Mail, Phone, MapPin, Github, Twitter, Facebook, Youtube } from "lucide-react";
+import { Mail, Phone, MapPin, Github, Twitter, Facebook, Youtube } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 const footerLinks = {
   platform: {
@@ -38,13 +39,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-[#5624d0] rounded-full flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold text-lg text-white">
-                HọcLộ Trình
-              </span>
+            <Link href="/" className="inline-block mb-4">
+              <Logo />
             </Link>
             <p className="text-sm leading-relaxed mb-5 max-w-xs text-[#b0b5b9]">
               Nền tảng học tập thông minh kết nối giáo viên, học sinh và phụ huynh.
@@ -102,7 +98,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="pt-6 border-t border-[#3e4143] flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-[#6a6f73]">
-            © 2026 HọcLộ Trình. Tất cả quyền được bảo lưu.
+            © 2026 LumiLearn. Tất cả quyền được bảo lưu.
           </p>
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-[#16a34a]" />

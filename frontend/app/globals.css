@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   HOCLOTRINH — Udemy-Inspired Design System
+   LUMILEARN — Udemy-Inspired Design System
    Clean, Professional, High-Readability
    ============================================================ */
 
@@ -14,17 +14,17 @@
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-cal-sans);
 
-  /* Brand colors */
-  --color-brand-50:  #f3f0ff;
-  --color-brand-100: #e9e0ff;
-  --color-brand-200: #d4c1fe;
-  --color-brand-300: #b794f6;
-  --color-brand-400: #a435f0;
-  --color-brand-500: #8710d8;
-  --color-brand-600: #6d28d9;
-  --color-brand-700: #5624d0;
-  --color-brand-800: #401b9c;
-  --color-brand-900: #2d1370;
+  /* Brand colors — Senior Dev Blue */
+  --color-brand-50:  #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #3b82f6;
+  --color-brand-500: #2563eb;
+  --color-brand-600: #1d4ed8;
+  --color-brand-700: #1e40af;
+  --color-brand-800: #1e3a8a;
+  --color-brand-900: #172554;
 
   /* Semantic colors */
   --color-background: var(--background);
@@ -48,20 +48,20 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
 
-  /* Radii */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 16px);
+  /* Radii — Sharp and industrial senior-developer style */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
 }
 
 /* ============================================================
    Default: Light Mode (Udemy is light-first)
    ============================================================ */
 :root {
-  --radius: 0.5rem;
+  --radius: 0px;
 
   /* Udemy color palette */
   --background:          #ffffff;
@@ -77,10 +77,10 @@
   --popover:             #ffffff;
   --popover-foreground:  #2d2f31;
 
-  /* Primary — Udemy purple */
-  --primary:             #a435f0;
-  --primary-light:       #c0a5f7;
-  --primary-dark:        #5624d0;
+  /* Primary — Senior developer blue */
+  --primary:             #2563eb;
+  --primary-light:       #93c5fd;
+  --primary-dark:        #1e40af;
   --primary-foreground:  #ffffff;
 
   /* Secondary — dark */
@@ -93,7 +93,7 @@
   --muted-foreground:    #6a6f73;
 
   /* Accent */
-  --accent:              #5624d0;
+  --accent:              #1e40af;
   --accent-foreground:   #ffffff;
 
   /* Status */
@@ -105,10 +105,10 @@
   --border:              #d1d7dc;
   --border-strong:       #b0b5b9;
   --input:               #f7f9fa;
-  --ring:                rgba(86, 36, 208, 0.3);
+  --ring:                rgba(37, 99, 235, 0.3);
 
   /* Gradients */
-  --gradient-brand:      linear-gradient(135deg, #a435f0 0%, #5624d0 100%);
+  --gradient-brand:      linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   --gradient-glow:       none;
   --gradient-hero:       #f7f9fa;
   --gradient-card:       none;
@@ -117,11 +117,11 @@
   --sidebar:             #ffffff;
   --sidebar-foreground:  #2d2f31;
   --sidebar-border:      #d1d7dc;
-  --sidebar-primary:     #5624d0;
+  --sidebar-primary:     #1e40af;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent:      #f7f9fa;
-  --sidebar-accent-foreground: #5624d0;
-  --sidebar-ring:        rgba(86, 36, 208, 0.3);
+  --sidebar-accent-foreground: #1e40af;
+  --sidebar-ring:        rgba(37, 99, 235, 0.3);
 }
 
 /* ============================================================
@@ -141,9 +141,9 @@ html.dark {
   --popover:             #2d2f31;
   --popover-foreground:  #ffffff;
 
-  --primary:             #a435f0;
-  --primary-light:       #c0a5f7;
-  --primary-dark:        #5624d0;
+  --primary:             #3b82f6;
+  --primary-light:       #93c5fd;
+  --primary-dark:        #1d4ed8;
   --primary-foreground:  #ffffff;
 
   --secondary:           #ffffff;
@@ -153,7 +153,7 @@ html.dark {
   --muted:               #3e4143;
   --muted-foreground:    #b0b5b9;
 
-  --accent:              #c0a5f7;
+  --accent:              #93c5fd;
   --accent-foreground:   #1c1d1f;
 
   --destructive:         #ef4444;
@@ -163,18 +163,18 @@ html.dark {
   --border:              #3e4143;
   --border-strong:       #6a6f73;
   --input:               #3e4143;
-  --ring:                rgba(164, 53, 240, 0.4);
+  --ring:                rgba(59, 130, 246, 0.4);
 
-  --gradient-brand:      linear-gradient(135deg, #a435f0 0%, #5624d0 100%);
+  --gradient-brand:      linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
 
   --sidebar:             #1c1d1f;
   --sidebar-foreground:  #ffffff;
   --sidebar-border:      #3e4143;
-  --sidebar-primary:     #a435f0;
+  --sidebar-primary:     #3b82f6;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent:      #3e4143;
-  --sidebar-accent-foreground: #c0a5f7;
-  --sidebar-ring:        rgba(164, 53, 240, 0.4);
+  --sidebar-accent-foreground: #93c5fd;
+  --sidebar-ring:        rgba(59, 130, 246, 0.4);
 }
 
 /* Light mode overrides for legacy classes */
@@ -486,15 +486,15 @@ html.dark {
 
   /* Buttons — Udemy style */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-sm text-white transition-all duration-200 rounded;
-    background: #a435f0;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-sm text-white transition-all duration-200 rounded-none;
+    background: #2563eb;
   }
   .btn-primary:hover {
-    background: #8710d8;
+    background: #1d4ed8;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all duration-200 rounded;
+    @apply inline-flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all duration-200 rounded-none;
     background: transparent;
     border: 1px solid #2d2f31;
     color: #2d2f31;
@@ -508,7 +508,7 @@ html.dark {
   }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 rounded;
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-none;
     color: var(--foreground-muted);
   }
   .btn-ghost:hover {
@@ -518,7 +518,7 @@ html.dark {
 
   /* Cards — clean flat */
   .card-base {
-    @apply p-6 transition-all duration-200 rounded;
+    @apply p-6 transition-all duration-200 rounded-none;
     background: var(--card);
     border: 1px solid var(--border);
   }
@@ -528,30 +528,30 @@ html.dark {
 
   /* Input fields */
   .input-base {
-    @apply w-full px-4 py-3 text-sm transition-all duration-200 outline-none rounded;
+    @apply w-full px-4 py-3 text-sm transition-all duration-200 outline-none rounded-none;
     background: transparent;
     border: 1px solid var(--border);
     color: var(--foreground);
   }
   .input-base::placeholder { color: var(--muted-foreground); }
   .input-base:focus {
-    border-color: #5624d0;
+    border-color: #2563eb;
     box-shadow: none;
   }
 
   /* Badge */
   .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-none;
   }
   .badge-primary {
-    background: #f3f0ff;
-    color: #5624d0;
-    border: 1px solid #e9e0ff;
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #dbeafe;
   }
   html.dark .badge-primary {
-    background: rgba(164, 53, 240, 0.15);
-    color: #c0a5f7;
-    border-color: rgba(164, 53, 240, 0.3);
+    background: rgba(37, 99, 235, 0.15);
+    color: #93c5fd;
+    border-color: rgba(37, 99, 235, 0.3);
   }
 
   .badge-cyan {
@@ -589,17 +589,17 @@ html.dark {
 
   /* Progress bar */
   .progress-bar {
-    @apply relative h-2 rounded-full overflow-hidden;
+    @apply relative h-2 rounded-none overflow-hidden;
     background: var(--muted);
   }
   .progress-fill {
-    @apply h-full rounded-full transition-all duration-500;
-    background: #a435f0;
+    @apply h-full rounded-none transition-all duration-500;
+    background: #2563eb;
   }
 
   /* Avatar */
   .avatar {
-    @apply rounded-full flex items-center justify-center font-bold text-white;
+    @apply rounded-none flex items-center justify-center font-bold text-white border border-border;
     background: #2d2f31;
   }
   html.dark .avatar {
@@ -608,25 +608,25 @@ html.dark {
 
   /* Section tag */
   .section-tag {
-    @apply inline-flex items-center gap-2 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded;
-    background: #f3f0ff;
-    color: #5624d0;
+    @apply inline-flex items-center gap-2 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-none;
+    background: #eff6ff;
+    color: #2563eb;
   }
   html.dark .section-tag {
-    background: rgba(164, 53, 240, 0.15);
-    color: #c0a5f7;
+    background: rgba(37, 99, 235, 0.15);
+    color: #93c5fd;
   }
 
   /* Stats card */
   .stat-card {
-    @apply p-6 text-center rounded;
+    @apply p-6 text-center rounded-none;
     background: var(--card);
     border: 1px solid var(--border);
   }
 
   /* Sidebar nav item */
   .sidebar-item {
-    @apply flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 rounded;
+    @apply flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 rounded-none;
     color: var(--muted-foreground);
   }
   .sidebar-item:hover {
@@ -634,18 +634,18 @@ html.dark {
     color: var(--foreground);
   }
   .sidebar-item.active {
-    background: #f3f0ff;
-    color: #5624d0;
+    background: #eff6ff;
+    color: #2563eb;
     font-weight: 700;
   }
   html.dark .sidebar-item.active {
-    background: rgba(164, 53, 240, 0.15);
-    color: #c0a5f7;
+    background: rgba(37, 99, 235, 0.15);
+    color: #93c5fd;
   }
 
   /* Course card */
   .course-card {
-    @apply overflow-hidden transition-all duration-200 rounded;
+    @apply overflow-hidden transition-all duration-200 rounded-none;
     background: var(--card);
     border: 1px solid var(--border);
   }
@@ -655,13 +655,13 @@ html.dark {
 
   /* Feature icon */
   .feature-icon {
-    @apply w-12 h-12 flex items-center justify-center rounded;
-    background: #f3f0ff;
-    color: #5624d0;
+    @apply w-12 h-12 flex items-center justify-center rounded-none;
+    background: #eff6ff;
+    color: #2563eb;
   }
   html.dark .feature-icon {
-    background: rgba(164, 53, 240, 0.15);
-    color: #c0a5f7;
+    background: rgba(37, 99, 235, 0.15);
+    color: #93c5fd;
   }
 
   /* Table */
@@ -679,7 +679,7 @@ html.dark {
 
   /* Toast */
   .toast-base {
-    @apply px-4 py-3 text-sm font-medium rounded;
+    @apply px-4 py-3 text-sm font-medium rounded-none;
     background: var(--card);
     border: 1px solid var(--border);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -687,7 +687,7 @@ html.dark {
 
   /* Timeline dot */
   .timeline-dot {
-    @apply w-3 h-3 rounded-full;
-    background: #a435f0;
+    @apply w-3 h-3 rounded-none rotate-45;
+    background: #2563eb;
   }
 }

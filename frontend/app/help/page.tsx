@@ -23,7 +23,7 @@ const faqCategories = [
     items: [
       { q: "Khóa học miễn phí có giới hạn nội dung không?", a: "Không, bạn được truy cập toàn bộ nội dung khóa miễn phí bao gồm video bài giảng, bài tập và quiz." },
       { q: "Làm sao để nhận chứng chỉ hoàn thành?", a: "Hoàn thành 100% nội dung khóa học (xem đủ video và nộp bài tập), hệ thống sẽ tự động cấp chứng chỉ." },
-      { q: "Tôi có thể học trên điện thoại không?", a: "Có, HọcLộ Trình hoạt động tốt trên mọi thiết bị: máy tính, máy tính bảng và điện thoại thông minh." },
+      { q: "Tôi có thể học trên điện thoại không?", a: "Có, LumiLearn hoạt động tốt trên mọi thiết bị: máy tính, máy tính bảng và điện thoại thông minh." },
     ],
   },
   {

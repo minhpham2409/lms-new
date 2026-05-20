@@ -81,7 +81,7 @@ export default function CourseCertificatePage() {
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-lg gradient-text">HọcLộ Trình</span>
+              <span className="font-bold text-lg gradient-text">LumiLearn</span>
             </div>
 
             <div className="divider mb-6" />

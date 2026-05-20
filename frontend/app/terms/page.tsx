@@ -5,13 +5,13 @@ import { Footer } from "@/components/layout/footer";
 import { FileText } from "lucide-react";
 
 const sections = [
-  { title: "1. Chấp nhận điều khoản", text: "Bằng việc truy cập và sử dụng HọcLộ Trình, bạn đồng ý tuân thủ và chịu ràng buộc bởi các điều khoản và điều kiện sử dụng dưới đây. Nếu bạn không đồng ý với bất kỳ phần nào của điều khoản này, vui lòng ngừng sử dụng dịch vụ của chúng tôi." },
+  { title: "1. Chấp nhận điều khoản", text: "Bằng việc truy cập và sử dụng LumiLearn, bạn đồng ý tuân thủ và chịu ràng buộc bởi các điều khoản và điều kiện sử dụng dưới đây. Nếu bạn không đồng ý với bất kỳ phần nào của điều khoản này, vui lòng ngừng sử dụng dịch vụ của chúng tôi." },
   { title: "2. Tài khoản người dùng", text: "Bạn chịu hoàn toàn trách nhiệm bảo mật thông tin đăng nhập tài khoản. Không được chia sẻ mật khẩu cho bất kỳ ai. Mỗi cá nhân chỉ được sở hữu một tài khoản. Mọi hoạt động xảy ra dưới tài khoản của bạn đều thuộc trách nhiệm của bạn." },
-  { title: "3. Quyền sở hữu trí tuệ", text: "Toàn bộ nội dung trên nền tảng (video, bài giảng, quiz, hình ảnh, văn bản) thuộc quyền sở hữu trí tuệ của HọcLộ Trình và các giáo viên đăng tải. Nghiêm cấm sao chép, tải xuống, phân phối lại, bán hoặc tạo sản phẩm phái sinh từ nội dung mà không có sự cho phép bằng văn bản." },
+  { title: "3. Quyền sở hữu trí tuệ", text: "Toàn bộ nội dung trên nền tảng (video, bài giảng, quiz, hình ảnh, văn bản) thuộc quyền sở hữu trí tuệ của LumiLearn và các giáo viên đăng tải. Nghiêm cấm sao chép, tải xuống, phân phối lại, bán hoặc tạo sản phẩm phái sinh từ nội dung mà không có sự cho phép bằng văn bản." },
   { title: "4. Thanh toán & Hoàn tiền", text: "Thanh toán cho khóa học sẽ được xử lý qua các cổng thanh toán bảo mật. Giá được hiển thị bằng đồng Việt Nam (VNĐ). Chính sách hoàn tiền: trong vòng 7 ngày kể từ ngày mua, nếu chưa hoàn thành quá 20% nội dung khóa học, bạn có thể yêu cầu hoàn tiền đầy đủ." },
   { title: "5. Quy tắc ứng xử cộng đồng", text: "Người dùng phải tôn trọng lẫn nhau trong phần bình luận, thảo luận. Nghiêm cấm đăng nội dung xúc phạm, phân biệt đối xử, spam, hoặc vi phạm pháp luật. Nội dung vi phạm sẽ bị xóa mà không cần thông báo trước và tài khoản có thể bị đình chỉ hoặc chấm dứt vĩnh viễn." },
-  { title: "6. Trách nhiệm dịch vụ", text: "HọcLộ Trình cung cấp dịch vụ theo nguyên tắc 'như hiện trạng'. Chúng tôi không đảm bảo dịch vụ hoạt động liên tục, không bị gián đoạn. Chúng tôi không chịu trách nhiệm đối với thiệt hại trực tiếp hoặc gián tiếp phát sinh từ việc sử dụng dịch vụ." },
-  { title: "7. Bảo vệ người dùng dưới 18 tuổi", text: "HọcLộ Trình chào đón học sinh dưới 18 tuổi. Đối với trẻ em, chúng tôi khuyến khích cha mẹ/người giám hộ giám sát quá trình học tập và sử dụng tính năng phụ huynh tích hợp trong nền tảng để theo dõi tiến độ và hoạt động." },
+  { title: "6. Trách nhiệm dịch vụ", text: "LumiLearn cung cấp dịch vụ theo nguyên tắc 'như hiện trạng'. Chúng tôi không đảm bảo dịch vụ hoạt động liên tục, không bị gián đoạn. Chúng tôi không chịu trách nhiệm đối với thiệt hại trực tiếp hoặc gián tiếp phát sinh từ việc sử dụng dịch vụ." },
+  { title: "7. Bảo vệ người dùng dưới 18 tuổi", text: "LumiLearn chào đón học sinh dưới 18 tuổi. Đối với trẻ em, chúng tôi khuyến khích cha mẹ/người giám hộ giám sát quá trình học tập và sử dụng tính năng phụ huynh tích hợp trong nền tảng để theo dõi tiến độ và hoạt động." },
   { title: "8. Thay đổi điều khoản", text: "Chúng tôi có thể sửa đổi các điều khoản này bất kỳ lúc nào. Mọi thay đổi sẽ có hiệu lực sau 30 ngày kể từ khi được đăng lên nền tảng. Tiếp tục sử dụng dịch vụ sau ngày thay đổi có hiệu lực đồng nghĩa với việc bạn chấp nhận các điều khoản mới." },
 ];
 
@@ -55,7 +55,7 @@ export default function TermsPage() {
           {/* Contact */}
           <div className="mt-10 bg-[#f7f9fa] dark:bg-[#2d2f31] border border-[#d1d7dc] dark:border-[#3e4143] rounded p-6 text-center">
             <h3 className="text-base font-bold text-[#2d2f31] dark:text-white mb-2">Câu hỏi về điều khoản?</h3>
-            <p className="text-sm text-[#6a6f73] mb-4">Liên hệ bộ phận pháp lý qua email <strong>legal@hoclotrinh.vn</strong></p>
+            <p className="text-sm text-[#6a6f73] mb-4">Liên hệ bộ phận pháp lý qua email <strong>legal@lumilearn.edu.vn</strong></p>
             <a href="/contact" className="inline-flex items-center gap-2 px-5 py-2.5 border border-[#2d2f31] dark:border-white text-[#2d2f31] dark:text-white font-bold text-sm hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors rounded">
               Liên hệ hỗ trợ
             </a>

@@ -20,15 +20,15 @@ const jetBrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "HọcLộ Trình — Nền tảng học tập thông minh",
-    template: "%s | HọcLộ Trình",
+    default: "LumiLearn — Nền tảng học tập thông minh",
+    template: "%s | LumiLearn",
   },
   description:
     "Nền tảng LMS kết nối giáo viên, học sinh và phụ huynh. Khóa học chất lượng cao, bài tập tương tác, theo dõi tiến độ thời gian thực.",
   keywords: ["học online", "LMS", "e-learning", "học sinh cấp 2", "khóa học"],
-  authors: [{ name: "HọcLộ Trình" }],
+  authors: [{ name: "LumiLearn" }],
   openGraph: {
-    title: "HọcLộ Trình — Nền tảng học tập thông minh",
+    title: "LumiLearn — Nền tảng học tập thông minh",
     description: "Nền tảng LMS kết nối giáo viên, học sinh và phụ huynh",
     type: "website",
     locale: "vi_VN",

@@ -63,7 +63,7 @@ function CreateTeacherModal({ onClose, onCreate }: { onClose: () => void; onCrea
           </div>
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Email *</label>
-            <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="teacher@hoclotrinh.vn" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+            <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="teacher@lumilearn.edu.vn" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
           </div>
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Mật khẩu *</label>

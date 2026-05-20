@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-state";
+import { Logo } from "@/components/ui/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,11 +68,8 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px]">
           {/* Logo */}
           <div className="mb-8">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-9 h-9 bg-[#5624d0] rounded-full flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-xl text-[#2d2f31] dark:text-white">HọcLộ Trình</span>
+            <Link href="/" className="inline-block">
+              <Logo size="lg" />
             </Link>
           </div>
 

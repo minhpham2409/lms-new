@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { GraduationCap, Mail, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
@@ -57,11 +58,8 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-[400px]">
           {/* Logo */}
           <div className="mb-8">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-9 h-9 bg-[#5624d0] rounded-full flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-xl text-[#2d2f31] dark:text-white">HọcLộ Trình</span>
+            <Link href="/" className="inline-block">
+              <Logo size="lg" />
             </Link>
           </div>
 

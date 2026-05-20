@@ -49,7 +49,7 @@ export default function ContactPage() {
               <h2 className="text-xl font-bold text-[#2d2f31] dark:text-white mb-6">Thông tin liên hệ</h2>
 
               {[
-                { icon: Mail, label: "Email hỗ trợ", value: "support@hoclotrinh.vn", sub: "Phản hồi trong 24 giờ" },
+                { icon: Mail, label: "Email hỗ trợ", value: "support@lumilearn.edu.vn", sub: "Phản hồi trong 24 giờ" },
                 { icon: Phone, label: "Điện thoại", value: "+84 (028) 3600 0000", sub: "Thứ 2 - Thứ 6, 8:00 - 17:00" },
                 { icon: MapPin, label: "Địa chỉ", value: "TP. Hồ Chí Minh", sub: "Việt Nam" },
               ].map(({ icon: Icon, label, value, sub }) => (

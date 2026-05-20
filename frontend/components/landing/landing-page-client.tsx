@@ -246,7 +246,7 @@ export function LandingPageClient() {
             <Reveal>
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-[#2d2f31] dark:text-white">
-                  Tại sao học sinh chọn HọcLộ Trình?
+                  Tại sao học sinh chọn LumiLearn?
                 </h2>
 
                 <div className="space-y-7">

@@ -35,16 +35,16 @@ async function main() {
 
   // ===== ADMIN =====
   const admin = await prisma.user.create({
-    data: { username: 'admin', email: 'admin@hoclotrinh.vn', password, firstName: 'Admin', lastName: 'System', role: 'admin', emailVerified: true },
+    data: { username: 'admin', email: 'admin@lumilearn.edu.vn', password, firstName: 'Admin', lastName: 'System', role: 'admin', emailVerified: true },
   });
 
   // ===== TEACHERS =====
   const teachers = [];
   const teacherData = [
-    { username: 'teacher_minh', email: 'minh@hoclotrinh.vn', firstName: 'Minh', lastName: 'Nguyễn' },
-    { username: 'teacher_huong', email: 'huong@hoclotrinh.vn', firstName: 'Hương', lastName: 'Trần' },
-    { username: 'teacher_john', email: 'john@hoclotrinh.vn', firstName: 'John', lastName: 'Smith' },
-    { username: 'teacher_lan', email: 'lan@hoclotrinh.vn', firstName: 'Lan', lastName: 'Phạm' },
+    { username: 'teacher_minh', email: 'minh@lumilearn.edu.vn', firstName: 'Minh', lastName: 'Nguyễn' },
+    { username: 'teacher_huong', email: 'huong@lumilearn.edu.vn', firstName: 'Hương', lastName: 'Trần' },
+    { username: 'teacher_john', email: 'john@lumilearn.edu.vn', firstName: 'John', lastName: 'Smith' },
+    { username: 'teacher_lan', email: 'lan@lumilearn.edu.vn', firstName: 'Lan', lastName: 'Phạm' },
   ];
   for (const t of teacherData) {
     teachers.push(await prisma.user.create({ data: { ...t, password, role: 'teacher', emailVerified: true } }));
@@ -290,9 +290,9 @@ async function main() {
   console.log('========================================');
   console.log('   📋 TEST ACCOUNTS (password: 123456)');
   console.log('========================================');
-  console.log('   🔴 Admin:    admin@hoclotrinh.vn');
-  console.log('   🟢 Teacher:  minh@hoclotrinh.vn');
-  console.log('   🟢 Teacher:  huong@hoclotrinh.vn');
+  console.log('   🔴 Admin:    admin@lumilearn.edu.vn');
+  console.log('   🟢 Teacher:  minh@lumilearn.edu.vn');
+  console.log('   🟢 Teacher:  huong@lumilearn.edu.vn');
   console.log('   🔵 Student:  an@gmail.com');
   console.log('   🔵 Student:  binh@gmail.com');
   console.log('   🔵 Student:  chi@gmail.com');
