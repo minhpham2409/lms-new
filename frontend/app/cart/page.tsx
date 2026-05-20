@@ -34,13 +34,15 @@ export default function CartPage() {
   const hasCouponUnsupportedItems = couponUnsupportedItems.length > 0;
 
   useEffect(() => {
+    if (!loading && !isLoggedIn) { router.push("/auth/login"); return; }
     if (!loading && isLoggedIn && user?.role !== "student") router.push("/dashboard");
   }, [user, isLoggedIn, loading, router]);
 
   useEffect(() => {
     if (token) { fetchCart(); checkParent(); fetchMyCoupons(); }
+    else if (!loading) { setCartLoading(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, loading]);
 
   async function fetchCart() {
     try {

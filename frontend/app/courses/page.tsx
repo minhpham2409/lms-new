@@ -226,9 +226,10 @@ function CoursesPageContent() {
                              return (
                                 <Link key={course.id} href={`/courses/${course.id}`} className="block">
                                    <div className="flex flex-col sm:flex-row gap-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group">
-                                      <div className="w-full sm:w-64 aspect-video bg-muted rounded-md relative overflow-hidden shrink-0 border border-border">
-                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <Play className="w-10 h-10 text-primary opacity-50 group-hover:scale-110 transition-transform" />
+                                      <div className="w-full sm:w-64 aspect-video rounded-md relative overflow-hidden shrink-0 border border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #6366f1, #4f46e5)' }}>
+                                         <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span className="text-4xl font-extrabold text-white/30 mb-1">{course.title.charAt(0).toUpperCase()}</span>
+                                            <Play className="w-8 h-8 text-white/60 group-hover:scale-110 transition-transform" />
                                          </div>
                                       </div>
                                       <div className="flex-1 flex flex-col">
@@ -261,9 +262,10 @@ function CoursesPageContent() {
                           return (
                              <Link key={course.id} href={`/courses/${course.id}`} className="block">
                                 <div className="border border-border rounded-lg overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col">
-                                   <div className="w-full aspect-video bg-muted relative overflow-hidden border-b border-border">
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                         <Play className="w-10 h-10 text-primary opacity-50 group-hover:scale-110 transition-transform" />
+                                   <div className="w-full aspect-video relative overflow-hidden border-b border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #6366f1, #4f46e5)' }}>
+                                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                         <span className="text-5xl font-extrabold text-white/30 mb-1">{course.title.charAt(0).toUpperCase()}</span>
+                                         <Play className="w-8 h-8 text-white/60 group-hover:scale-110 transition-transform" />
                                       </div>
                                    </div>
                                    <div className="p-4 flex flex-col flex-1">

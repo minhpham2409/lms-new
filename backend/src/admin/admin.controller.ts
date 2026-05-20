@@ -84,8 +84,8 @@ export class AdminController {
   }
 
   @Put('courses/:id/reject')
-  rejectCourse(@Param('id') id: string) {
-    return this.adminService.rejectCourse(id);
+  rejectCourse(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.adminService.rejectCourse(id, body.reason);
   }
 
   @Get('courses/pending')
@@ -100,7 +100,7 @@ export class AdminController {
 
   @Post('courses/:id/reject')
   rejectCoursePost(@Param('id') id: string, @Body() body: { reason?: string }) {
-    return this.adminService.rejectCourse(id);
+    return this.adminService.rejectCourse(id, body.reason);
   }
 
   @Get('stats')

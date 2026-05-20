@@ -129,33 +129,42 @@ export class CoursesService {
     const [courses, enrollments, reviews, revenue, recentEnrollments, receivedPayments] =
       await this.courseRepository.getTeacherStatsData(authorId);
 
-    // Use wallet transactions for accurate revenue (post-coupon, post-fee)
-    let totalRevenue = revenue.reduce((sum, item) => sum + Number(item.price), 0);
+    // ── Revenue: use a single source of truth with clear priority ────────
+    // Priority: wallet EARNING transactions > received bank payments > order items
+    let totalRevenue = 0;
+    let revenueSource: 'wallet' | 'payments' | 'orders' = 'orders';
     let walletEarnings: any[] = [];
+
     try {
       const wallet = await this.walletRepository.findWithTransactions(authorId);
       if (wallet) {
         walletEarnings = wallet.transactions.filter(
           (t: any) => t.type === 'EARNING',
         );
-        // If we have wallet data, use it as the source of truth for revenue
         if (walletEarnings.length > 0) {
           totalRevenue = walletEarnings.reduce(
             (sum: number, t: any) => sum + Number(t.amount),
             0,
           );
+          revenueSource = 'wallet';
         }
       }
     } catch {}
 
-    const receivedRevenue = (receivedPayments as any[]).reduce((sum, item) => {
-      const totalPrice = Number(item.order?.totalPrice || 0);
-      const paidAmount = Number(item.order?.payment?.paidAmount || 0);
-      const itemPrice = Number(item.price || 0);
-      return sum + (totalPrice > 0 ? paidAmount * (itemPrice / totalPrice) : 0);
-    }, 0);
-    if (receivedRevenue > 0) {
-      totalRevenue = receivedRevenue;
+    // Fallback: received bank payments (after platform fee split)
+    if (revenueSource === 'orders' && (receivedPayments as any[]).length > 0) {
+      totalRevenue = (receivedPayments as any[]).reduce((sum, item) => {
+        const totalPrice = Number(item.order?.totalPrice || 0);
+        const paidAmount = Number(item.order?.payment?.paidAmount || 0);
+        const itemPrice = Number(item.price || 0);
+        return sum + (totalPrice > 0 ? paidAmount * (itemPrice / totalPrice) : 0);
+      }, 0);
+      revenueSource = 'payments';
+    }
+
+    // Final fallback: raw order item prices
+    if (revenueSource === 'orders') {
+      totalRevenue = revenue.reduce((sum, item) => sum + Number(item.price), 0);
     }
 
     const totalStudents = new Set(enrollments.map((e) => e.userId)).size;
@@ -176,8 +185,16 @@ export class CoursesService {
       };
     }).reverse();
 
-    // Use received bank payments for revenue chart, including partial payments.
-    if ((receivedPayments as any[]).length > 0) {
+    // Populate monthly chart using the same source as totalRevenue
+    if (revenueSource === 'wallet') {
+      walletEarnings.forEach((t: any) => {
+        if (!t.createdAt) return;
+        const d = new Date(t.createdAt);
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const month = monthlyData.find(m => m.yearMonth === ym);
+        if (month) month.revenue += Number(t.amount);
+      });
+    } else if (revenueSource === 'payments') {
       (receivedPayments as any[]).forEach((item: any) => {
         if (!item.order?.createdAt) return;
         const d = new Date(item.order.createdAt);
@@ -188,16 +205,7 @@ export class CoursesService {
         const itemPrice = Number(item.price || 0);
         if (month) month.revenue += totalPrice > 0 ? paidAmount * (itemPrice / totalPrice) : 0;
       });
-    } else if (walletEarnings.length > 0) {
-      walletEarnings.forEach((t: any) => {
-        if (!t.createdAt) return;
-        const d = new Date(t.createdAt);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const month = monthlyData.find(m => m.yearMonth === ym);
-        if (month) month.revenue += Number(t.amount);
-      });
     } else {
-      // Fallback to order items if no wallet data
       revenue.forEach(item => {
         if (!item.order?.createdAt) return;
         const d = new Date(item.order.createdAt);

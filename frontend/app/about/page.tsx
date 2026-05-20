@@ -143,7 +143,7 @@ export default function AboutPage() {
                   Chúng tôi nhận thấy rằng dù công nghệ phát triển mạnh mẽ, nhiều học sinh ở vùng nông thôn và các gia đình khó khăn vẫn không có cơ hội tiếp cận giáo dục chất lượng.
                 </p>
                 <p>
-                  Với sứ mệnh "Giáo dục cho mọi người", chúng tôi xây dựng một nền tảng nơi học sinh có thể học từ những giáo viên tốt nhất, bất kể ở đâu.
+                  Với sứ mệnh &quot;Giáo dục cho mọi người&quot;, chúng tôi xây dựng một nền tảng nơi học sinh có thể học từ những giáo viên tốt nhất, bất kể ở đâu.
                 </p>
               </div>
               <div className="mt-6 pt-6 border-t border-[#d1d7dc] dark:border-[#3e4143]">

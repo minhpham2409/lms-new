@@ -113,7 +113,7 @@ export default function TeachersPage() {
               </p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 md:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredTeachers.map((teacher, index) => {
                 const fullName = teacher.firstName
                   ? `${teacher.firstName} ${teacher.lastName || ""}`.trim()

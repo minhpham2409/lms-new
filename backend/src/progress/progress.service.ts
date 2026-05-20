@@ -56,10 +56,12 @@ export class ProgressService {
     } as ProgressUpdatedPayload);
 
     if (newProgress >= 100) {
+      // Fetch course title for downstream listeners (certificates, notifications)
+      const courseInfo = await this.progressRepo.findCourseById(courseId);
       this.eventEmitter.emit(AppEvents.COURSE_COMPLETED, {
         userId,
         courseId,
-        courseTitle: '',
+        courseTitle: courseInfo?.title || '',
       } as CourseCompletedPayload);
     }
 
@@ -162,7 +164,7 @@ export class ProgressService {
         this.eventEmitter.emit(AppEvents.COURSE_COMPLETED, {
           userId,
           courseId,
-          courseTitle: '',
+          courseTitle: lesson.section?.course?.title || '',
         } as CourseCompletedPayload);
       }
     }

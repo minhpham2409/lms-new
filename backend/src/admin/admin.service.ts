@@ -286,7 +286,7 @@ export class AdminService implements OnApplicationBootstrap {
     return result;
   }
 
-  async rejectCourse(id: string) {
+  async rejectCourse(id: string, reason?: string) {
     const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException('Course not found');
     if (course.status !== 'pending') {
@@ -296,6 +296,18 @@ export class AdminService implements OnApplicationBootstrap {
     }
     const result = await this.courseRepository.update(id, { status: 'draft' });
     await this.invalidateCourseCaches(id);
+
+    // Notify the course author about the rejection
+    if (course.authorId) {
+      const reasonText = reason?.trim() || 'Không có lý do cụ thể';
+      await this.notificationRepository.create({
+        userId: course.authorId,
+        title: `Khóa học "${course.title}" bị từ chối`,
+        message: `Khóa học của bạn đã bị từ chối duyệt. Lý do: ${reasonText}. Vui lòng chỉnh sửa và gửi lại.`,
+        type: 'course_rejected',
+      }).catch(() => undefined);
+    }
+
     return result;
   }
 
