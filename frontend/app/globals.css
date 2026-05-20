@@ -392,6 +392,87 @@ html.dark {
 }
 
 /* ============================================================
+   Narrow viewport safeguards
+   Collapse dense page sections when the screen is too small.
+   Navigation components use their drawer/dropdown variants at these widths.
+   ============================================================ */
+@media (max-width: 640px) {
+  main {
+    min-width: 0;
+  }
+
+  :where(
+    .grid.grid-cols-2,
+    .grid.grid-cols-3,
+    .grid.grid-cols-4,
+    .grid.grid-cols-5,
+    .grid.grid-cols-6,
+    .grid.sm\:grid-cols-2,
+    .grid.sm\:grid-cols-3,
+    .grid.sm\:grid-cols-4,
+    .grid.md\:grid-cols-2,
+    .grid.md\:grid-cols-3,
+    .grid.md\:grid-cols-4,
+    .grid.lg\:grid-cols-2,
+    .grid.lg\:grid-cols-3,
+    .grid.lg\:grid-cols-4,
+    .grid.lg\:grid-cols-5,
+    .grid.xl\:grid-cols-6
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  :where(.card-base, .glass-card, .rounded-xl, .rounded-2xl) {
+    max-width: 100%;
+  }
+
+  :where(table) {
+    min-width: max-content;
+  }
+
+  :where(main, .min-h-screen) :where(.flex.items-center.justify-between):not(header *):not(nav *):not(aside *):not([class*="h-14"]):not([class*="h-16"]):not([class*="h-[70px]"]) {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  :where(main, .min-h-screen) :where(.flex.items-center.gap-2, .flex.items-center.gap-3, .flex.items-center.gap-4, .flex.gap-2, .flex.gap-3, .flex.gap-4):not(header *):not(nav *):not(aside *) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  :where(main, .min-h-screen) :where(.flex-1):not(header *):not(nav *):not(aside *) {
+    min-width: 0;
+  }
+
+  :where(main, .min-h-screen) :where(.overflow-x-auto) {
+    max-width: 100%;
+  }
+
+  :where(main, .min-h-screen) :where(.whitespace-nowrap:not(th):not(td)):not(header *):not(nav *):not(aside *) {
+    white-space: normal;
+  }
+
+  :where(main, .min-h-screen) :where(.w-64, .w-72, .sm\:w-32, .sm\:w-56, .sm\:w-64, .md\:w-64, .lg\:w-72):not(header *):not(nav *):not(aside *) {
+    width: 100% !important;
+  }
+
+  :where(main, .min-h-screen) :where(.min-w-\[200px\], .min-w-\[220px\], .min-w-\[90px\]):not(header *):not(nav *):not(aside *) {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  :where(.btn-primary, .btn-secondary, .btn-ghost) {
+    width: 100%;
+  }
+
+  :where(input, textarea, select, button) {
+    max-width: 100%;
+  }
+}
+
+/* ============================================================
    Component Styles — Udemy Flat Design
    ============================================================ */
 @layer components {

@@ -171,7 +171,7 @@ export function StudentAppShell({ children }: { children: React.ReactNode }) {
 
         <main
           className={cn(
-            'min-h-[calc(100vh-64px)] flex-1 p-4 pt-20 transition-[margin-left] duration-300 ease-out md:p-6 md:pt-20',
+            'min-w-0 min-h-[calc(100vh-64px)] flex-1 p-4 pt-20 transition-[margin-left] duration-300 ease-out md:p-6 md:pt-20',
             open ? 'md:ml-72' : 'ml-0',
           )}
         >

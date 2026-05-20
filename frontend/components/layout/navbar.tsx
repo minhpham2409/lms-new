@@ -133,7 +133,7 @@ export function Navbar() {
           </div>
 
           {/* Search Bar - Udemy Style */}
-          <div className="hidden md:flex flex-1 max-w-xl mx-4">
+          <div className="hidden lg:flex flex-1 max-w-xl mx-4">
              <form onSubmit={handleSearch} className="w-full relative group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6a6f73]" />
                 <input 
@@ -147,7 +147,7 @@ export function Navbar() {
           </div>
 
           {/* Right side */}
-          <div className="hidden md:flex items-center gap-2 shrink-0">
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
             {/* Theme toggle */}
             <button onClick={toggle} className="p-2 rounded-full hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors"
               title={theme === "dark" ? "Chế độ sáng" : "Chế độ tối"}>
@@ -222,7 +222,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-2">
             <button onClick={toggle} className="p-2" style={{ color: "#6a6f73" }}>
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
@@ -240,11 +240,11 @@ export function Navbar() {
         <>
           <button
             type="button"
-            className="fixed inset-0 top-[70px] z-40 bg-black/30 md:hidden"
+            className="fixed inset-0 top-[70px] z-40 bg-black/30 lg:hidden"
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
           />
-          <aside className="fixed left-0 top-[70px] z-50 h-[calc(100vh-70px)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto border-r border-[#d1d7dc] bg-white shadow-xl dark:border-[#3e4143] dark:bg-[#1c1d1f] md:hidden">
+          <aside className="fixed left-0 top-[70px] z-50 h-[calc(100vh-70px)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto border-r border-[#d1d7dc] bg-white shadow-xl dark:border-[#3e4143] dark:bg-[#1c1d1f] lg:hidden">
           <div className="px-4 py-4 space-y-1">
              <form onSubmit={handleSearch} className="mb-4">
                 <input 

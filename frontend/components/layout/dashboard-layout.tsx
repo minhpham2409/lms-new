@@ -136,7 +136,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-[calc(100vh-64px)]">
+        <main className="min-w-0 flex-1 min-h-[calc(100vh-64px)]">
           <div className="p-4 md:p-6">
             {children}
           </div>
