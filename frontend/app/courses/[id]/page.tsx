@@ -46,7 +46,7 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     fetchCourse();
-  }, [id]);
+  }, [id, token]);
 
   useEffect(() => {
     if (token && course) checkEnrollment();
@@ -77,7 +77,10 @@ export default function CourseDetailPage() {
 
   async function fetchCourse() {
     try {
-      const res = await fetch(`${API}/courses/${id}`);
+      // Send auth token so admin/teacher can preview unpublished courses
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`${API}/courses/${id}`, { headers });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setCourse(data);
@@ -267,15 +270,30 @@ export default function CourseDetailPage() {
 
   const totalLessons = course.sections?.reduce((s, sec) => s + (sec.lessons?.length || 0), 0) || 0;
   const authorName = course.author?.firstName ? `${course.author.firstName} ${course.author.lastName || ""}`.trim() : course.author?.username || "Giáo viên";
-  const avgRating = course.reviews?.length ? (course.reviews.reduce((s, r) => s + r.rating, 0) / course.reviews.length).toFixed(1) : "4.8";
+  const avgRating = course.reviews?.length ? (course.reviews.reduce((s, r) => s + r.rating, 0) / course.reviews.length).toFixed(1) : null;
+  const reviewCount = reviews.length || course.reviews?.length || 0;
   const firstLessonId = course.sections?.[0]?.lessons?.[0]?.id;
   const isPending = enrollStatus === "pending";
-  const canAccess = enrolled && !isPending;
+  // Admin and course author (teacher) can always access course content for preview
+  const isAdmin = user?.role === "admin";
+  const isAuthor = user?.role === "teacher" && course.author?.id === user?.id;
+  const isPreviewMode = (isAdmin || isAuthor) && course.status !== "published";
+  const canAccess = (enrolled && !isPending) || isAdmin || isAuthor;
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       <Navbar />
       
+      {/* Preview banner for unpublished courses */}
+      {isPreviewMode && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2.5 text-center sticky top-0 z-50">
+          <p className="text-sm font-bold text-yellow-500 flex items-center justify-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            Chế độ xem trước — Khóa học chưa được công khai (trạng thái: {course.status === 'draft' ? 'Nháp' : course.status === 'pending' ? 'Chờ duyệt' : course.status})
+          </p>
+        </div>
+      )}
+
       {/* ===== UDEMY STYLE HEADER (Dark Mode Background) ===== */}
       <section className="bg-[#f7f9fa] dark:bg-[#2d2f31] pt-24 pb-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#1c1d1f] to-transparent opacity-90 z-0" />
@@ -293,10 +311,14 @@ export default function CourseDetailPage() {
             <p className="text-lg mb-6 max-w-2xl text-[#d1d7dc]">{course.description}</p>
 
             <div className="flex flex-wrap items-center gap-4 mb-6 text-sm">
-              <span className="flex items-center gap-1.5 text-yellow-500 font-bold">
-                {avgRating} <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-              </span>
-              <span className="text-[#a1a7b3]">({course.reviews?.length || 124} đánh giá)</span>
+              {avgRating ? (
+                <span className="flex items-center gap-1.5 text-yellow-500 font-bold">
+                  {avgRating} <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                </span>
+              ) : (
+                <span className="text-[#a1a7b3]">Chưa có đánh giá</span>
+              )}
+              {reviewCount > 0 && <span className="text-[#a1a7b3]">({reviewCount} đánh giá)</span>}
               <span className="text-white font-medium">{course._count?.enrollments || 0} học sinh</span>
             </div>
 
@@ -305,7 +327,7 @@ export default function CourseDetailPage() {
             </div>
             
             <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-[#d1d7dc]">
-              <span className="flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Cập nhật lần cuối 11/2026</span>
+              <span className="flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Cập nhật lần cuối {(course as any).updatedAt ? new Date((course as any).updatedAt).toLocaleDateString("vi-VN", { month: "numeric", year: "numeric" }) : "N/A"}</span>
               <span className="flex items-center gap-1.5"><Globe className="w-4 h-4" /> Tiếng Việt</span>
             </div>
           </div>
@@ -411,10 +433,10 @@ export default function CourseDetailPage() {
                       {authorName.charAt(0)}
                     </div>
                     <div className="space-y-2 text-sm text-foreground-muted">
-                       <p className="flex items-center gap-2"><Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> 4.8 Xếp hạng</p>
-                       <p className="flex items-center gap-2"><Award className="w-4 h-4 text-primary" /> 1,230 Đánh giá</p>
-                       <p className="flex items-center gap-2"><Users className="w-4 h-4 text-cyan-500" /> 15,400 Học sinh</p>
-                       <p className="flex items-center gap-2"><PlayCircle className="w-4 h-4 text-red-500" /> 5 Khóa học</p>
+                       <p className="flex items-center gap-2"><Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> {avgRating || "—"} Xếp hạng</p>
+                       <p className="flex items-center gap-2"><Award className="w-4 h-4 text-primary" /> {reviewCount} Đánh giá</p>
+                       <p className="flex items-center gap-2"><Users className="w-4 h-4 text-cyan-500" /> {course._count?.enrollments || 0} Học sinh</p>
+                       <p className="flex items-center gap-2"><PlayCircle className="w-4 h-4 text-red-500" /> {totalLessons} Bài học</p>
                     </div>
                  </div>
                  <p className="text-sm text-foreground-muted">Giáo viên với nhiều năm kinh nghiệm luyện thi, giúp hàng ngàn học sinh đỗ đạt điểm cao. Phương pháp giảng dạy trực quan, sinh động, truyền cảm hứng học tập mạnh mẽ.</p>
@@ -491,6 +513,16 @@ export default function CourseDetailPage() {
                            <p className="font-bold text-yellow-500 text-sm">Đang chờ duyệt thanh toán</p>
                         </div>
                         <Link href="/dashboard" className="w-full block text-center border border-border font-bold py-3 hover:bg-muted transition-colors rounded-none mb-4">Đi tới Dashboard</Link>
+                      </>
+                    ) : isPreviewMode ? (
+                      <>
+                        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 mb-4 text-center">
+                           <p className="font-bold text-primary text-sm">Chế độ xem trước</p>
+                           <p className="text-xs text-foreground-muted mt-1">{isAdmin ? "Bạn là Admin" : "Bạn là tác giả"}</p>
+                        </div>
+                        {firstLessonId && (
+                          <Link href={`/courses/${id}/lessons/${firstLessonId}`} className="w-full block text-center bg-primary text-white font-bold py-4 hover:bg-primary/90 transition-colors rounded-none mb-4">Xem nội dung bài học</Link>
+                        )}
                       </>
                     ) : canAccess ? (
                       <>

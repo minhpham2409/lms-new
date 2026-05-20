@@ -18,21 +18,36 @@ const allNavLinks = [
   { href: "/about", label: "Giới thiệu", roles: null }, // visible to all
 ];
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
-  const { user, isLoggedIn, logout, loading } = useAuth();
+  const { user, token, isLoggedIn, logout, loading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Fetch unread notifications count
+  useEffect(() => {
+    if (!token || !isLoggedIn) { setUnreadCount(0); return; }
+    fetch(`${API}/notifications`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const unread = Array.isArray(data) ? data.filter((n: any) => !n.isRead).length : 0;
+        setUnreadCount(unread);
+      })
+      .catch(() => setUnreadCount(0));
+  }, [token, isLoggedIn, pathname]);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -125,7 +140,11 @@ export function Navbar() {
                 {/* Notifications */}
                 <Link href="/notifications" className="relative p-2 rounded-full hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] text-[#2d2f31] dark:text-white">
                   <Bell className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#a435f0]" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[#a435f0] text-white text-[10px] font-bold px-1">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </Link>
 
                 {/* Cart */}
