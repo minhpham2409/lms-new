@@ -163,45 +163,49 @@ Hệ thống phân quyền dựa trên vai trò nghiêm ngặt (RBAC - Role-Base
 
 ## ⚙️ 5. Cấu Hình Môi Trường (.env)
 
-Khởi tạo các tệp cấu hình môi trường tại thư mục dự án tương ứng:
+> [!WARNING]
+> Không bao giờ được phép tải lên (commit/push) các tệp tin chứa biến môi trường thực tế `.env` hoặc `.env.local` lên hệ thống quản lý mã nguồn Git. Đảm bảo các tệp này đã được liệt kê đầy đủ trong danh sách `.gitignore` ở gốc dự án.
+
+Hãy khởi tạo các tệp cấu hình môi trường cục bộ tại thư mục dự án tương ứng từ các tệp `.env.example`:
 
 ### Backend (`backend/.env`):
 ```env
-# Database liên kết PostgreSQL
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/lets_learn_lms?schema=public"
+# Database liên kết PostgreSQL (Thay thế bằng thông tin kết nối thực tế của bạn)
+DATABASE_URL="postgresql://<db_user>:<db_password>@<db_host>:<db_port>/<db_name>?schema=public"
 
-# Bảo mật JWT
-JWT_SECRET="viet_mot_chuoi_bi_mat_enterprise_sieu_dai_va_bao_mat_o_day"
+# Khóa bí mật ký mã bảo mật JWT (Khuyến nghị tạo một chuỗi ngẫu nhiên dài và phức tạp)
+JWT_SECRET="<YOUR_SECURE_JWT_SECRET>"
 
-# Máy chủ API
+# Máy chủ API & Frontend
 PORT=3001
 FRONTEND_URL="http://localhost:3000"
 
 # Cấu hình lưu trữ File (S3 / MinIO)
-STORAGE_PROVIDER="local" # hoặc "s3"
+STORAGE_PROVIDER="local" # Lựa chọn: "local" hoặc "s3"
 S3_ENDPOINT="http://localhost:9000"
-S3_ACCESS_KEY="minio_admin"
-S3_SECRET_KEY="minio_admin_secret"
+S3_ACCESS_KEY="<YOUR_S3_ACCESS_KEY>"
+S3_SECRET_KEY="<YOUR_S3_SECRET_KEY>"
 S3_BUCKET_NAME="lets-learn-lms-private"
 
-# Tích hợp Redis cho Bull Queue
+# Tích hợp Redis cho hàng đợi Bull Queue
 REDIS_HOST="localhost"
 REDIS_PORT=6379
 
-# Webhook SePay bảo mật
-WEBHOOK_SECRET="sepay_webhook_secret_key"
-BANK_CODE="MB"
-BANK_ACCOUNT="9999999999"
-BANK_ACCOUNT_NAME="CONG TY CONG NGHE LMS"
+# Cổng Webhook SePay bảo mật nhận biến động số dư chuyển khoản
+WEBHOOK_SECRET="<YOUR_SEPAY_WEBHOOK_SECRET>"
+BANK_CODE="<YOUR_BANK_CODE>"                 # Ví dụ: MB, BIDV, VCB
+BANK_ACCOUNT="<YOUR_BANK_ACCOUNT_NUMBER>"
+BANK_ACCOUNT_NAME="<YOUR_BANK_ACCOUNT_NAME>"  # Ví dụ: CONG TY CONG NGHE LMS
 
-# Thiết lập khởi tạo Admin hệ thống ban đầu
-BOOTSTRAP_ADMIN_EMAIL="admin@letslearn.edu.vn"
+# Thiết lập khởi tạo tài khoản Admin hệ thống ban đầu (chỉ sử dụng cho lần Seed đầu tiên)
+BOOTSTRAP_ADMIN_EMAIL="<ADMIN_EMAIL>"
 BOOTSTRAP_ADMIN_USERNAME="admin"
-BOOTSTRAP_ADMIN_PASSWORD="SuperSecurePassword2026@"
+BOOTSTRAP_ADMIN_PASSWORD="<ADMIN_SECURE_PASSWORD>"
 ```
 
 ### Frontend (`frontend/.env.local`):
 ```env
+# Địa chỉ URL gọi API Gateway của backend
 NEXT_PUBLIC_API_URL="http://localhost:3001/api/v1"
 ```
 
