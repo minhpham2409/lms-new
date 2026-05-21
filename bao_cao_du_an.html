@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Báo cáo LumiLearn LMS</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: #172033;
+      background: #f3f6fb;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 14px 40px rgba(16, 24, 40, 0.08);
+    }
+
+    .content {
+      padding: 34px 42px 52px;
+    }
+
+    h1, h2, h3, h4 {
+      color: #0f2747;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: #0f2747;
+      font-size: 24px;
+      display: block;
+    }
+
+    h2 {
+      margin: 28px 0 12px;
+      padding: 9px 12px;
+      color: #fff;
+      background: #123f6d;
+      border-radius: 6px;
+      font-size: 18px;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      margin: 22px 0 9px;
+      color: #164a7d;
+      font-size: 14px;
+      border-left: 4px solid #1fb6a6;
+      padding-left: 9px;
+      page-break-after: avoid;
+    }
+
+    h4 {
+      margin: 16px 0 8px;
+      font-size: 12px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    blockquote {
+      margin: 12px 0 18px;
+      padding: 12px 14px;
+      border-left: 4px solid #1fb6a6;
+      background: #eef9f7;
+      color: #24415f;
+      border-radius: 0 6px 6px 0;
+    }
+
+    hr {
+      border: 0;
+      height: 1px;
+      background: #dbe4f0;
+      margin: 18px 0;
+    }
+
+    code {
+      font-family: "Cascadia Mono", Consolas, monospace;
+      background: #eef2f7;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: #0b4f6c;
+    }
+
+    .table-wrap {
+      margin: 10px 0 18px;
+      overflow: visible;
+      page-break-inside: avoid;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #cfd9e6;
+      background: #fff;
+      font-size: 9.5px;
+    }
+
+    th {
+      color: #fff;
+      background: #174a7c;
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 7px;
+      border: 1px solid #174a7c;
+    }
+
+    td {
+      vertical-align: top;
+      padding: 5px 7px;
+      border: 1px solid #d9e2ee;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    ul, ol {
+      margin: 7px 0 12px 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 3px 0;
+    }
+
+    .code-block {
+      margin: 12px 0 18px;
+      page-break-inside: auto;
+    }
+
+    .diagram-label {
+      display: inline-block;
+      margin-bottom: 0;
+      padding: 5px 8px;
+      color: #fff;
+      background: #1b6f85;
+      border-radius: 6px 6px 0 0;
+      font-weight: 700;
+      font-size: 10px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 12px;
+      color: #1e293b;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #f4f7fb;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 8.6px;
+      line-height: 1.42;
+    }
+
+    .diagram pre {
+      border-top-left-radius: 0;
+      background: #f1fbfb;
+      border-color: #a9d9df;
+    }
+
+    .mermaid {
+      padding: 14px;
+      overflow: visible;
+      text-align: center;
+      background: linear-gradient(180deg, #fbfdff, #f3f9fb);
+      border: 1px solid #a9d9df;
+      border-radius: 0 6px 6px 6px;
+      page-break-inside: auto;
+    }
+
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+      font-family: "Segoe UI", Arial, sans-serif !important;
+    }
+
+    .footer-note {
+      margin-top: 28px;
+      padding-top: 12px;
+      border-top: 1px solid #dbe4f0;
+      color: #64748b;
+      font-size: 9px;
+      text-align: right;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+      .page {
+        box-shadow: none;
+      }
+      h2 {
+        break-after: avoid;
+      }
+      figure {
+        break-inside: auto;
+      }
+      .table-wrap {
+        break-inside: auto;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.mermaid) {
+        window.mermaid.initialize({
+          startOnLoad: true,
+          securityLevel: 'loose',
+          theme: 'base',
+          flowchart: {
+            curve: 'basis',
+            htmlLabels: true,
+            useMaxWidth: true
+          },
+          sequence: {
+            mirrorActors: false,
+            useMaxWidth: true,
+            showSequenceNumbers: false
+          },
+          er: {
+            useMaxWidth: true
+          },
+          themeVariables: {
+            primaryColor: '#e8f4ff',
+            primaryBorderColor: '#25689f',
+            primaryTextColor: '#0f2747',
+            lineColor: '#2f5d7c',
+            secondaryColor: '#eef9f7',
+            tertiaryColor: '#fff7ed',
+            actorBorder: '#25689f',
+            actorBkg: '#f8fbff',
+            actorTextColor: '#0f2747',
+            activationBorderColor: '#1fb6a6',
+            activationBkgColor: '#e9fbf7',
+            noteBkgColor: '#fff7ed',
+            noteBorderColor: '#f59e0b',
+            fontFamily: 'Segoe UI, Arial, sans-serif'
+          }
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <main class="page">
+    <section class="content">
+      <h1 id="bao-cao-phan-tich-va-thiet-ke-he-thong">BÁO CÁO PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG</h1>
+<h2 id="du-an-lumilearn-lms-he-thong-quan-ly-hoc-tap-truc-tuyen">Dự án: LumiLearn LMS - Hệ thống quản lý học tập trực tuyến</h2>
+<h2 id="1-gioi-thieu-du-an">1. Giới thiệu dự án</h2>
+<h3 id="1-1-muc-tieu">1.1. Mục tiêu</h3>
+<p>LumiLearn LMS là hệ thống quản lý học tập trực tuyến hỗ trợ nhiều nhóm người dùng gồm học viên, giảng viên, phụ huynh và quản trị viên. Hệ thống cho phép giảng viên tạo khóa học, bài học, tài liệu, bài tập và quiz; học viên đăng ký học, theo dõi tiến độ, làm bài, nhận chứng chỉ; phụ huynh theo dõi tình hình học tập và thanh toán cho con; quản trị viên kiểm duyệt, thống kê, quản lý người dùng, đơn hàng và hoàn tiền.</p>
+<h3 id="1-2-pham-vi-hien-co-theo-ma-nguon">1.2. Phạm vi hiện có theo mã nguồn</h3>
+<div class="table-wrap"><table><thead><tr><th>Nhóm chức năng</th><th>Nội dung hiện có</th></tr></thead><tbody><tr><td>Xác thực</td><td>Đăng ký, đăng nhập, refresh token, đăng xuất, hồ sơ, đổi mật khẩu, quên/reset mật khẩu, quản lý phiên</td></tr><tr><td>Khóa học</td><td>Danh sách, tìm kiếm, chi tiết, tạo/sửa/xóa khóa học, gửi duyệt, duyệt/từ chối bởi admin</td></tr><tr><td>Nội dung học</td><td>Chương học, bài học, tài liệu đính kèm, video, bình luận, trả lời bình luận</td></tr><tr><td>Học tập</td><td>Ghi danh, khóa học của tôi, tiến độ khóa học, tiến độ video, kiểm tra điều kiện hoàn thành</td></tr><tr><td>Bài tập và quiz</td><td>Tạo bài tập, nộp bài, chấm điểm, tạo quiz, câu hỏi, nộp quiz, xem kết quả</td></tr><tr><td>Thương mại</td><td>Giỏ hàng, mã giảm giá, đơn hàng, sinh mã VietQR, xử lý webhook thanh toán</td></tr><tr><td>Phụ huynh</td><td>Gửi yêu cầu liên kết con, học viên chấp nhận/từ chối, xem tiến độ, khóa học, dashboard, đơn hàng, điểm số</td></tr><tr><td>Chứng chỉ</td><td>Sinh chứng chỉ sau khi học xong, xem danh sách chứng chỉ, xác minh chứng chỉ bằng mã</td></tr><tr><td>Gamification</td><td>Streak học tập, huy hiệu, bảng xếp hạng thành tích, cuộc đua tháng, mã giảm giá theo thành tích</td></tr><tr><td>Ví giảng viên</td><td>Ghi nhận doanh thu, ví, thông tin ngân hàng, yêu cầu rút tiền, admin duyệt/từ chối payout</td></tr><tr><td>Quản trị</td><td>Dashboard, người dùng, khóa học, bài học, đơn hàng, thống kê doanh thu, hoàn tiền, kiểm tra queue</td></tr><tr><td>Upload/media</td><td>Upload ảnh, file, video; kiểm tra MIME, dung lượng, magic bytes; xử lý media asset và phục vụ file</td></tr></tbody></table></div>
+<hr />
+<h2 id="2-cong-nghe-su-dung">2. Công nghệ sử dụng</h2>
+<div class="table-wrap"><table><thead><tr><th>Thành phần</th><th>Công nghệ</th><th>Vai trò</th></tr></thead><tbody><tr><td>Frontend</td><td>Next.js 15, React 19, TypeScript</td><td>Xây dựng giao diện người dùng</td></tr><tr><td>UI</td><td>Tailwind CSS, Radix UI, lucide-react, shadcn-style components</td><td>Thành phần giao diện, form, dialog, bảng, nút</td></tr><tr><td>Gọi API</td><td>Axios</td><td>Kết nối frontend với backend, tự refresh token khi 401</td></tr><tr><td>Video</td><td>hls.js, react-player</td><td>Phát video/HLS trong bài học</td></tr><tr><td>Backend</td><td>NestJS 11, TypeScript</td><td>API, module nghiệp vụ, guard, service</td></tr><tr><td>ORM</td><td>Prisma 6</td><td>Ánh xạ model và truy vấn PostgreSQL</td></tr><tr><td>Database</td><td>PostgreSQL</td><td>Lưu dữ liệu quan hệ</td></tr><tr><td>Queue/cache</td><td>Redis, Bull</td><td>Xử lý tác vụ nền như email, certificate, video, wallet</td></tr><tr><td>File storage</td><td>Local uploads, S3/MinIO SDK</td><td>Lưu ảnh, file, video, media asset</td></tr><tr><td>Bảo mật</td><td>JWT, Passport, bcrypt, role guard, throttler</td><td>Xác thực, phân quyền, giới hạn request</td></tr><tr><td>PDF</td><td>pdfkit</td><td>Sinh chứng chỉ</td></tr></tbody></table></div>
+<hr />
+<h2 id="3-kien-truc-tong-the">3. Kiến trúc tổng thể</h2>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">flowchart TB
+    U[&quot;Người dùng: Student / Teacher / Parent / Admin&quot;] --&gt; FE[&quot;Frontend Next.js&quot;]
+    FE --&gt; API[&quot;Backend NestJS API&quot;]
+    API --&gt; AUTH[&quot;Auth, Guards, Roles&quot;]
+    API --&gt; SVC[&quot;Service nghiệp vụ&quot;]
+    SVC --&gt; PRISMA[&quot;Prisma ORM&quot;]
+    PRISMA --&gt; DB[(&quot;PostgreSQL&quot;)]
+    SVC --&gt; QUEUE[&quot;Bull Queue&quot;]
+    QUEUE --&gt; REDIS[(&quot;Redis&quot;)]
+    SVC --&gt; STORAGE[&quot;Upload / Storage / Media&quot;]
+    STORAGE --&gt; FILES[(&quot;Local uploads hoặc S3/MinIO&quot;)]
+    SVC --&gt; EVENTS[&quot;EventEmitter&quot;]
+    EVENTS --&gt; NOTI[&quot;Notification / Certificate / Wallet jobs&quot;]</div></figure>
+<h3 id="3-1-phan-lop-backend">3.1. Phân lớp backend</h3>
+<div class="table-wrap"><table><thead><tr><th>Lớp</th><th>Mô tả</th></tr></thead><tbody><tr><td>Controller</td><td>Nhận HTTP request, lấy dữ liệu từ body/query/param, áp dụng guard và role</td></tr><tr><td>Service</td><td>Xử lý nghiệp vụ chính như tạo đơn hàng, ghi danh, chấm điểm, xử lý webhook</td></tr><tr><td>Repository</td><td>Một số module dùng repository để tách truy vấn dữ liệu khỏi service</td></tr><tr><td>Prisma schema</td><td>Định nghĩa bảng, quan hệ, enum và index</td></tr><tr><td>Guard/decorator</td><td><code>JwtAuthGuard</code>, <code>RolesGuard</code>, <code>OptionalJwtGuard</code>, <code>@GetUser</code>, <code>@Roles</code></td></tr><tr><td>Event/Queue</td><td>Phát sự kiện nghiệp vụ và đẩy tác vụ nặng sang Bull queue</td></tr></tbody></table></div>
+<h3 id="3-2-phan-lop-frontend">3.2. Phân lớp frontend</h3>
+<div class="table-wrap"><table><thead><tr><th>Lớp</th><th>Mô tả</th></tr></thead><tbody><tr><td><code>app/</code></td><td>Các route chính theo Next.js App Router</td></tr><tr><td><code>components/</code></td><td>UI dùng lại cho auth, khóa học, admin, layout, dashboard</td></tr><tr><td><code>lib/api-service.ts</code></td><td>Tập trung các hàm gọi API theo nhóm nghiệp vụ</td></tr><tr><td><code>hooks/useAuth.ts</code></td><td>Hook xử lý trạng thái xác thực</td></tr><tr><td><code>types/</code></td><td>Kiểu dữ liệu dùng chung phía frontend</td></tr></tbody></table></div>
+<hr />
+<h2 id="4-tac-nhan-he-thong">4. Tác nhân hệ thống</h2>
+<div class="table-wrap"><table><thead><tr><th>Tác nhân</th><th>Mô tả</th><th>Quyền/chức năng chính</th></tr></thead><tbody><tr><td>Khách</td><td>Người chưa đăng nhập</td><td>Xem trang chủ, danh sách khóa học, chi tiết công khai, giáo viên, đăng ký/đăng nhập</td></tr><tr><td>Học viên</td><td>Người học</td><td>Ghi danh/mua khóa học, học bài, xem tiến độ, làm bài tập/quiz, bình luận, nhận chứng chỉ</td></tr><tr><td>Giảng viên</td><td>Người tạo khóa học</td><td>Tạo khóa học, chương, bài học, tài liệu, bài tập, quiz; xem bài nộp; chấm điểm; quản lý ví</td></tr><tr><td>Phụ huynh</td><td>Người theo dõi học viên</td><td>Liên kết với con, xem tiến độ/điểm/đơn hàng, nhận thông báo thanh toán, gửi yêu cầu hoàn tiền</td></tr><tr><td>Quản trị viên</td><td>Người vận hành hệ thống</td><td>Quản lý user, khóa học, bài học, đơn hàng, doanh thu, refund, payout, queue</td></tr><tr><td>Hệ thống ngân hàng/SePay</td><td>Tác nhân ngoài</td><td>Gửi webhook xác nhận giao dịch thanh toán</td></tr><tr><td>Hàng đợi nền</td><td>Thành phần hệ thống</td><td>Xử lý email, chứng chỉ, video, ví/doanh thu</td></tr></tbody></table></div>
+<hr />
+<h2 id="5-danh-sach-man-hinh-frontend-hien-co">5. Danh sách màn hình frontend hiện có</h2>
+<div class="table-wrap"><table><thead><tr><th>Route</th><th>Chức năng</th></tr></thead><tbody><tr><td><code>/</code></td><td>Trang chủ/landing</td></tr><tr><td><code>/auth/login</code></td><td>Đăng nhập</td></tr><tr><td><code>/auth/register</code></td><td>Đăng ký</td></tr><tr><td><code>/auth/forgot-password</code></td><td>Quên mật khẩu</td></tr><tr><td><code>/auth/reset-password</code></td><td>Đặt lại mật khẩu</td></tr><tr><td><code>/courses</code></td><td>Danh sách khóa học</td></tr><tr><td><code>/courses/[id]</code></td><td>Chi tiết khóa học</td></tr><tr><td><code>/courses/[id]/lessons/[lessonId]</code></td><td>Màn hình học bài</td></tr><tr><td><code>/courses/[id]/lessons/[lessonId]/assignment/[assignmentId]</code></td><td>Làm/nộp bài tập</td></tr><tr><td><code>/quiz/[id]</code></td><td>Làm quiz</td></tr><tr><td><code>/cart</code></td><td>Giỏ hàng</td></tr><tr><td><code>/orders</code></td><td>Danh sách đơn hàng</td></tr><tr><td><code>/orders/[id]</code></td><td>Chi tiết đơn hàng/thanh toán</td></tr><tr><td><code>/dashboard</code></td><td>Dashboard học viên</td></tr><tr><td><code>/profile</code></td><td>Hồ sơ cá nhân</td></tr><tr><td><code>/notifications</code></td><td>Thông báo</td></tr><tr><td><code>/certificates</code></td><td>Chứng chỉ của học viên</td></tr><tr><td><code>/courses/[id]/certificate</code></td><td>Chứng chỉ của một khóa học</td></tr><tr><td><code>/achievements</code></td><td>Thành tích, huy hiệu, leaderboard</td></tr><tr><td><code>/monthly-race</code></td><td>Cuộc đua tháng</td></tr><tr><td><code>/parent</code></td><td>Dashboard phụ huynh</td></tr><tr><td><code>/teacher</code></td><td>Dashboard giảng viên</td></tr><tr><td><code>/teacher/courses/new</code></td><td>Tạo khóa học theo nhiều bước</td></tr><tr><td><code>/teacher/courses/[id]</code></td><td>Quản lý/chỉnh sửa khóa học</td></tr><tr><td><code>/teacher/grades</code></td><td>Quản lý bài nộp và điểm</td></tr><tr><td><code>/teachers</code></td><td>Danh sách giáo viên</td></tr><tr><td><code>/teachers/[id]</code></td><td>Hồ sơ giáo viên</td></tr><tr><td><code>/admin</code></td><td>Khu vực quản trị</td></tr><tr><td><code>/about</code>, <code>/contact</code>, <code>/help</code>, <code>/privacy</code>, <code>/terms</code></td><td>Trang thông tin phụ</td></tr></tbody></table></div>
+<hr />
+<h2 id="6-bieu-o-use-case-tong-quat">6. Biểu đồ use case tổng quát</h2>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">flowchart TB
+    Guest[&quot;Khách&quot;]
+    Student[&quot;Học viên&quot;]
+    Teacher[&quot;Giảng viên&quot;]
+    Parent[&quot;Phụ huynh&quot;]
+    Admin[&quot;Quản trị viên&quot;]
+    Bank[&quot;Ngân hàng/SePay&quot;]
+
+    subgraph Public[&quot;Nhóm truy cập công khai&quot;]
+        UC01([&quot;UC01. Đăng ký tài khoản&quot;])
+        UC02([&quot;UC02. Đăng nhập&quot;])
+        UC04([&quot;UC04. Xem và tìm kiếm khóa học&quot;])
+    end
+
+    subgraph Learning[&quot;Nhóm học tập&quot;]
+        UC09([&quot;UC09. Thêm vào giỏ&quot;])
+        UC11([&quot;UC11. Tạo đơn hàng&quot;])
+        UC12([&quot;UC12. Thanh toán VietQR&quot;])
+        UC14([&quot;UC14. Học bài&quot;])
+        UC16([&quot;UC16. Làm bài tập&quot;])
+        UC18([&quot;UC18. Làm quiz&quot;])
+        UC19([&quot;UC19. Nhận chứng chỉ&quot;])
+        UC26([&quot;UC26. Thành tích&quot;])
+    end
+
+    subgraph Teaching[&quot;Nhóm giảng viên&quot;]
+        UC05([&quot;UC05. Tạo khóa học&quot;])
+        UC06([&quot;UC06. Soạn nội dung&quot;])
+        UC07([&quot;UC07. Gửi duyệt&quot;])
+        UC17([&quot;UC17. Chấm bài&quot;])
+        UC25([&quot;UC25. Ví và rút tiền&quot;])
+    end
+
+    subgraph Family[&quot;Nhóm phụ huynh&quot;]
+        UC20([&quot;UC20. Liên kết học viên&quot;])
+        UC21([&quot;UC21. Theo dõi con&quot;])
+        UC22([&quot;UC22. Yêu cầu hoàn tiền&quot;])
+    end
+
+    subgraph AdminOps[&quot;Nhóm quản trị&quot;]
+        UC08([&quot;UC08. Duyệt khóa học&quot;])
+        UC23([&quot;UC23. Quản lý người dùng&quot;])
+        UC24([&quot;UC24. Quản lý doanh thu&quot;])
+        UC25A([&quot;UC25. Duyệt payout&quot;])
+    end
+
+    Guest --&gt; UC01
+    Guest --&gt; UC02
+    Guest --&gt; UC04
+    Student --&gt; Learning
+    Teacher --&gt; Teaching
+    Parent --&gt; Family
+    Admin --&gt; AdminOps
+    Bank --&gt; UC12
+    UC12 --&gt; UC13([&quot;UC13. Xử lý webhook thanh toán&quot;])</div></figure>
+<hr />
+<h2 id="7-danh-sach-use-case">7. Danh sách use case</h2>
+<div class="table-wrap"><table><thead><tr><th>Mã UC</th><th>Tên use case</th><th>Tác nhân chính</th><th>Mục tiêu</th></tr></thead><tbody><tr><td>UC01</td><td>Đăng ký tài khoản</td><td>Khách</td><td>Tạo tài khoản student/teacher/parent</td></tr><tr><td>UC02</td><td>Đăng nhập</td><td>Người dùng</td><td>Nhận access token và refresh token</td></tr><tr><td>UC03</td><td>Quản lý hồ sơ</td><td>Người dùng</td><td>Xem/sửa thông tin cá nhân, đổi mật khẩu</td></tr><tr><td>UC04</td><td>Xem và tìm kiếm khóa học</td><td>Khách/Học viên</td><td>Tìm khóa học phù hợp</td></tr><tr><td>UC05</td><td>Tạo khóa học</td><td>Giảng viên</td><td>Tạo khóa học mới ở trạng thái nháp</td></tr><tr><td>UC06</td><td>Soạn nội dung khóa học</td><td>Giảng viên</td><td>Tạo chương, bài học, tài liệu, video</td></tr><tr><td>UC07</td><td>Gửi duyệt khóa học</td><td>Giảng viên</td><td>Chuyển khóa học sang trạng thái chờ duyệt</td></tr><tr><td>UC08</td><td>Duyệt/từ chối khóa học</td><td>Admin</td><td>Công khai hoặc từ chối khóa học</td></tr><tr><td>UC09</td><td>Thêm khóa học vào giỏ</td><td>Học viên</td><td>Chuẩn bị mua khóa học</td></tr><tr><td>UC10</td><td>Áp dụng mã giảm giá</td><td>Học viên</td><td>Giảm giá đơn hàng nếu coupon hợp lệ</td></tr><tr><td>UC11</td><td>Tạo đơn hàng</td><td>Học viên/Phụ huynh</td><td>Chốt giỏ hàng thành order</td></tr><tr><td>UC12</td><td>Thanh toán VietQR</td><td>Học viên/Phụ huynh</td><td>Sinh QR và thanh toán đơn hàng</td></tr><tr><td>UC13</td><td>Xử lý webhook thanh toán</td><td>Hệ thống ngân hàng</td><td>Cập nhật payment, order, enrollment</td></tr><tr><td>UC14</td><td>Học bài</td><td>Học viên</td><td>Xem video, tài liệu, bình luận</td></tr><tr><td>UC15</td><td>Cập nhật tiến độ video</td><td>Học viên</td><td>Ghi nhận watch time, phần trăm xem</td></tr><tr><td>UC16</td><td>Làm bài tập</td><td>Học viên</td><td>Nộp nội dung/file cho assignment</td></tr><tr><td>UC17</td><td>Chấm bài</td><td>Giảng viên/Admin</td><td>Ghi điểm và phản hồi bài nộp</td></tr><tr><td>UC18</td><td>Làm quiz</td><td>Học viên</td><td>Trả lời câu hỏi và nhận điểm</td></tr><tr><td>UC19</td><td>Cấp chứng chỉ</td><td>Học viên/Hệ thống</td><td>Sinh chứng chỉ khi đủ điều kiện</td></tr><tr><td>UC20</td><td>Liên kết phụ huynh - học viên</td><td>Phụ huynh/Học viên</td><td>Cho phụ huynh theo dõi con</td></tr><tr><td>UC21</td><td>Theo dõi học tập của con</td><td>Phụ huynh</td><td>Xem dashboard, khóa học, điểm, đơn hàng</td></tr><tr><td>UC22</td><td>Tạo yêu cầu hoàn tiền</td><td>Phụ huynh</td><td>Gửi thông tin ngân hàng khi thanh toán dư</td></tr><tr><td>UC23</td><td>Quản lý người dùng</td><td>Admin</td><td>Tạo/sửa/xóa/khóa tài khoản</td></tr><tr><td>UC24</td><td>Quản lý doanh thu</td><td>Admin</td><td>Xem thống kê doanh thu, chi tiết giao dịch</td></tr><tr><td>UC25</td><td>Quản lý ví và rút tiền</td><td>Giảng viên/Admin</td><td>Giảng viên yêu cầu rút, admin xử lý</td></tr><tr><td>UC26</td><td>Thành tích và cuộc đua tháng</td><td>Học viên</td><td>Tích streak, huy hiệu, leaderboard, coupon</td></tr></tbody></table></div>
+<hr />
+<h2 id="8-ac-ta-use-case-chinh">8. Đặc tả use case chính</h2>
+<h3 id="8-0-ac-ta-use-case-toan-he-thong">8.0. Đặc tả use case toàn hệ thống</h3>
+<div class="table-wrap"><table><thead><tr><th>UC</th><th>Tên use case</th><th>Tác nhân</th><th>Tiền điều kiện</th><th>Luồng chính</th><th>Luồng ngoại lệ</th><th>Hậu điều kiện</th></tr></thead><tbody><tr><td>UC01</td><td>Đăng ký tài khoản</td><td>Khách</td><td>Người dùng chưa đăng nhập; email/username chưa tồn tại</td><td>1. Mở trang đăng ký. 2. Nhập username, email, mật khẩu, vai trò. 3. Frontend gọi <code>POST /auth/register</code>. 4. Backend kiểm tra dữ liệu và mã hóa mật khẩu. 5. Tạo bản ghi <code>User</code>.</td><td>Email/username trùng; dữ liệu không hợp lệ; mật khẩu không đạt yêu cầu.</td><td>Tài khoản mới được tạo và có thể đăng nhập.</td></tr><tr><td>UC02</td><td>Đăng nhập</td><td>Người dùng</td><td>Tài khoản đã tồn tại và đang hoạt động</td><td>1. Nhập username/email và mật khẩu. 2. Frontend gọi <code>POST /auth/login</code>. 3. Backend xác thực bằng local strategy. 4. Sinh access token và refresh token. 5. Frontend lưu access token trong bộ nhớ.</td><td>Sai thông tin đăng nhập; tài khoản bị khóa; refresh token hết hạn.</td><td>Người dùng vào hệ thống theo vai trò.</td></tr><tr><td>UC03</td><td>Quản lý hồ sơ</td><td>Người dùng</td><td>Đã đăng nhập</td><td>1. Mở trang hồ sơ. 2. Frontend gọi <code>GET /auth/profile</code>. 3. Người dùng sửa thông tin. 4. Frontend gọi <code>PUT /auth/profile</code> hoặc <code>PUT /users/me</code>. 5. Backend cập nhật <code>User</code>.</td><td>Token hết hạn; dữ liệu không hợp lệ; email/username trùng.</td><td>Hồ sơ người dùng được cập nhật.</td></tr><tr><td>UC04</td><td>Xem và tìm kiếm khóa học</td><td>Khách/Học viên</td><td>Không bắt buộc đăng nhập</td><td>1. Mở <code>/courses</code>. 2. Frontend gọi <code>GET /courses</code> hoặc <code>GET /courses/search</code>. 3. Backend trả danh sách khóa học phù hợp. 4. Người dùng mở chi tiết khóa học.</td><td>Không tìm thấy khóa học; khóa học chưa published thì khách không xem được đầy đủ.</td><td>Người dùng xem được thông tin khóa học công khai.</td></tr><tr><td>UC05</td><td>Tạo khóa học</td><td>Giảng viên/Admin</td><td>Đã đăng nhập, có role <code>teacher</code> hoặc <code>admin</code></td><td>1. Mở trang tạo khóa học. 2. Nhập tiêu đề, mô tả, giá, ảnh. 3. Frontend gọi <code>POST /courses</code>. 4. Backend tạo <code>Course</code> trạng thái <code>draft</code>.</td><td>Thiếu quyền; dữ liệu không hợp lệ; giá không hợp lệ.</td><td>Khóa học nháp được tạo.</td></tr><tr><td>UC06</td><td>Soạn nội dung khóa học</td><td>Giảng viên/Admin</td><td>Có quyền sở hữu/quản lý khóa học</td><td>1. Tạo <code>Section</code>. 2. Tạo <code>Lesson</code>. 3. Upload ảnh/video/file nếu có. 4. Tạo <code>Material</code>, <code>Assignment</code>, <code>Quiz</code>, <code>Question</code>. 5. Lưu cấu trúc nội dung.</td><td>Không có quyền; section/lesson không tồn tại; file sai định dạng; upload quá dung lượng.</td><td>Khóa học có nội dung học tập hoàn chỉnh.</td></tr><tr><td>UC07</td><td>Gửi duyệt khóa học</td><td>Giảng viên</td><td>Khóa học thuộc giảng viên và đã có nội dung cơ bản</td><td>1. Giảng viên bấm gửi duyệt. 2. Frontend gọi <code>POST /courses/:id/submit-review</code>. 3. Backend kiểm tra quyền. 4. Cập nhật <code>Course.status = pending</code>.</td><td>Khóa học không thuộc giảng viên; khóa học thiếu dữ liệu; trạng thái không hợp lệ.</td><td>Khóa học chuyển sang chờ admin duyệt.</td></tr><tr><td>UC08</td><td>Duyệt/từ chối khóa học</td><td>Admin</td><td>Admin đã đăng nhập; khóa học ở trạng thái <code>pending</code></td><td>1. Admin xem danh sách khóa chờ duyệt. 2. Mở chi tiết khóa. 3. Bấm approve hoặc reject. 4. Backend cập nhật trạng thái <code>published</code> hoặc <code>rejected</code>.</td><td>Không có quyền admin; khóa học không tồn tại; khóa học không ở trạng thái pending.</td><td>Khóa học được công khai hoặc trả về cho giảng viên chỉnh sửa.</td></tr><tr><td>UC09</td><td>Thêm khóa học vào giỏ</td><td>Học viên</td><td>Đã đăng nhập; khóa học tồn tại</td><td>1. Học viên bấm thêm vào giỏ. 2. Frontend gọi <code>POST /cart/add</code>. 3. Backend kiểm tra khóa học và giỏ hàng. 4. Tạo <code>CartItem</code>.</td><td>Khóa đã có trong giỏ; khóa học không tồn tại; học viên đã mua khóa học.</td><td>Khóa học xuất hiện trong giỏ hàng.</td></tr><tr><td>UC10</td><td>Áp dụng mã giảm giá</td><td>Học viên</td><td>Có sản phẩm trong giỏ; coupon tồn tại nếu nhập mã</td><td>1. Nhập mã coupon. 2. Frontend gọi <code>POST /cart/apply-coupon</code>. 3. Backend kiểm tra trạng thái, hạn dùng, lượt dùng. 4. Tính giá sau giảm.</td><td>Coupon sai, hết hạn, hết lượt, không active hoặc không áp dụng được.</td><td>Tổng tiền giỏ hàng được cập nhật theo coupon hợp lệ.</td></tr><tr><td>UC11</td><td>Tạo đơn hàng</td><td>Học viên/Phụ huynh</td><td>Người mua đã đăng nhập; có khóa học cần mua</td><td>1. Người dùng xác nhận mua. 2. Frontend gọi <code>POST /orders</code>. 3. Backend tính <code>totalPrice</code>, <code>finalPrice</code>. 4. Tạo <code>Order</code> và <code>OrderItem</code>. 5. Đơn ở trạng thái <code>pending</code>.</td><td>Khóa học không tồn tại; khóa đã được mua; coupon không hợp lệ.</td><td>Đơn hàng pending được tạo để thanh toán.</td></tr><tr><td>UC12</td><td>Thanh toán VietQR</td><td>Học viên/Phụ huynh</td><td>Đơn hàng pending; cấu hình ngân hàng đầy đủ</td><td>1. Frontend gọi <code>POST /payments/qr</code>. 2. Backend kiểm tra quyền xem đơn. 3. Sinh hoặc tái sử dụng <code>Payment</code>. 4. Sinh <code>txnRef</code> và URL VietQR. 5. Người dùng quét QR thanh toán.</td><td>Đơn không pending; thiếu cấu hình ngân hàng; người gọi không phải chủ đơn/phụ huynh liên kết.</td><td>Payment pending có mã QR thanh toán.</td></tr><tr><td>UC13</td><td>Xử lý webhook thanh toán</td><td>Ngân hàng/SePay</td><td>Payment có <code>txnRef</code>; webhook gửi về backend</td><td>1. Backend nhận webhook. 2. Kiểm tra chữ ký nếu cần. 3. Ghi <code>WebhookEvent</code>. 4. Tìm <code>Payment</code>. 5. Kiểm tra trạng thái và số tiền. 6. Cập nhật payment/order/enrollment trong transaction. 7. Ghi <code>PaymentTransaction</code>.</td><td>Webhook trùng; không tìm thấy giao dịch; thiếu tiền; dư tiền; trạng thái failed; sai số tiền.</td><td>Đơn hàng được paid hoặc ghi nhận trạng thái xử lý phù hợp.</td></tr><tr><td>UC14</td><td>Học bài</td><td>Học viên</td><td>Đã ghi danh hoặc có quyền truy cập khóa học</td><td>1. Mở bài học. 2. Backend kiểm tra enrollment/quyền truy cập. 3. Trả nội dung bài học, video, tài liệu. 4. Học viên xem bài và bình luận nếu cần.</td><td>Chưa mua/ghi danh; bài học không tồn tại; khóa chưa published.</td><td>Học viên truy cập được nội dung bài học hợp lệ.</td></tr><tr><td>UC15</td><td>Cập nhật tiến độ video</td><td>Học viên</td><td>Đang học bài có video</td><td>1. Video player ghi nhận thời lượng đã xem. 2. Frontend gọi <code>PUT /progress/video</code>. 3. Backend upsert <code>VideoProgress</code>. 4. Cập nhật phần trăm học của enrollment nếu đủ điều kiện.</td><td>Dữ liệu watch time sai; lesson không tồn tại; người dùng không có quyền học.</td><td>Tiến độ học tập được lưu.</td></tr><tr><td>UC16</td><td>Làm bài tập</td><td>Học viên</td><td>Học viên có quyền vào lesson chứa assignment</td><td>1. Mở assignment. 2. Nhập nội dung hoặc file. 3. Gọi <code>POST /assignments/:id/submit</code>. 4. Backend tạo/cập nhật <code>Submission</code>.</td><td>Quá hạn nếu có kiểm tra; assignment không tồn tại; học viên không có quyền; file lỗi.</td><td>Bài nộp được lưu ở trạng thái chờ chấm.</td></tr><tr><td>UC17</td><td>Chấm bài</td><td>Giảng viên/Admin</td><td>Có bài nộp; người chấm có quyền với khóa học</td><td>1. Giảng viên xem danh sách submissions. 2. Chọn bài nộp. 3. Nhập điểm và feedback. 4. Gọi API chấm điểm. 5. Backend cập nhật score, feedback, status.</td><td>Không có quyền; điểm ngoài khoảng cho phép; submission không tồn tại.</td><td>Học viên xem được điểm và nhận xét.</td></tr><tr><td>UC18</td><td>Làm quiz</td><td>Học viên</td><td>Quiz tồn tại và học viên có quyền truy cập</td><td>1. Mở quiz. 2. Backend trả câu hỏi. 3. Học viên chọn đáp án. 4. Gọi <code>POST /quizzes/:id/submit</code>. 5. Backend tính điểm và lưu <code>QuizAttempt</code>.</td><td>Quiz không tồn tại; học viên đã làm nếu giới hạn một lần; dữ liệu đáp án sai.</td><td>Kết quả quiz được lưu và hiển thị.</td></tr><tr><td>UC19</td><td>Cấp chứng chỉ</td><td>Học viên/Hệ thống</td><td>Học viên hoàn thành khóa học theo điều kiện</td><td>1. Học viên yêu cầu tạo chứng chỉ. 2. Backend kiểm tra enrollment/progress. 3. Nếu đủ điều kiện, sinh mã chứng chỉ. 4. Lưu <code>Certificate</code>. 5. Cho phép tra cứu bằng code.</td><td>Chưa hoàn thành khóa; chứng chỉ đã tồn tại; khóa học không hợp lệ.</td><td>Chứng chỉ được cấp hoặc trả về chứng chỉ đã có.</td></tr><tr><td>UC20</td><td>Liên kết phụ huynh - học viên</td><td>Phụ huynh/Học viên</td><td>Cả hai tài khoản tồn tại; phụ huynh role <code>parent</code>, con role <code>student</code></td><td>1. Phụ huynh nhập email/username/UUID của con. 2. Backend tạo <code>ParentChild</code> pending. 3. Học viên xem yêu cầu. 4. Học viên accept hoặc reject.</td><td>Gửi trùng yêu cầu; tài khoản con không tồn tại; sai vai trò; học viên từ chối.</td><td>Quan hệ phụ huynh - học viên được accepted hoặc rejected.</td></tr><tr><td>UC21</td><td>Theo dõi học tập của con</td><td>Phụ huynh</td><td>Đã có liên kết <code>ParentChild.status = accepted</code></td><td>1. Phụ huynh mở dashboard. 2. Gọi API lấy danh sách con. 3. Chọn học viên. 4. Backend trả tiến độ, khóa học, điểm, đơn hàng.</td><td>Chưa liên kết; liên kết pending/rejected; childId không thuộc phụ huynh.</td><td>Phụ huynh xem được dữ liệu học tập của con.</td></tr><tr><td>UC22</td><td>Tạo yêu cầu hoàn tiền</td><td>Phụ huynh</td><td>Có đơn hàng thanh toán dư; phụ huynh liên kết với học viên</td><td>1. Phụ huynh nhập ngân hàng, số tài khoản, chủ tài khoản. 2. Gọi <code>POST /payments/refund-requests</code>. 3. Backend kiểm tra số tiền dư còn khả dụng. 4. Tạo <code>RefundRequest</code>. 5. Thông báo admin.</td><td>Không có tiền dư; yêu cầu vượt số tiền dư; thông tin ngân hàng thiếu; phụ huynh không liên kết.</td><td>Refund request pending được tạo.</td></tr><tr><td>UC23</td><td>Quản lý người dùng</td><td>Admin</td><td>Admin đã đăng nhập</td><td>1. Admin mở trang quản lý user. 2. Xem danh sách user. 3. Tạo/sửa/xóa/khóa tài khoản. 4. Backend cập nhật <code>User</code>.</td><td>Không có quyền admin; không được tự xóa hoặc thao tác sai chính sách; dữ liệu trùng.</td><td>Danh sách người dùng được quản lý.</td></tr><tr><td>UC24</td><td>Quản lý doanh thu</td><td>Admin</td><td>Admin đã đăng nhập</td><td>1. Admin mở dashboard/thống kê. 2. Gọi API doanh thu. 3. Backend tổng hợp order/payment/ledger. 4. Hiển thị doanh thu tổng, chi tiết giao dịch, khóa học.</td><td>Không có quyền; dữ liệu rỗng; lỗi truy vấn thống kê.</td><td>Admin có số liệu doanh thu để theo dõi vận hành.</td></tr><tr><td>UC25</td><td>Quản lý ví và rút tiền</td><td>Giảng viên/Admin</td><td>Giảng viên có ví; admin có quyền duyệt payout</td><td>1. Giảng viên xem ví. 2. Cập nhật thông tin ngân hàng. 3. Gửi yêu cầu rút tiền. 4. Admin xem payout. 5. Admin duyệt hoặc từ chối. 6. Backend cập nhật ví, payout, transaction.</td><td>Số dư không đủ; thiếu thông tin ngân hàng; payout đã xử lý; admin từ chối.</td><td>Yêu cầu rút tiền được ghi nhận và xử lý.</td></tr><tr><td>UC26</td><td>Thành tích và cuộc đua tháng</td><td>Học viên/Hệ thống</td><td>Học viên có hoạt động học tập</td><td>1. Học viên check-in/học bài/làm quiz. 2. Backend cập nhật streak, XP hoặc achievement. 3. Hệ thống cấp badge/coupon nếu đạt điều kiện. 4. Học viên xem leaderboard/thành tích.</td><td>Chưa đủ điều kiện; đã nhận badge/coupon trước đó; leaderboard chưa có dữ liệu.</td><td>Thành tích, huy hiệu hoặc xếp hạng được cập nhật.</td></tr></tbody></table></div>
+<hr />
+<h3 id="8-1-uc02-ang-nhap">8.1. UC02 - Đăng nhập</h3>
+<div class="table-wrap"><table><thead><tr><th>Mục</th><th>Nội dung</th></tr></thead><tbody><tr><td>Tác nhân</td><td>Người dùng</td></tr><tr><td>Tiền điều kiện</td><td>Tài khoản đã tồn tại và đang hoạt động</td></tr><tr><td>Kích hoạt</td><td>Người dùng nhập username/email và mật khẩu</td></tr><tr><td>Hậu điều kiện</td><td>Người dùng nhận access token; refresh token được lưu bằng cookie</td></tr></tbody></table></div>
+<p><strong>Luồng chính</strong></p>
+<ol><li>Người dùng mở trang <code>/auth/login</code>.</li><li>Frontend gọi <code>POST /auth/login</code>.</li><li>Backend dùng <code>LocalAuthGuard</code> kiểm tra thông tin đăng nhập.</li><li>Nếu hợp lệ, backend tạo access token và refresh token.</li><li>Frontend lưu access token trong bộ nhớ và dùng Axios interceptor gắn token vào request sau.</li><li>Người dùng được chuyển vào khu vực phù hợp theo vai trò.</li></ol>
+<p><strong>Luồng ngoại lệ</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Trường hợp</th><th>Xử lý</th></tr></thead><tbody><tr><td>Sai tài khoản/mật khẩu</td><td>Backend trả lỗi xác thực</td></tr><tr><td>Access token hết hạn</td><td>Frontend gọi <code>POST /auth/refresh</code>, nhận token mới</td></tr><tr><td>Refresh token không hợp lệ</td><td>Xóa trạng thái đăng nhập, chuyển về trang login</td></tr></tbody></table></div>
+<h3 id="8-2-uc06-soan-noi-dung-khoa-hoc">8.2. UC06 - Soạn nội dung khóa học</h3>
+<div class="table-wrap"><table><thead><tr><th>Mục</th><th>Nội dung</th></tr></thead><tbody><tr><td>Tác nhân</td><td>Giảng viên hoặc admin</td></tr><tr><td>Tiền điều kiện</td><td>Người dùng đã đăng nhập và có quyền với khóa học</td></tr><tr><td>Kích hoạt</td><td>Giảng viên vào trang quản lý khóa học</td></tr><tr><td>Hậu điều kiện</td><td>Khóa học có chương, bài học, tài liệu, bài tập/quiz</td></tr></tbody></table></div>
+<p><strong>Luồng chính</strong></p>
+<ol><li>Giảng viên tạo khóa học bằng <code>POST /courses</code>.</li><li>Giảng viên tạo chương bằng <code>POST /sections</code>.</li><li>Giảng viên tạo bài học bằng <code>POST /lessons</code>.</li><li>Nếu có file, frontend upload qua <code>POST /upload/file</code>, <code>POST /upload/image</code> hoặc <code>POST /upload/video</code>.</li><li>Backend kiểm tra MIME, dung lượng và magic bytes của file.</li><li>Giảng viên gắn tài liệu vào bài học bằng <code>POST /materials</code>.</li><li>Giảng viên tạo bài tập bằng <code>POST /assignments</code>.</li><li>Nếu là quiz, giảng viên tạo quiz bằng <code>POST /quizzes</code> và câu hỏi bằng <code>POST /questions</code>.</li><li>Khi hoàn tất, giảng viên gửi duyệt khóa học bằng <code>POST /courses/:id/submit-review</code>.</li></ol>
+<h3 id="8-3-uc12-thanh-toan-vietqr">8.3. UC12 - Thanh toán VietQR</h3>
+<div class="table-wrap"><table><thead><tr><th>Mục</th><th>Nội dung</th></tr></thead><tbody><tr><td>Tác nhân</td><td>Học viên hoặc phụ huynh đã liên kết</td></tr><tr><td>Tiền điều kiện</td><td>Có đơn hàng trạng thái <code>pending</code></td></tr><tr><td>Kích hoạt</td><td>Người dùng bấm thanh toán trong trang đơn hàng</td></tr><tr><td>Hậu điều kiện</td><td>Sinh mã QR thanh toán chứa số tiền và nội dung chuyển khoản</td></tr></tbody></table></div>
+<p><strong>Luồng chính</strong></p>
+<ol><li>Người dùng tạo đơn hàng bằng <code>POST /orders</code>.</li><li>Frontend gọi <code>POST /payments/qr</code> với <code>orderId</code>.</li><li>Backend kiểm tra người gọi là chủ đơn hàng hoặc phụ huynh đã liên kết.</li><li>Backend kiểm tra đơn hàng còn <code>pending</code>.</li><li>Backend lấy cấu hình ngân hàng từ biến môi trường.</li><li>Nếu đã có payment pending còn hợp lệ, backend tái sử dụng QR cũ.</li><li>Nếu chưa có hoặc yêu cầu tạo lại, backend sinh <code>txnRef</code> mới.</li><li>Backend trả về URL ảnh VietQR, số tiền, tài khoản ngân hàng và nội dung chuyển khoản.</li><li>Người dùng quét mã QR và chuyển khoản.</li></ol>
+<p><strong>Luồng ngoại lệ</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Trường hợp</th><th>Xử lý</th></tr></thead><tbody><tr><td>Không có quyền xem đơn</td><td>Trả lỗi không tìm thấy đơn hàng</td></tr><tr><td>Đơn không còn pending</td><td>Trả lỗi không thể thanh toán</td></tr><tr><td>Thiếu cấu hình ngân hàng</td><td>Trả lỗi cấu hình thanh toán</td></tr></tbody></table></div>
+<h3 id="8-4-uc13-xu-ly-webhook-thanh-toan">8.4. UC13 - Xử lý webhook thanh toán</h3>
+<div class="table-wrap"><table><thead><tr><th>Mục</th><th>Nội dung</th></tr></thead><tbody><tr><td>Tác nhân</td><td>Hệ thống ngân hàng/SePay</td></tr><tr><td>Tiền điều kiện</td><td>Payment đã được tạo và có <code>txnRef</code></td></tr><tr><td>Kích hoạt</td><td>Ngân hàng gửi webhook về backend</td></tr><tr><td>Hậu điều kiện</td><td>Payment/order/enrollment được cập nhật nhất quán</td></tr></tbody></table></div>
+<p><strong>Luồng chính</strong></p>
+<ol><li>Backend nhận webhook qua <code>POST /payments/webhook</code> hoặc <code>POST /payments/webhook/sepay</code>.</li><li>Backend chuẩn hóa dữ liệu giao dịch.</li><li>Với webhook cần chữ ký, backend kiểm tra HMAC-SHA256.</li><li>Backend tạo <code>WebhookEvent</code> để chống xử lý trùng.</li><li>Backend tìm <code>Payment</code> theo <code>txnRef</code>.</li><li>Nếu trạng thái thành công và số tiền khớp, backend chạy transaction:</li></ol>
+<ul>
+<li>cập nhật <code>Payment</code> thành <code>completed</code>;</li>
+<li>cập nhật <code>Order</code> thành <code>paid</code>;</li>
+<li>tăng lượt dùng coupon nếu có;</li>
+<li>tạo <code>Enrollment</code> cho từng khóa học trong đơn.</li>
+</ul>
+<ol><li>Backend ghi <code>PaymentTransaction</code> làm ledger.</li><li>Backend phát event <code>PAYMENT_COMPLETED</code> để xử lý thông báo, chứng chỉ/ví hoặc tác vụ nền liên quan.</li></ol>
+<p><strong>Luồng thay thế</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Trường hợp</th><th>Xử lý</th></tr></thead><tbody><tr><td>Webhook bị gửi lại</td><td>Đánh dấu duplicate, không tạo enrollment lần hai</td></tr><tr><td>Chuyển thiếu tiền</td><td>Ghi ledger <code>partial</code>, cập nhật số còn thiếu, sinh <code>txnRef</code>/QR mới, gửi thông báo</td></tr><tr><td>Chuyển dư tiền</td><td>Kích hoạt đơn hàng, ghi số tiền dư, gửi thông báo cho phụ huynh/học viên</td></tr><tr><td>Trạng thái thất bại</td><td>Cập nhật payment/order thất bại và phát event <code>PAYMENT_FAILED</code></td></tr><tr><td>Số tiền không khớp nhưng không phải success</td><td>Đánh dấu rejected để kiểm tra thủ công</td></tr></tbody></table></div>
+<h3 id="8-5-uc16-lam-bai-tap">8.5. UC16 - Làm bài tập</h3>
+<div class="table-wrap"><table><thead><tr><th>Mục</th><th>Nội dung</th></tr></thead><tbody><tr><td>Tác nhân</td><td>Học viên</td></tr><tr><td>Tiền điều kiện</td><td>Học viên có quyền truy cập bài học/khóa học</td></tr><tr><td>Kích hoạt</td><td>Học viên mở trang assignment</td></tr><tr><td>Hậu điều kiện</td><td>Bài nộp được lưu ở trạng thái chờ chấm</td></tr></tbody></table></div>
+<p><strong>Luồng chính</strong></p>
+<ol><li>Học viên mở <code>/courses/[id]/lessons/[lessonId]/assignment/[assignmentId]</code>.</li><li>Frontend lấy thông tin assignment bằng <code>GET /assignments/:id</code>.</li><li>Học viên nhập nội dung hoặc đính kèm file.</li><li>Frontend gọi <code>POST /assignments/:id/submit</code>.</li><li>Backend tạo hoặc cập nhật <code>Submission</code> theo cặp <code>assignmentId + studentId</code>.</li><li>Giảng viên xem bài nộp qua <code>GET /assignments/:id/submissions</code>.</li><li>Giảng viên chấm bằng <code>PUT /submissions/:id/grade</code> hoặc <code>PATCH /assignments/submissions/:submissionId/grade</code>.</li></ol>
+<h3 id="8-6-uc20-lien-ket-phu-huynh-voi-hoc-vien">8.6. UC20 - Liên kết phụ huynh với học viên</h3>
+<div class="table-wrap"><table><thead><tr><th>Mục</th><th>Nội dung</th></tr></thead><tbody><tr><td>Tác nhân</td><td>Phụ huynh, học viên</td></tr><tr><td>Tiền điều kiện</td><td>Cả hai tài khoản đã tồn tại</td></tr><tr><td>Kích hoạt</td><td>Phụ huynh nhập email/username/UUID của học viên</td></tr><tr><td>Hậu điều kiện</td><td>Quan hệ <code>ParentChild</code> được tạo và chuyển trạng thái theo phản hồi</td></tr></tbody></table></div>
+<p><strong>Luồng chính</strong></p>
+<ol><li>Phụ huynh gọi <code>POST /parents/link-child</code>.</li><li>Backend tạo bản ghi <code>ParentChild</code> trạng thái <code>pending</code>.</li><li>Học viên xem yêu cầu đến qua <code>GET /parents/link-requests/incoming</code>.</li><li>Học viên chấp nhận bằng <code>POST /parents/link-request/:id/accept</code>.</li><li>Phụ huynh xem danh sách con bằng <code>GET /parents/me/children</code>.</li><li>Phụ huynh xem tiến độ, khóa học, dashboard, đơn hàng hoặc điểm của con qua các API <code>/parents/children/:id/...</code>.</li></ol>
+<h3 id="8-7-uc25-vi-giang-vien-va-rut-tien">8.7. UC25 - Ví giảng viên và rút tiền</h3>
+<div class="table-wrap"><table><thead><tr><th>Mục</th><th>Nội dung</th></tr></thead><tbody><tr><td>Tác nhân</td><td>Giảng viên, admin</td></tr><tr><td>Tiền điều kiện</td><td>Giảng viên có doanh thu trong ví</td></tr><tr><td>Kích hoạt</td><td>Giảng viên gửi yêu cầu rút tiền</td></tr><tr><td>Hậu điều kiện</td><td>Payout được tạo và admin xử lý</td></tr></tbody></table></div>
+<p><strong>Luồng chính</strong></p>
+<ol><li>Giảng viên xem ví bằng <code>GET /wallets/me</code>.</li><li>Giảng viên cập nhật thông tin ngân hàng bằng <code>PUT /wallets/bank-info</code>.</li><li>Giảng viên tạo yêu cầu rút tiền bằng <code>POST /wallets/payouts</code>.</li><li>Admin xem danh sách payout bằng <code>GET /wallets/admin/payouts</code>.</li><li>Admin duyệt bằng <code>PATCH /wallets/admin/payouts/:id/approve</code> hoặc từ chối bằng <code>PATCH /wallets/admin/payouts/:id/reject</code>.</li><li>Hệ thống cập nhật <code>Wallet</code>, <code>WalletTransaction</code> và <code>PayoutRequest</code>.</li></ol>
+<hr />
+<h2 id="9-bieu-o-trinh-tu">9. Biểu đồ trình tự</h2>
+<h3 id="9-1-ang-nhap-va-refresh-token">9.1. Đăng nhập và refresh token</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor U as Người dùng
+    participant FE as Frontend
+    participant API as AuthController
+    participant Auth as AuthService
+    participant DB as PostgreSQL
+
+    U-&gt;&gt;FE: Nhập thông tin đăng nhập
+    FE-&gt;&gt;API: POST /auth/login
+    API-&gt;&gt;Auth: validateUser()
+    Auth-&gt;&gt;DB: Tìm user và kiểm tra mật khẩu
+    DB--&gt;&gt;Auth: User hợp lệ
+    Auth--&gt;&gt;API: access token + refresh token
+    API--&gt;&gt;FE: Trả token, set refresh cookie
+    FE--&gt;&gt;U: Chuyển vào hệ thống</div></figure>
+<h3 id="9-2-thanh-toan-khoa-hoc">9.2. Thanh toán khóa học</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor S as Học viên/Phụ huynh
+    participant FE as Frontend
+    participant Order as OrdersController
+    participant Pay as PaymentsController
+    participant Bank as SePay/Ngân hàng
+    participant DB as PostgreSQL
+    participant Event as EventEmitter/Queue
+
+    S-&gt;&gt;FE: Chọn khóa học và thanh toán
+    FE-&gt;&gt;Order: POST /orders
+    Order-&gt;&gt;DB: Tạo Order + OrderItem
+    DB--&gt;&gt;Order: Order pending
+    FE-&gt;&gt;Pay: POST /payments/qr
+    Pay-&gt;&gt;DB: Tạo/tái sử dụng Payment pending
+    Pay--&gt;&gt;FE: Trả VietQR URL + txnRef
+    S-&gt;&gt;Bank: Chuyển khoản theo QR
+    Bank-&gt;&gt;Pay: POST webhook
+    Pay-&gt;&gt;DB: Ghi WebhookEvent, PaymentTransaction
+    Pay-&gt;&gt;DB: Transaction cập nhật Payment, Order, Enrollment
+    Pay-&gt;&gt;Event: Emit PAYMENT_COMPLETED
+    Pay--&gt;&gt;Bank: OK
+    FE-&gt;&gt;Order: GET /orders/:id
+    Order--&gt;&gt;FE: Đơn đã paid</div></figure>
+<h3 id="9-3-giang-vien-tao-khoa-hoc">9.3. Giảng viên tạo khóa học</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor T as Giảng viên
+    participant FE as Frontend teacher
+    participant Course as CoursesController
+    participant Section as SectionsController
+    participant Lesson as LessonsController
+    participant Upload as UploadController
+    participant DB as PostgreSQL
+
+    T-&gt;&gt;FE: Nhập thông tin khóa học
+    FE-&gt;&gt;Course: POST /courses
+    Course-&gt;&gt;DB: Tạo Course status=draft
+    T-&gt;&gt;FE: Thêm chương
+    FE-&gt;&gt;Section: POST /sections
+    Section-&gt;&gt;DB: Tạo Section
+    T-&gt;&gt;FE: Thêm bài học/video/tài liệu
+    FE-&gt;&gt;Upload: POST /upload/video hoặc /upload/file
+    Upload--&gt;&gt;FE: URL hoặc media asset
+    FE-&gt;&gt;Lesson: POST /lessons
+    Lesson-&gt;&gt;DB: Tạo Lesson
+    FE-&gt;&gt;Course: POST /courses/:id/submit-review
+    Course-&gt;&gt;DB: Chuyển status=pending</div></figure>
+<h3 id="9-4-phu-huynh-lien-ket-hoc-vien">9.4. Phụ huynh liên kết học viên</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor P as Phụ huynh
+    actor S as Học viên
+    participant FE as Frontend
+    participant Parent as ParentsController
+    participant DB as PostgreSQL
+
+    P-&gt;&gt;FE: Nhập email/username con
+    FE-&gt;&gt;Parent: POST /parents/link-child
+    Parent-&gt;&gt;DB: Tạo ParentChild pending
+    S-&gt;&gt;FE: Mở yêu cầu liên kết
+    FE-&gt;&gt;Parent: GET /parents/link-requests/incoming
+    S-&gt;&gt;FE: Chấp nhận
+    FE-&gt;&gt;Parent: POST /parents/link-request/:id/accept
+    Parent-&gt;&gt;DB: Cập nhật status=accepted
+    P-&gt;&gt;FE: Xem dashboard của con
+    FE-&gt;&gt;Parent: GET /parents/children/:id/dashboard
+    Parent--&gt;&gt;FE: Tiến độ, khóa học, điểm, đơn hàng</div></figure>
+<h3 id="9-5-gio-hang-coupon-va-tao-on-hang">9.5. Giỏ hàng, coupon và tạo đơn hàng</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor S as Học viên
+    participant FE as Frontend
+    participant Cart as CartController
+    participant Coupon as CouponsService
+    participant Order as OrdersController
+    participant DB as PostgreSQL
+
+    S-&gt;&gt;FE: Bấm thêm khóa học vào giỏ
+    FE-&gt;&gt;Cart: POST /cart/add
+    Cart-&gt;&gt;DB: Tạo CartItem nếu chưa tồn tại
+    DB--&gt;&gt;Cart: CartItem
+    Cart--&gt;&gt;FE: Cập nhật giỏ hàng
+    S-&gt;&gt;FE: Nhập mã giảm giá
+    FE-&gt;&gt;Cart: POST /cart/apply-coupon
+    Cart-&gt;&gt;Coupon: Kiểm tra code, hạn dùng, lượt dùng
+    Coupon--&gt;&gt;Cart: Kết quả giảm giá
+    S-&gt;&gt;FE: Xác nhận mua
+    FE-&gt;&gt;Order: POST /orders
+    Order-&gt;&gt;DB: Tạo Order và OrderItem
+    Order-&gt;&gt;DB: Xóa hoặc giữ cart theo logic đơn hàng
+    Order--&gt;&gt;FE: Order pending</div></figure>
+<h3 id="9-6-hoc-bai-va-cap-nhat-tien-o">9.6. Học bài và cập nhật tiến độ</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor S as Học viên
+    participant FE as Lesson page
+    participant Course as CoursesController
+    participant Lesson as LessonsController
+    participant Progress as ProgressController
+    participant DB as PostgreSQL
+
+    S-&gt;&gt;FE: Mở bài học trong khóa
+    FE-&gt;&gt;Course: GET /courses/:id
+    Course-&gt;&gt;DB: Kiểm tra khóa học, enrollment, nội dung
+    Course--&gt;&gt;FE: Course + sections + lessons
+    FE-&gt;&gt;Lesson: GET /lessons/:lessonId
+    Lesson-&gt;&gt;DB: Kiểm tra quyền truy cập bài học
+    Lesson--&gt;&gt;FE: Nội dung bài học, video, tài liệu
+    S-&gt;&gt;FE: Xem video
+    FE-&gt;&gt;Progress: PUT /progress/video
+    Progress-&gt;&gt;DB: Upsert VideoProgress
+    Progress-&gt;&gt;DB: Cập nhật Enrollment.progress nếu đủ điều kiện
+    Progress--&gt;&gt;FE: Tiến độ mới</div></figure>
+<h3 id="9-7-nop-bai-tap-va-cham-iem">9.7. Nộp bài tập và chấm điểm</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor S as Học viên
+    actor T as Giảng viên
+    participant FE as Frontend
+    participant Assign as AssignmentsController
+    participant Sub as SubmissionsController
+    participant DB as PostgreSQL
+
+    S-&gt;&gt;FE: Mở bài tập
+    FE-&gt;&gt;Assign: GET /assignments/:id
+    Assign-&gt;&gt;DB: Kiểm tra quyền học viên
+    Assign--&gt;&gt;FE: Thông tin assignment
+    S-&gt;&gt;FE: Nhập nội dung hoặc file
+    FE-&gt;&gt;Assign: POST /assignments/:id/submit
+    Assign-&gt;&gt;DB: Tạo/cập nhật Submission pending
+    Assign--&gt;&gt;FE: Bài nộp đã lưu
+    T-&gt;&gt;FE: Mở danh sách bài nộp
+    FE-&gt;&gt;Assign: GET /assignments/:id/submissions
+    Assign-&gt;&gt;DB: Lấy submissions của assignment
+    T-&gt;&gt;FE: Nhập điểm và nhận xét
+    FE-&gt;&gt;Sub: PUT /submissions/:id/grade
+    Sub-&gt;&gt;DB: Cập nhật score, feedback, status
+    Sub--&gt;&gt;FE: Kết quả chấm điểm</div></figure>
+<h3 id="9-8-lam-quiz-va-xem-ket-qua">9.8. Làm quiz và xem kết quả</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor S as Học viên
+    participant FE as Quiz page
+    participant Quiz as QuizzesController
+    participant DB as PostgreSQL
+
+    S-&gt;&gt;FE: Mở quiz
+    FE-&gt;&gt;Quiz: GET /quizzes/:id
+    Quiz-&gt;&gt;DB: Lấy quiz và danh sách câu hỏi
+    Quiz--&gt;&gt;FE: Câu hỏi và lựa chọn trả lời
+    S-&gt;&gt;FE: Chọn đáp án và nộp
+    FE-&gt;&gt;Quiz: POST /quizzes/:id/submit
+    Quiz-&gt;&gt;DB: So đáp án, tính điểm
+    Quiz-&gt;&gt;DB: Tạo QuizAttempt
+    Quiz--&gt;&gt;FE: Điểm số
+    FE-&gt;&gt;Quiz: GET /quizzes/:id/result
+    Quiz--&gt;&gt;FE: Chi tiết đúng/sai từng câu</div></figure>
+<h3 id="9-9-sinh-va-xac-minh-chung-chi">9.9. Sinh và xác minh chứng chỉ</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor S as Học viên
+    participant FE as Certificate page
+    participant Cert as CertificatesController
+    participant Progress as ProgressService
+    participant PDF as PdfService
+    participant DB as PostgreSQL
+
+    S-&gt;&gt;FE: Yêu cầu cấp chứng chỉ
+    FE-&gt;&gt;Cert: POST /certificates/generate
+    Cert-&gt;&gt;Progress: Kiểm tra hoàn thành khóa học
+    Progress-&gt;&gt;DB: Đọc Enrollment và tiến độ
+    Cert-&gt;&gt;DB: Kiểm tra Certificate đã tồn tại
+    Cert-&gt;&gt;PDF: Sinh mã/chứng chỉ nếu đủ điều kiện
+    Cert-&gt;&gt;DB: Lưu Certificate code
+    Cert--&gt;&gt;FE: Certificate
+    FE-&gt;&gt;Cert: GET /certificates/:code
+    Cert-&gt;&gt;DB: Tra cứu mã chứng chỉ
+    Cert--&gt;&gt;FE: Thông tin xác minh</div></figure>
+<h3 id="9-10-yeu-cau-hoan-tien-khi-thanh-toan-du">9.10. Yêu cầu hoàn tiền khi thanh toán dư</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor P as Phụ huynh
+    participant FE as Frontend
+    participant Pay as PaymentsController
+    participant Admin as AdminController
+    participant Noti as NotificationsService
+    participant DB as PostgreSQL
+
+    P-&gt;&gt;FE: Nhập thông tin ngân hàng hoàn tiền
+    FE-&gt;&gt;Pay: POST /payments/refund-requests
+    Pay-&gt;&gt;DB: Kiểm tra parent-child accepted
+    Pay-&gt;&gt;DB: Kiểm tra overpaidAmount còn khả dụng
+    Pay-&gt;&gt;DB: Tạo RefundRequest pending
+    Pay-&gt;&gt;Noti: Thông báo admin
+    Pay--&gt;&gt;FE: Yêu cầu hoàn tiền
+    Admin-&gt;&gt;DB: GET /admin/refund-requests
+    Admin-&gt;&gt;DB: PATCH /admin/refund-requests/:id/paid
+    Admin--&gt;&gt;FE: RefundRequest đã xử lý</div></figure>
+<h3 id="9-11-vi-giang-vien-va-rut-tien">9.11. Ví giảng viên và rút tiền</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor T as Giảng viên
+    actor A as Admin
+    participant FE as Frontend
+    participant Wallet as WalletsController
+    participant DB as PostgreSQL
+
+    T-&gt;&gt;FE: Mở ví cá nhân
+    FE-&gt;&gt;Wallet: GET /wallets/me
+    Wallet-&gt;&gt;DB: Lấy Wallet và transactions
+    Wallet--&gt;&gt;FE: Số dư ví
+    T-&gt;&gt;FE: Cập nhật ngân hàng
+    FE-&gt;&gt;Wallet: PUT /wallets/bank-info
+    Wallet-&gt;&gt;DB: Cập nhật User.bankName/bankAccount/bankOwner
+    T-&gt;&gt;FE: Tạo yêu cầu rút tiền
+    FE-&gt;&gt;Wallet: POST /wallets/payouts
+    Wallet-&gt;&gt;DB: Tạo PayoutRequest pending và WalletTransaction
+    A-&gt;&gt;FE: Duyệt yêu cầu
+    FE-&gt;&gt;Wallet: PATCH /wallets/admin/payouts/:id/approve
+    Wallet-&gt;&gt;DB: Cập nhật PayoutRequest và số dư ví
+    Wallet--&gt;&gt;FE: Payout approved</div></figure>
+<h3 id="9-12-admin-duyet-khoa-hoc">9.12. Admin duyệt khóa học</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">sequenceDiagram
+    actor T as Giảng viên
+    actor A as Admin
+    participant FE as Frontend
+    participant Course as CoursesController
+    participant AdminAPI as AdminController
+    participant DB as PostgreSQL
+
+    T-&gt;&gt;FE: Gửi khóa học để duyệt
+    FE-&gt;&gt;Course: POST /courses/:id/submit-review
+    Course-&gt;&gt;DB: Cập nhật Course.status = pending
+    A-&gt;&gt;FE: Mở danh sách khóa pending
+    FE-&gt;&gt;AdminAPI: GET /admin/courses/pending
+    AdminAPI-&gt;&gt;DB: Lấy khóa học chờ duyệt
+    A-&gt;&gt;FE: Approve hoặc reject
+    alt Approve
+        FE-&gt;&gt;AdminAPI: POST /admin/courses/:id/approve
+        AdminAPI-&gt;&gt;DB: Cập nhật status = published
+    else Reject
+        FE-&gt;&gt;AdminAPI: POST /admin/courses/:id/reject
+        AdminAPI-&gt;&gt;DB: Cập nhật status = rejected
+    end
+    AdminAPI--&gt;&gt;FE: Kết quả kiểm duyệt</div></figure>
+<hr />
+<h2 id="10-bieu-o-hoat-ong">10. Biểu đồ hoạt động</h2>
+<h3 id="10-1-hoat-ong-thanh-toan-va-ghi-danh">10.1. Hoạt động thanh toán và ghi danh</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">flowchart TD
+    A([Bắt đầu]) --&gt; B[Người dùng tạo đơn hàng]
+    B --&gt; C[Hệ thống tạo Order pending]
+    C --&gt; D[Người dùng yêu cầu QR]
+    D --&gt; E[Hệ thống tạo Payment và txnRef]
+    E --&gt; F[Hiển thị VietQR]
+    F --&gt; G[Người dùng chuyển khoản]
+    G --&gt; H[Ngân hàng gửi webhook]
+    H --&gt; I{Webhook trùng?}
+    I -- Có --&gt; J[Đánh dấu duplicate và kết thúc]
+    I -- Không --&gt; K{Payment tồn tại và pending?}
+    K -- Không --&gt; L[Đánh dấu failed/rejected]
+    K -- Có --&gt; M{Số tiền}
+    M -- Thiếu --&gt; N[Cập nhật remaining, sinh QR mới]
+    M -- Dư --&gt; O[Kích hoạt đơn, ghi overpaid, thông báo refund]
+    M -- Đủ --&gt; P[Transaction: Payment completed, Order paid, tạo Enrollment]
+    P --&gt; Q[Phát event và gửi thông báo]
+    O --&gt; Q
+    N --&gt; R([Kết thúc])
+    Q --&gt; R
+    J --&gt; R
+    L --&gt; R</div></figure>
+<h3 id="10-2-hoat-ong-hoc-bai">10.2. Hoạt động học bài</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">flowchart TD
+    A([Bắt đầu]) --&gt; B[Học viên mở khóa học]
+    B --&gt; C{Đã ghi danh hoặc có quyền?}
+    C -- Không --&gt; D[Chặn nội dung, yêu cầu mua/ghi danh]
+    C -- Có --&gt; E[Hiển thị danh sách chương và bài]
+    E --&gt; F[Học viên mở bài học]
+    F --&gt; G[Phát video/tải tài liệu]
+    G --&gt; H[Frontend gửi tiến độ video]
+    H --&gt; I[Backend cập nhật VideoProgress]
+    I --&gt; J{Đủ điều kiện hoàn thành?}
+    J -- Chưa --&gt; G
+    J -- Rồi --&gt; K[Cập nhật Enrollment progress]
+    K --&gt; L{Hoàn thành khóa học?}
+    L -- Không --&gt; M[Học bài tiếp theo]
+    L -- Có --&gt; N[Cho phép sinh chứng chỉ]
+    N --&gt; O([Kết thúc])
+    M --&gt; O
+    D --&gt; O</div></figure>
+<h3 id="10-3-hoat-ong-tao-va-duyet-khoa-hoc">10.3. Hoạt động tạo và duyệt khóa học</h3>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">flowchart TD
+    A([Bắt đầu]) --&gt; B[Giảng viên tạo Course draft]
+    B --&gt; C[Thêm Section]
+    C --&gt; D[Thêm Lesson]
+    D --&gt; E[Upload ảnh/video/file nếu có]
+    E --&gt; F[Thêm Assignment/Quiz/Material]
+    F --&gt; G[Giảng viên gửi duyệt]
+    G --&gt; H[Course chuyển pending]
+    H --&gt; I[Admin xem khóa học pending]
+    I --&gt; J{Nội dung đạt yêu cầu?}
+    J -- Có --&gt; K[Admin approve/publish]
+    J -- Không --&gt; L[Admin reject]
+    K --&gt; M[Khóa học xuất hiện công khai]
+    L --&gt; N[Giảng viên chỉnh sửa lại]
+    N --&gt; G
+    M --&gt; O([Kết thúc])</div></figure>
+<hr />
+<h2 id="11-thiet-ke-co-so-du-lieu">11. Thiết kế cơ sở dữ liệu</h2>
+<h3 id="11-1-so-o-quan-he-chinh">11.1. Sơ đồ quan hệ chính</h3>
+<p>Sơ đồ dưới đây thể hiện cơ sở dữ liệu theo cụm nghiệp vụ để dễ nhìn trước khi đi vào ER chi tiết:</p>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">flowchart TB
+    subgraph Identity[&quot;Người dùng &amp; phân quyền&quot;]
+        User[&quot;User&quot;]
+        RefreshToken[&quot;RefreshToken&quot;]
+        ParentChild[&quot;ParentChild&quot;]
+        Notification[&quot;Notification&quot;]
+    end
+
+    subgraph CourseContent[&quot;Khóa học &amp; nội dung&quot;]
+        Course[&quot;Course&quot;]
+        Section[&quot;Section&quot;]
+        Lesson[&quot;Lesson&quot;]
+        Material[&quot;Material&quot;]
+        MediaAsset[&quot;MediaAsset&quot;]
+    end
+
+    subgraph LearningData[&quot;Học tập &amp; đánh giá&quot;]
+        Enrollment[&quot;Enrollment&quot;]
+        VideoProgress[&quot;VideoProgress&quot;]
+        Assignment[&quot;Assignment&quot;]
+        Submission[&quot;Submission&quot;]
+        Quiz[&quot;Quiz&quot;]
+        Question[&quot;Question&quot;]
+        QuizAttempt[&quot;QuizAttempt&quot;]
+        Certificate[&quot;Certificate&quot;]
+        Review[&quot;Review&quot;]
+        Comment[&quot;Comment&quot;]
+    end
+
+    subgraph Commerce[&quot;Giỏ hàng, đơn hàng, thanh toán&quot;]
+        CartItem[&quot;CartItem&quot;]
+        Coupon[&quot;Coupon&quot;]
+        Order[&quot;Order&quot;]
+        OrderItem[&quot;OrderItem&quot;]
+        Payment[&quot;Payment&quot;]
+        PaymentTransaction[&quot;PaymentTransaction&quot;]
+        WebhookEvent[&quot;WebhookEvent&quot;]
+        RefundRequest[&quot;RefundRequest&quot;]
+    end
+
+    subgraph Finance[&quot;Ví giảng viên &amp; cấu hình&quot;]
+        Wallet[&quot;Wallet&quot;]
+        WalletTransaction[&quot;WalletTransaction&quot;]
+        PayoutRequest[&quot;PayoutRequest&quot;]
+        SystemConfig[&quot;SystemConfig&quot;]
+        AuditLog[&quot;AuditLog&quot;]
+    end
+
+    subgraph Gamification[&quot;Thành tích&quot;]
+        Badge[&quot;Badge&quot;]
+        UserBadge[&quot;UserBadge&quot;]
+        MonthlyWinner[&quot;MonthlyWinner&quot;]
+    end
+
+    User --&gt; RefreshToken
+    User --&gt; ParentChild
+    User --&gt; Course
+    Course --&gt; Section --&gt; Lesson
+    Lesson --&gt; Material
+    Lesson --&gt; Assignment --&gt; Submission
+    Assignment --&gt; Quiz --&gt; Question
+    User --&gt; Enrollment --&gt; Course
+    User --&gt; CartItem --&gt; Course
+    User --&gt; Order --&gt; OrderItem --&gt; Course
+    Order --&gt; Payment --&gt; PaymentTransaction
+    Payment --&gt; WebhookEvent
+    Order --&gt; RefundRequest
+    User --&gt; Wallet --&gt; WalletTransaction
+    User --&gt; PayoutRequest
+    User --&gt; UserBadge --&gt; Badge
+    User --&gt; MonthlyWinner</div></figure>
+<p>ER chi tiết theo các quan hệ cốt lõi:</p>
+<figure class="diagram"><div class="diagram-label">Biểu đồ</div><div class="mermaid">erDiagram
+    User ||--o{ Course : authors
+    User ||--o{ Enrollment : enrolls
+    User ||--o{ Order : places
+    User ||--o{ CartItem : owns
+    User ||--o{ Review : writes
+    User ||--o{ Comment : writes
+    User ||--o{ Notification : receives
+    User ||--o{ Certificate : earns
+    User ||--o{ Submission : submits
+    User ||--o{ QuizAttempt : attempts
+    User ||--o{ MediaAsset : owns
+    User ||--|| Wallet : has
+    User ||--o{ PayoutRequest : requests
+    User ||--o{ ParentChild : parent_relation
+    User ||--o{ ParentChild : child_relation
+
+    Course ||--o{ Section : contains
+    Course ||--o{ Enrollment : has
+    Course ||--o{ OrderItem : sold_as
+    Course ||--o{ Review : receives
+    Course ||--o{ Certificate : certifies
+    Section ||--o{ Lesson : contains
+    Lesson ||--o{ Material : has
+    Lesson ||--o{ Assignment : has
+    Lesson ||--o{ Comment : has
+    Lesson ||--o{ VideoProgress : tracks
+    Lesson ||--o| MediaAsset : uses
+
+    Assignment ||--o{ Submission : receives
+    Assignment ||--o| Quiz : may_have
+    Quiz ||--o{ Question : includes
+    Quiz ||--o{ QuizAttempt : records
+
+    Order ||--o{ OrderItem : includes
+    Order ||--o| Payment : paid_by
+    Order ||--o{ RefundRequest : refunds
+    Order ||--o{ PaymentTransaction : ledgers
+    Coupon ||--o{ Order : applies_to
+    Payment ||--o{ PaymentTransaction : records</div></figure>
+<h3 id="11-2-danh-sach-bang-du-lieu">11.2. Danh sách bảng dữ liệu</h3>
+<div class="table-wrap"><table><thead><tr><th>STT</th><th>Bảng</th><th>Mục đích</th><th>Trường chính</th><th>Quan hệ chính</th></tr></thead><tbody><tr><td>1</td><td><code>User</code></td><td>Lưu tài khoản và vai trò</td><td><code>id</code>, <code>username</code>, <code>email</code>, <code>password</code>, <code>role</code>, <code>isActive</code>, <code>currentStreak</code></td><td>Tạo course, enrollment, order, comment, wallet, parent-child</td></tr><tr><td>2</td><td><code>SystemConfig</code></td><td>Cấu hình hệ thống dạng key-value</td><td><code>id</code>, <code>key</code>, <code>value</code>, <code>description</code></td><td>Dùng cho phí nền tảng/cấu hình động</td></tr><tr><td>3</td><td><code>Wallet</code></td><td>Ví doanh thu của giảng viên</td><td><code>id</code>, <code>userId</code>, <code>balance</code>, <code>pendingBalance</code>, <code>totalEarned</code></td><td>1-1 với User, có nhiều WalletTransaction</td></tr><tr><td>4</td><td><code>WalletTransaction</code></td><td>Lịch sử biến động ví</td><td><code>id</code>, <code>walletId</code>, <code>amount</code>, <code>type</code>, <code>referenceId</code>, <code>idempotencyKey</code></td><td>Thuộc Wallet</td></tr><tr><td>5</td><td><code>PayoutRequest</code></td><td>Yêu cầu rút tiền của giảng viên</td><td><code>id</code>, <code>userId</code>, <code>amount</code>, <code>status</code>, <code>bankDetails</code>, <code>processedAt</code></td><td>Thuộc User</td></tr><tr><td>6</td><td><code>RefreshToken</code></td><td>Phiên đăng nhập/refresh token</td><td><code>id</code>, <code>token</code>, <code>userId</code>, <code>expiresAt</code></td><td>Thuộc User</td></tr><tr><td>7</td><td><code>Course</code></td><td>Thông tin khóa học</td><td><code>id</code>, <code>title</code>, <code>description</code>, <code>price</code>, <code>thumbnail</code>, <code>status</code>, <code>authorId</code></td><td>Thuộc User, có Section, Enrollment, Review</td></tr><tr><td>8</td><td><code>Section</code></td><td>Chương/phần trong khóa học</td><td><code>id</code>, <code>title</code>, <code>order</code>, <code>courseId</code></td><td>Thuộc Course, có Lesson</td></tr><tr><td>9</td><td><code>Lesson</code></td><td>Bài học</td><td><code>id</code>, <code>title</code>, <code>content</code>, <code>videoUrl</code>, <code>mediaAssetId</code>, <code>duration</code>, <code>order</code>, <code>sectionId</code></td><td>Thuộc Section, có Material, Assignment, Comment</td></tr><tr><td>10</td><td><code>MediaAsset</code></td><td>Tài nguyên media upload</td><td><code>id</code>, <code>ownerId</code>, <code>type</code>, <code>status</code>, <code>url</code>, <code>storageKey</code>, <code>hlsManifestKey</code>, <code>jobId</code></td><td>Thuộc User, có thể gắn Lesson</td></tr><tr><td>11</td><td><code>Material</code></td><td>Tài liệu bài học</td><td><code>id</code>, <code>title</code>, <code>fileUrl</code>, <code>fileType</code>, <code>fileSize</code>, <code>lessonId</code></td><td>Thuộc Lesson</td></tr><tr><td>12</td><td><code>Enrollment</code></td><td>Ghi danh khóa học</td><td><code>id</code>, <code>userId</code>, <code>courseId</code>, <code>status</code>, <code>progress</code></td><td>Nối User - Course</td></tr><tr><td>13</td><td><code>Assignment</code></td><td>Bài tập</td><td><code>id</code>, <code>title</code>, <code>type</code>, <code>lessonId</code>, <code>dueDate</code>, <code>maxScore</code>, <code>minScore</code></td><td>Thuộc Lesson, có Submission, có thể có Quiz</td></tr><tr><td>14</td><td><code>Submission</code></td><td>Bài nộp của học viên</td><td><code>id</code>, <code>assignmentId</code>, <code>studentId</code>, <code>content</code>, <code>fileUrl</code>, <code>score</code>, <code>feedback</code>, <code>status</code></td><td>Thuộc Assignment và User</td></tr><tr><td>15</td><td><code>Quiz</code></td><td>Bài quiz gắn với assignment</td><td><code>id</code>, <code>assignmentId</code>, <code>timeLimit</code></td><td>1-1 Assignment, có Question, QuizAttempt</td></tr><tr><td>16</td><td><code>Question</code></td><td>Câu hỏi quiz</td><td><code>id</code>, <code>quizId</code>, <code>content</code>, <code>options</code>, <code>answer</code>, <code>score</code>, <code>order</code></td><td>Thuộc Quiz</td></tr><tr><td>17</td><td><code>QuizAttempt</code></td><td>Lần làm quiz của học viên</td><td><code>id</code>, <code>quizId</code>, <code>studentId</code>, <code>answers</code>, <code>score</code>, <code>maxScore</code></td><td>Thuộc Quiz và User</td></tr><tr><td>18</td><td><code>CartItem</code></td><td>Khóa học trong giỏ hàng</td><td><code>id</code>, <code>userId</code>, <code>courseId</code></td><td>Nối User - Course</td></tr><tr><td>19</td><td><code>Coupon</code></td><td>Mã giảm giá</td><td><code>id</code>, <code>code</code>, <code>discount</code>, <code>maxUses</code>, <code>usedCount</code>, <code>expiresAt</code>, <code>type</code></td><td>Có thể thuộc User, áp dụng cho Order</td></tr><tr><td>20</td><td><code>Order</code></td><td>Đơn hàng</td><td><code>id</code>, <code>userId</code>, <code>couponId</code>, <code>totalPrice</code>, <code>finalPrice</code>, <code>status</code></td><td>Thuộc User, có OrderItem, Payment</td></tr><tr><td>21</td><td><code>RefundRequest</code></td><td>Yêu cầu hoàn tiền</td><td><code>id</code>, <code>orderId</code>, <code>paymentId</code>, <code>parentId</code>, <code>childId</code>, <code>amount</code>, <code>bankName</code>, <code>status</code></td><td>Thuộc Order và phụ huynh</td></tr><tr><td>22</td><td><code>OrderItem</code></td><td>Dòng khóa học trong đơn</td><td><code>id</code>, <code>orderId</code>, <code>courseId</code>, <code>price</code></td><td>Thuộc Order và Course</td></tr><tr><td>23</td><td><code>Payment</code></td><td>Thanh toán của đơn hàng</td><td><code>id</code>, <code>orderId</code>, <code>amount</code>, <code>paidAmount</code>, <code>remainingAmount</code>, <code>overpaidAmount</code>, <code>status</code>, <code>txnRef</code></td><td>1-1 Order, có PaymentTransaction</td></tr><tr><td>24</td><td><code>PaymentTransaction</code></td><td>Ledger từng webhook/giao dịch</td><td><code>id</code>, <code>paymentId</code>, <code>orderId</code>, <code>txnRef</code>, <code>amount</code>, <code>expectedAmount</code>, <code>status</code>, <code>rawPayload</code></td><td>Thuộc Payment và Order</td></tr><tr><td>25</td><td><code>AuditLog</code></td><td>Nhật ký thay đổi quan trọng</td><td><code>id</code>, <code>actorId</code>, <code>actorRole</code>, <code>action</code>, <code>entityType</code>, <code>before</code>, <code>after</code></td><td>Ghi vết nghiệp vụ</td></tr><tr><td>26</td><td><code>WebhookEvent</code></td><td>Ghi nhận webhook chống trùng</td><td><code>id</code>, <code>provider</code>, <code>eventKey</code>, <code>eventId</code>, <code>txnRef</code>, <code>payload</code>, <code>status</code></td><td>Liên quan PaymentTransaction</td></tr><tr><td>27</td><td><code>Review</code></td><td>Đánh giá khóa học</td><td><code>id</code>, <code>courseId</code>, <code>userId</code>, <code>rating</code>, <code>comment</code></td><td>Thuộc Course và User</td></tr><tr><td>28</td><td><code>Comment</code></td><td>Bình luận bài học</td><td><code>id</code>, <code>lessonId</code>, <code>userId</code>, <code>content</code>, <code>parentId</code></td><td>Thuộc Lesson/User, tự liên kết replies</td></tr><tr><td>29</td><td><code>Notification</code></td><td>Thông báo người dùng</td><td><code>id</code>, <code>userId</code>, <code>title</code>, <code>message</code>, <code>isRead</code>, <code>type</code></td><td>Thuộc User</td></tr><tr><td>30</td><td><code>Certificate</code></td><td>Chứng chỉ hoàn thành</td><td><code>id</code>, <code>userId</code>, <code>courseId</code>, <code>code</code>, <code>issuedAt</code></td><td>Thuộc User và Course</td></tr><tr><td>31</td><td><code>ParentChild</code></td><td>Quan hệ phụ huynh - học viên</td><td><code>id</code>, <code>parentId</code>, <code>childId</code>, <code>status</code></td><td>Nối User parent và User child</td></tr><tr><td>32</td><td><code>VideoProgress</code></td><td>Tiến độ xem video</td><td><code>id</code>, <code>userId</code>, <code>lessonId</code>, <code>completed</code>, <code>watchTime</code>, <code>watchedPercentage</code></td><td>Nối User - Lesson</td></tr><tr><td>33</td><td><code>Badge</code></td><td>Huy hiệu thành tích</td><td><code>id</code>, <code>code</code>, <code>name</code>, <code>icon</code>, <code>category</code>, <code>tier</code>, <code>requirement</code></td><td>Có nhiều UserBadge</td></tr><tr><td>34</td><td><code>UserBadge</code></td><td>Huy hiệu đã nhận của user</td><td><code>id</code>, <code>userId</code>, <code>badgeId</code>, <code>earnedAt</code></td><td>Nối User - Badge</td></tr><tr><td>35</td><td><code>MonthlyWinner</code></td><td>Người thắng cuộc đua tháng</td><td><code>id</code>, <code>userId</code>, <code>month</code>, <code>year</code>, <code>rank</code>, <code>xp</code>, <code>discount</code>, <code>couponCode</code></td><td>Thuộc User</td></tr></tbody></table></div>
+<h3 id="11-3-enum-trong-co-so-du-lieu">11.3. Enum trong cơ sở dữ liệu</h3>
+<div class="table-wrap"><table><thead><tr><th>Enum</th><th>Giá trị</th></tr></thead><tbody><tr><td><code>UserRole</code></td><td><code>student</code>, <code>teacher</code>, <code>parent</code>, <code>admin</code></td></tr><tr><td><code>CourseStatus</code></td><td><code>draft</code>, <code>pending</code>, <code>published</code>, <code>rejected</code></td></tr><tr><td><code>EnrollmentStatus</code></td><td><code>pending</code>, <code>active</code>, <code>cancelled</code></td></tr><tr><td><code>OrderStatus</code></td><td><code>pending</code>, <code>paid</code>, <code>failed</code>, <code>cancelled</code></td></tr><tr><td><code>PaymentStatus</code></td><td><code>pending</code>, <code>completed</code>, <code>failed</code></td></tr><tr><td><code>WebhookEventStatus</code></td><td><code>received</code>, <code>processed</code>, <code>duplicate</code>, <code>rejected</code>, <code>failed</code></td></tr><tr><td><code>MediaAssetType</code></td><td><code>VIDEO</code>, <code>IMAGE</code>, <code>FILE</code></td></tr><tr><td><code>MediaAssetStatus</code></td><td><code>PROCESSING</code>, <code>READY</code>, <code>FAILED</code>, <code>ORPHANED</code>, <code>DELETED</code></td></tr><tr><td><code>SubmissionStatus</code></td><td><code>pending</code>, <code>graded</code>, <code>passed</code>, <code>failed</code></td></tr><tr><td><code>CouponType</code></td><td><code>admin</code>, <code>streak</code>, <code>platform</code></td></tr><tr><td><code>WalletTransactionType</code></td><td><code>EARNING</code>, <code>WITHDRAWAL_REQUEST</code>, <code>WITHDRAWAL_APPROVED</code>, <code>WITHDRAWAL_REJECTED</code>, <code>ADJUSTMENT</code></td></tr><tr><td><code>PayoutStatus</code></td><td><code>PENDING</code>, <code>APPROVED</code>, <code>REJECTED</code>, <code>CANCELLED</code></td></tr><tr><td><code>RefundRequestStatus</code></td><td><code>PENDING</code>, <code>APPROVED</code>, <code>REJECTED</code>, <code>PAID</code></td></tr></tbody></table></div>
+<h3 id="11-4-rang-buoc-va-chi-muc-ang-chu-y">11.4. Ràng buộc và chỉ mục đáng chú ý</h3>
+<div class="table-wrap"><table><thead><tr><th>Bảng</th><th>Ràng buộc/chỉ mục</th><th>Ý nghĩa</th></tr></thead><tbody><tr><td><code>User</code></td><td><code>username</code>, <code>email</code> unique</td><td>Không trùng tài khoản/email</td></tr><tr><td><code>Enrollment</code></td><td>unique <code>userId, courseId</code></td><td>Một học viên chỉ ghi danh một lần vào một khóa</td></tr><tr><td><code>CartItem</code></td><td>unique <code>userId, courseId</code></td><td>Không thêm trùng khóa học trong giỏ</td></tr><tr><td><code>Submission</code></td><td>unique <code>assignmentId, studentId</code></td><td>Mỗi học viên có một bài nộp cho mỗi bài tập</td></tr><tr><td><code>QuizAttempt</code></td><td>unique <code>quizId, studentId</code></td><td>Mỗi học viên có một lượt ghi nhận kết quả quiz</td></tr><tr><td><code>Review</code></td><td>unique <code>courseId, userId</code></td><td>Một học viên chỉ đánh giá một khóa một lần</td></tr><tr><td><code>Certificate</code></td><td>unique <code>userId, courseId</code>, <code>code</code> unique</td><td>Mỗi khóa có một chứng chỉ/user, mã xác minh duy nhất</td></tr><tr><td><code>ParentChild</code></td><td>unique <code>parentId, childId</code></td><td>Không tạo trùng quan hệ phụ huynh - học viên</td></tr><tr><td><code>VideoProgress</code></td><td>unique <code>userId, lessonId</code></td><td>Một bản ghi tiến độ cho mỗi user/bài học</td></tr><tr><td><code>Payment</code></td><td><code>orderId</code> unique, <code>txnRef</code> unique</td><td>Một payment chính cho mỗi order, mã giao dịch không trùng</td></tr><tr><td><code>WebhookEvent</code></td><td><code>eventKey</code>, <code>eventId</code> unique</td><td>Chống xử lý webhook lặp</td></tr><tr><td><code>WalletTransaction</code></td><td><code>idempotencyKey</code> unique</td><td>Chống ghi doanh thu trùng</td></tr></tbody></table></div>
+<hr />
+<h2 id="12-api-chinh-theo-module">12. API chính theo module</h2>
+<div class="table-wrap"><table><thead><tr><th>Module</th><th>Endpoint tiêu biểu</th><th>Quyền</th></tr></thead><tbody><tr><td>Auth</td><td><code>POST /auth/register</code>, <code>POST /auth/login</code>, <code>POST /auth/refresh</code>, <code>GET /auth/profile</code>, <code>PUT /auth/profile</code></td><td>Public/User</td></tr><tr><td>Users</td><td><code>GET /users/me/dashboard</code>, <code>GET /users/me/learning-summary</code>, <code>PUT /users/me/streak/check-in</code>, <code>GET /users/public/teachers</code></td><td>User/Public</td></tr><tr><td>Courses</td><td><code>GET /courses</code>, <code>GET /courses/search</code>, <code>POST /courses</code>, <code>PUT /courses/:id</code>, <code>POST /courses/:id/submit-review</code></td><td>Public/Teacher/Admin</td></tr><tr><td>Sections</td><td><code>POST /sections</code>, <code>GET /sections</code>, <code>PATCH /sections/:id</code>, <code>POST /sections/reorder</code></td><td>Public/Teacher/Admin</td></tr><tr><td>Lessons</td><td><code>POST /lessons</code>, <code>GET /lessons/:id</code>, <code>PATCH /lessons/:id</code>, <code>DELETE /lessons/:id</code></td><td>User/Teacher/Admin</td></tr><tr><td>Materials</td><td><code>POST /materials</code>, <code>GET /materials</code>, <code>PATCH /materials/:id</code>, <code>DELETE /materials/:id</code></td><td>User/Teacher/Admin</td></tr><tr><td>Assignments</td><td><code>POST /assignments</code>, <code>POST /assignments/:id/submit</code>, <code>GET /assignments/:id/submissions</code></td><td>Student/Teacher/Admin</td></tr><tr><td>Quizzes</td><td><code>POST /quizzes</code>, <code>POST /questions</code>, <code>POST /quizzes/:id/submit</code>, <code>GET /quizzes/:id/result</code></td><td>Student/Teacher/Admin</td></tr><tr><td>Cart</td><td><code>GET /cart</code>, <code>POST /cart/add</code>, <code>POST /cart/apply-coupon</code>, <code>DELETE /cart/item/:id</code></td><td>User</td></tr><tr><td>Orders</td><td><code>POST /orders</code>, <code>GET /orders/me</code>, <code>GET /orders/:id</code></td><td>User</td></tr><tr><td>Payments</td><td><code>POST /payments/qr</code>, <code>POST /payments/webhook</code>, <code>POST /payments/refund-requests</code></td><td>User/System</td></tr><tr><td>Parents</td><td><code>POST /parents/link-child</code>, <code>GET /parents/me/children</code>, <code>GET /parents/children/:id/dashboard</code></td><td>Parent/Student</td></tr><tr><td>Certificates</td><td><code>GET /certificates</code>, <code>POST /certificates/generate</code>, <code>GET /certificates/:code</code></td><td>Student/Public verify</td></tr><tr><td>Wallets</td><td><code>GET /wallets/me</code>, <code>POST /wallets/payouts</code>, <code>GET /wallets/admin/payouts</code></td><td>Teacher/Admin</td></tr><tr><td>Admin</td><td><code>GET /admin/dashboard</code>, <code>GET /admin/users</code>, <code>GET /admin/courses</code>, <code>GET /admin/stats/revenue</code></td><td>Admin</td></tr><tr><td>Upload</td><td><code>POST /upload/video</code>, <code>POST /upload/image</code>, <code>POST /upload/file</code></td><td>User theo role</td></tr><tr><td>Notifications</td><td><code>GET /notifications</code>, <code>PUT /notifications/read-all</code>, <code>DELETE /notifications/:id</code></td><td>User</td></tr></tbody></table></div>
+<hr />
+<h2 id="13-luong-nghiep-vu-chi-tiet">13. Luồng nghiệp vụ chi tiết</h2>
+<h3 id="13-1-luong-mua-khoa-hoc">13.1. Luồng mua khóa học</h3>
+<ol><li>Người dùng đăng nhập.</li><li>Người dùng xem danh sách khóa học published.</li><li>Người dùng thêm khóa học vào giỏ hàng.</li><li>Nếu có mã giảm giá, người dùng áp dụng coupon.</li><li>Người dùng tạo đơn hàng.</li><li>Hệ thống sinh mã VietQR.</li><li>Người dùng thanh toán bằng chuyển khoản.</li><li>Webhook ngân hàng gọi về backend.</li><li>Backend kiểm tra trùng, kiểm tra số tiền, cập nhật payment/order.</li><li>Backend tạo enrollment cho học viên.</li><li>Người dùng vào khóa học và bắt đầu học.</li></ol>
+<h3 id="13-2-luong-hoc-va-hoan-thanh-khoa">13.2. Luồng học và hoàn thành khóa</h3>
+<ol><li>Học viên mở khóa học đã ghi danh.</li><li>Backend kiểm tra quyền truy cập nội dung.</li><li>Học viên xem bài học, video và tài liệu.</li><li>Frontend gửi tiến độ video về backend.</li><li>Học viên làm assignment/quiz nếu có.</li><li>Hệ thống cập nhật tiến độ khóa học.</li><li>Khi đủ điều kiện, học viên tạo chứng chỉ.</li><li>Chứng chỉ có mã xác minh để tra cứu.</li></ol>
+<h3 id="13-3-luong-giang-vien-quan-ly-noi-dung">13.3. Luồng giảng viên quản lý nội dung</h3>
+<ol><li>Giảng viên đăng nhập bằng role <code>teacher</code>.</li><li>Tạo khóa học ở trạng thái <code>draft</code>.</li><li>Thêm chương, bài, tài liệu, bài tập/quiz.</li><li>Upload media nếu cần.</li><li>Gửi khóa học để admin duyệt.</li><li>Admin approve thì khóa học chuyển published.</li><li>Khi có học viên mua, doanh thu được ghi nhận vào ví giảng viên.</li><li>Giảng viên gửi yêu cầu rút tiền.</li></ol>
+<h3 id="13-4-luong-phu-huynh-theo-doi-con">13.4. Luồng phụ huynh theo dõi con</h3>
+<ol><li>Phụ huynh đăng nhập và gửi yêu cầu liên kết học viên.</li><li>Học viên chấp nhận yêu cầu.</li><li>Phụ huynh xem dashboard học tập của con.</li><li>Phụ huynh xem khóa học, tiến độ, điểm và đơn hàng.</li><li>Nếu đơn hàng thanh toán dư, phụ huynh gửi yêu cầu hoàn tiền.</li><li>Admin xử lý refund.</li></ol>
+<hr />
+<h2 id="14-kiem-tra-code-va-nhan-xet-hien-trang">14. Kiểm tra code và nhận xét hiện trạng</h2>
+<h3 id="14-1-iem-a-co-trong-code">14.1. Điểm đã có trong code</h3>
+<div class="table-wrap"><table><thead><tr><th>Hạng mục</th><th>Hiện trạng</th></tr></thead><tbody><tr><td>Phân quyền</td><td>Có JWT guard và role guard cho student/teacher/parent/admin</td></tr><tr><td>Tách module</td><td>Backend chia module rõ: auth, courses, lessons, payments, wallets, admin...</td></tr><tr><td>Chống trùng thanh toán</td><td>Có <code>WebhookEvent</code>, <code>PaymentTransaction</code>, <code>idempotencyKey</code></td></tr><tr><td>Thanh toán thiếu/dư</td><td>Có xử lý underpayment, overpayment và thông báo</td></tr><tr><td>Upload an toàn hơn</td><td>Có kiểm tra MIME, dung lượng và magic bytes</td></tr><tr><td>Quan hệ dữ liệu</td><td>Prisma schema có quan hệ đầy đủ giữa user, course, order, progress</td></tr><tr><td>Frontend API</td><td><code>api-service.ts</code> gom API theo nhóm và có interceptor refresh token</td></tr><tr><td>Queue/event</td><td>AppModule đăng ký Bull queue và EventEmitter cho tác vụ nền</td></tr></tbody></table></div>
+<h3 id="14-2-rui-ro-can-lam-ro-khi-bao-cao-voi-thay">14.2. Rủi ro/cần làm rõ khi báo cáo với thầy</h3>
+<div class="table-wrap"><table><thead><tr><th>Vấn đề</th><th>Ghi chú</th></tr></thead><tbody><tr><td>Một số comment/log trong code bị lỗi encoding</td><td>Không ảnh hưởng logic, nhưng nên chuẩn hóa UTF-8 để đọc dễ hơn</td></tr><tr><td>Upload video/HLS</td><td>Schema có <code>MediaAsset</code> và queue video; cần demo đúng môi trường có Redis/storage/worker</td></tr><tr><td>Thanh toán VietQR</td><td>Phụ thuộc biến môi trường ngân hàng và webhook từ provider</td></tr><tr><td>Kiểm thử</td><td>Backend có nhiều file spec; khi trình bày nên chạy test trước buổi báo cáo nếu môi trường DB/Redis đã sẵn sàng</td></tr><tr><td>Admin UI</td><td>Có trang <code>/admin</code>, nhưng mức độ đầy đủ phụ thuộc component hiện có và API mapping</td></tr></tbody></table></div>
+<hr />
+<h2 id="15-ket-luan">15. Kết luận</h2>
+<p>Dự án LumiLearn LMS hiện đã có cấu trúc tương đối đầy đủ cho một hệ thống học trực tuyến: quản lý người dùng theo vai trò, tạo và duyệt khóa học, học tập và theo dõi tiến độ, bài tập/quiz, giỏ hàng - đơn hàng - thanh toán, phụ huynh theo dõi học viên, chứng chỉ, gamification, ví giảng viên và quản trị hệ thống.</p>
+<p>Về thiết kế, hệ thống sử dụng kiến trúc frontend/backend tách biệt, backend module hóa theo nghiệp vụ, cơ sở dữ liệu quan hệ bằng PostgreSQL/Prisma và có cơ chế queue/event cho tác vụ nền. Các luồng quan trọng như thanh toán và cấp quyền học đã có xử lý transaction, chống trùng webhook và ghi ledger, phù hợp để trình bày trong báo cáo phân tích thiết kế hệ thống.</p>
+
+      <div class="footer-note">LumiLearn LMS - Bản nháp báo cáo dự án</div>
+    </section>
+  </main>
+</body>
+</html>
