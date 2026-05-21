@@ -109,8 +109,14 @@ export function Navbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/90 dark:bg-[#1c1d1f]/90 backdrop-blur-md"
-      style={{ borderBottom: "1px solid #d1d7dc", boxShadow: scrolled ? "0 2px 4px rgba(0,0,0,0.08)" : "none" }}
+      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      style={{
+        background: scrolled ? "rgba(248,247,255,0.92)" : "rgba(248,247,255,0.85)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: scrolled ? "1px solid rgba(199,210,254,0.5)" : "1px solid transparent",
+        boxShadow: scrolled ? "0 4px 24px rgba(99,102,241,0.08)" : "none",
+      }}
     >
       <nav className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[70px] gap-4">
@@ -120,43 +126,49 @@ export function Navbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden lg:flex items-center shrink-0 gap-1">
+          <div className="hidden lg:flex items-center shrink-0 gap-0.5">
             {navLinks.map((link) => (
-               <Link key={link.href} href={link.href} className="px-3 py-2 text-sm font-medium hover:text-[#5624d0] transition-colors text-[#2d2f31] dark:text-[#b0b5b9] dark:hover:text-white">
+               <Link key={link.href} href={link.href}
+                 className="px-3 py-2 text-sm font-semibold rounded-lg transition-all hover:bg-[#eef2ff] hover:text-[#6366f1] text-[#374151] dark:text-[#a5b4fc] dark:hover:bg-[#1a1535] dark:hover:text-[#818cf8]">
                  {link.label}
                </Link>
             ))}
           </div>
 
-          {/* Search Bar - Udemy Style */}
+          {/* Search Bar */}
           <div className="hidden lg:flex flex-1 max-w-xl mx-4">
-             <form onSubmit={handleSearch} className="w-full relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6a6f73]" />
-                <input 
-                  type="text" 
+             <form onSubmit={handleSearch} className="w-full relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6366f1] opacity-60" />
+                <input
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Bạn muốn học môn gì hôm nay?" 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-full border border-[#2d2f31] dark:border-[#6a6f73] bg-transparent focus:outline-none focus:border-[#5624d0] focus:ring-1 focus:ring-[#5624d0] text-sm text-[#2d2f31] dark:text-white placeholder:text-[#b0b5b9]"
+                  placeholder="Bạn muốn học môn gì hôm nay?"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white dark:bg-[#1a1535] focus:outline-none text-sm dark:text-white placeholder:text-[#9ca3af] transition-all"
+                  style={{ borderColor: "rgba(199,210,254,0.7)", 
+                    boxShadow: "0 0 0 0 transparent" }}
+                  onFocus={e => { e.target.style.borderColor = "#6366f1"; e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.15)"; }}
+                  onBlur={e => { e.target.style.borderColor = "rgba(199,210,254,0.7)"; e.target.style.boxShadow = "none"; }}
                 />
              </form>
           </div>
 
           {/* Right side */}
-          <div className="hidden lg:flex items-center gap-2 shrink-0">
+          <div className="hidden lg:flex items-center gap-1.5 shrink-0">
             {/* Theme toggle */}
-            <button onClick={toggle} className="p-2 rounded-full hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors"
+            <button onClick={toggle}
+              className="p-2.5 rounded-xl transition-all hover:bg-[#eef2ff] dark:hover:bg-[#1a1535]"
               title={theme === "dark" ? "Chế độ sáng" : "Chế độ tối"}>
-              {theme === "dark" ? <Sun className="w-5 h-5 text-[#e59819]" /> : <Moon className="w-5 h-5 text-[#6a6f73]" />}
+              {theme === "dark" ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-[#6366f1]" />}
             </button>
 
             {!loading && isLoggedIn && user ? (
               <>
                 {/* Notifications */}
-                <Link href="/notifications" className="relative p-2 rounded-full hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] text-[#2d2f31] dark:text-white">
+                <Link href="/notifications" className="relative p-2.5 rounded-xl hover:bg-[#eef2ff] dark:hover:bg-[#1a1535] text-[#374151] dark:text-[#a5b4fc] transition-all">
                   <Bell className="w-5 h-5" />
                   {notifCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ef4444] text-white text-[10px] font-bold flex items-center justify-center">
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "linear-gradient(135deg,#ef4444,#dc2626)" }}>
                       {notifCount > 99 ? "99+" : notifCount}
                     </span>
                   )}
@@ -164,10 +176,10 @@ export function Navbar() {
 
                 {/* Cart */}
                 {user.role === "student" && (
-                  <Link href="/cart" className="relative p-2 rounded-full hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] text-[#2d2f31] dark:text-white">
+                  <Link href="/cart" className="relative p-2.5 rounded-xl hover:bg-[#eef2ff] dark:hover:bg-[#1a1535] text-[#374151] dark:text-[#a5b4fc] transition-all">
                     <ShoppingCart className="w-5 h-5" />
                     {cartCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#a435f0] text-white text-[10px] font-bold flex items-center justify-center">
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "linear-gradient(135deg,#6366f1,#7c3aed)" }}>
                         {cartCount}
                       </span>
                     )}
@@ -177,31 +189,32 @@ export function Navbar() {
                 {/* User menu */}
                 <div className="relative ml-1">
                   <button onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); }}
-                    className="flex items-center gap-2 p-1 rounded-full hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white bg-[#2d2f31] dark:bg-[#6a6f73]">
+                    className="flex items-center gap-2 p-1 rounded-xl hover:bg-[#eef2ff] dark:hover:bg-[#1a1535] transition-all">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: "linear-gradient(135deg,#6366f1,#7c3aed)" }}>
                       {userInitial}
                     </div>
                   </button>
 
                   {userMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#2d2f31] rounded shadow-lg border border-[#d1d7dc] dark:border-[#3e4143] overflow-hidden"
+                    <div className="absolute right-0 top-full mt-2 w-60 bg-white dark:bg-[#130f2a] rounded-2xl shadow-2xl border overflow-hidden"
+                      style={{ borderColor: "rgba(199,210,254,0.5)", boxShadow: "0 16px 48px rgba(99,102,241,0.18)" }}
                       onClick={(e) => e.stopPropagation()}>
-                      <div className="px-4 py-3 border-b border-[#d1d7dc] dark:border-[#3e4143]">
-                        <p className="text-sm font-bold text-[#2d2f31] dark:text-white">{displayName}</p>
-                        <p className="text-xs text-[#6a6f73] capitalize">{user.role === "student" ? "Học sinh" : user.role === "teacher" ? "Giáo viên" : user.role === "parent" ? "Phụ huynh" : "Admin"}</p>
+                      <div className="px-4 py-3.5 border-b" style={{ borderColor: "rgba(199,210,254,0.3)", background: "linear-gradient(135deg, rgba(99,102,241,0.06), rgba(124,58,237,0.04))" }}>
+                        <p className="text-sm font-bold text-foreground">{displayName}</p>
+                        <p className="text-xs text-[#6366f1] dark:text-[#a5b4fc] font-medium capitalize">{user.role === "student" ? "Học sinh" : user.role === "teacher" ? "Giáo viên" : user.role === "parent" ? "Phụ huynh" : "Admin"}</p>
                       </div>
-                      <div className="py-1">
-                        <Link href={dashboardLink} onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#2d2f31] dark:text-white hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
-                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#2d2f31] dark:text-white hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]"><User className="w-4 h-4" /> Hồ sơ</Link>
+                      <div className="py-1.5 px-1.5 space-y-0.5">
+                        <Link href={dashboardLink} onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-[#eef2ff] dark:hover:bg-[#1a1535] rounded-xl transition-colors"><LayoutDashboard className="w-4 h-4 text-[#6366f1]" /> Dashboard</Link>
+                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-[#eef2ff] dark:hover:bg-[#1a1535] rounded-xl transition-colors"><User className="w-4 h-4 text-[#7c3aed]" /> Hồ sơ</Link>
                         {user.role === "student" && (
-                          <Link href="/achievements" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#2d2f31] dark:text-white hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]"><Trophy className="w-4 h-4" /> Thành tích</Link>
+                          <Link href="/achievements" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-[#eef2ff] dark:hover:bg-[#1a1535] rounded-xl transition-colors"><Trophy className="w-4 h-4 text-amber-500" /> Thành tích</Link>
                         )}
                         {user.role === "student" && (
-                          <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#2d2f31] dark:text-white hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]"><ShoppingCart className="w-4 h-4" /> Đơn hàng</Link>
+                          <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-[#eef2ff] dark:hover:bg-[#1a1535] rounded-xl transition-colors"><ShoppingCart className="w-4 h-4 text-[#06b6d4]" /> Đơn hàng</Link>
                         )}
-                        <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#2d2f31] dark:text-white hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]"><Settings className="w-4 h-4" /> Cài đặt</Link>
-                        <div className="h-px bg-[#d1d7dc] dark:bg-[#3e4143]" />
-                        <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#ef4444] hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] w-full"><LogOut className="w-4 h-4" /> Đăng xuất</button>
+                        <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-[#eef2ff] dark:hover:bg-[#1a1535] rounded-xl transition-colors"><Settings className="w-4 h-4 text-[#6366f1]" /> Cài đặt</Link>
+                        <div className="h-px mx-1 my-1" style={{ background: "rgba(199,210,254,0.4)" }} />
+                        <button onClick={handleLogout} className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl w-full transition-colors"><LogOut className="w-4 h-4" /> Đăng xuất</button>
                       </div>
                     </div>
                   )}
@@ -209,9 +222,10 @@ export function Navbar() {
               </>
             ) : !loading ? (
               <div className="flex items-center gap-2">
-                <Link href="/auth/login" className="px-4 py-2 text-sm font-bold text-[#2d2f31] dark:text-white border border-[#2d2f31] dark:border-white hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors rounded">Đăng nhập</Link>
-                <Link href="/auth/register" className="px-4 py-2 text-sm font-bold text-white bg-[#2d2f31] dark:bg-white dark:text-[#2d2f31] hover:bg-[#3e4143] dark:hover:bg-[#f7f9fa] transition-colors rounded">
-                   Đăng ký
+                <Link href="/auth/login" className="px-4 py-2 text-sm font-semibold rounded-xl transition-all hover:bg-[#eef2ff] dark:hover:bg-[#1a1535]" style={{ color: "#6366f1" }}>Đăng nhập</Link>
+                <Link href="/auth/register" className="px-4 py-2.5 text-sm font-bold text-white rounded-xl transition-all hover:-translate-y-0.5"
+                  style={{ background: "linear-gradient(135deg,#6366f1,#7c3aed)", boxShadow: "0 4px 14px rgba(99,102,241,0.35)" }}>
+                  Đăng ký
                 </Link>
               </div>
             ) : null}

@@ -30,23 +30,29 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-white dark:bg-[#1c1d1f]">
-      {/* Left - Illustration */}
-      <div className="hidden md:flex md:w-1/2 items-center justify-center p-12 bg-[#f7f9fa] dark:bg-[#2d2f31] border-r border-[#d1d7dc] dark:border-[#3e4143]">
-        <div className="max-w-sm text-center">
-          <div className="w-24 h-24 bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.15)] rounded-full flex items-center justify-center mx-auto mb-6">
-            <Mail className="w-12 h-12 text-[#a435f0]" />
+    <div className="min-h-screen flex flex-col md:flex-row">
+      {/* Left */}
+      <div
+        className="hidden md:flex md:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #0e7490 100%)" }}
+      >
+        <div className="absolute top-[10%] left-[10%] w-72 h-72 orb orb-violet opacity-40" />
+        <div className="absolute bottom-[10%] right-[5%] w-56 h-56 orb orb-teal opacity-35" />
+        <div className="absolute inset-0 dot-pattern opacity-25" />
+        <div className="relative z-10 max-w-sm text-center">
+          <div className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6"
+            style={{ background: "rgba(129,140,248,0.2)", border: "1px solid rgba(129,140,248,0.3)" }}>
+            <Mail className="w-12 h-12 text-[#a5b4fc]" />
           </div>
-          <h2 className="text-2xl font-bold text-[#2d2f31] dark:text-white mb-3">
-            Khôi phục mật khẩu
-          </h2>
-          <p className="text-sm text-[#6a6f73]">
+          <h2 className="text-2xl font-extrabold text-white mb-3">Khôi phục mật khẩu</h2>
+          <p className="text-slate-300 text-sm leading-relaxed">
             Nhập địa chỉ email bạn đã đăng ký. Chúng tôi sẽ gửi link đặt lại mật khẩu ngay lập tức.
           </p>
-          <div className="mt-8 grid grid-cols-3 gap-3">
+          <div className="mt-6 flex justify-center gap-3">
             {["Nhanh chóng", "Bảo mật", "Tin cậy"].map(txt => (
-              <div key={txt} className="bg-white dark:bg-[#1c1d1f] border border-[#d1d7dc] dark:border-[#3e4143] rounded p-3 text-center">
-                <p className="text-xs font-bold text-[#2d2f31] dark:text-white">{txt}</p>
+              <div key={txt} className="rounded-xl px-3 py-2 text-xs font-bold text-white/80"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                {txt}
               </div>
             ))}
           </div>
@@ -54,84 +60,65 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* Right - Form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 md:px-12">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 md:px-12 bg-[#f8f7ff] dark:bg-[#0d0b1e]">
         <div className="w-full max-w-[400px]">
-          {/* Logo */}
           <div className="mb-8">
-            <Link href="/" className="inline-block">
-              <Logo size="lg" />
-            </Link>
+            <Link href="/" className="inline-block"><Logo size="lg" /></Link>
           </div>
 
           {sent ? (
-            /* Success state */
             <div>
-              <div className="w-16 h-16 bg-[#dcfce7] rounded-full flex items-center justify-center mb-5">
-                <CheckCircle2 className="w-8 h-8 text-[#16a34a]" />
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+                style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                <CheckCircle2 className="w-8 h-8 text-[#10b981]" />
               </div>
-              <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white">
-                Email đã được gửi!
-              </h1>
-              <p className="text-sm text-[#6a6f73] mb-2">
-                Chúng tôi đã gửi liên kết đặt lại mật khẩu đến:
-              </p>
-              <p className="text-sm font-bold text-[#2d2f31] dark:text-white mb-6">{email}</p>
-              <div className="bg-[#f7f9fa] dark:bg-[#3e4143] border border-[#d1d7dc] dark:border-[#3e4143] rounded p-4 mb-6">
-                <p className="text-xs text-[#6a6f73]">
-                  Không nhận được email? Kiểm tra thư mục spam hoặc <button onClick={() => setSent(false)} className="font-bold text-[#5624d0] hover:underline">gửi lại</button>.
-                </p>
+              <h1 className="text-2xl font-extrabold mb-2 text-foreground">Email đã được gửi!</h1>
+              <p className="text-sm text-foreground/60 mb-2">Chúng tôi đã gửi liên kết đặt lại mật khẩu đến:</p>
+              <p className="text-sm font-bold text-[#6366f1] mb-6">{email}</p>
+              <div className="p-4 rounded-xl mb-6 text-xs"
+                style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", color: "rgba(99,102,241,0.8)" }}>
+                Không nhận được email? Kiểm tra thư mục spam hoặc{" "}
+                <button onClick={() => setSent(false)} className="font-bold text-[#6366f1] hover:underline">gửi lại</button>.
               </div>
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold text-sm transition-colors rounded w-full justify-center"
-              >
+              <Link href="/auth/login"
+                className="inline-flex items-center gap-2 w-full justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-white transition-all hover:-translate-y-0.5"
+                style={{ background: "linear-gradient(135deg,#6366f1,#7c3aed)", boxShadow: "0 6px 20px rgba(99,102,241,0.35)" }}>
                 Quay lại đăng nhập
               </Link>
             </div>
           ) : (
-            /* Form */
             <div>
-              <h1 className="text-[1.75rem] font-bold mb-2 text-[#2d2f31] dark:text-white">
-                Quên mật khẩu?
-              </h1>
-              <p className="text-sm text-[#6a6f73] mb-6">
-                Nhập email đăng ký để nhận liên kết đặt lại mật khẩu.
-              </p>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-4"
+                style={{ background: "rgba(99,102,241,0.1)", color: "#6366f1", border: "1px solid rgba(99,102,241,0.2)" }}>
+                🔑 Quên mật khẩu
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold mb-2 text-foreground">Quên mật khẩu?</h1>
+              <p className="text-sm text-foreground/60 mb-6">Nhập email đăng ký để nhận liên kết đặt lại mật khẩu.</p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold mb-1.5 text-[#2d2f31] dark:text-white">
-                    Email của bạn
-                  </label>
+                  <label className="block text-sm font-semibold mb-1.5 text-foreground">Email của bạn</label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6a6f73]" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40 text-[#6366f1]" />
+                    <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                       placeholder="email@example.com"
-                      className="w-full pl-11 pr-4 py-3 border border-[#2d2f31] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:ring-1 focus:ring-[#5624d0] placeholder:text-[#b0b5b9] text-sm transition-colors"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border bg-white dark:bg-[#1a1535] text-foreground outline-none text-sm placeholder:text-foreground/30 transition-all"
+                      style={{ borderColor: "rgba(199,210,254,0.7)" }}
+                      onFocus={e => { e.target.style.borderColor = "#6366f1"; e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.15)"; }}
+                      onBlur={e => { e.target.style.borderColor = "rgba(199,210,254,0.7)"; e.target.style.boxShadow = "none"; }}
                     />
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading || !email.trim()}
-                  className="w-full bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold py-3 text-sm transition-colors rounded disabled:opacity-60"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Đang gửi...
-                    </span>
-                  ) : "Gửi liên kết đặt lại mật khẩu"}
+                <button type="submit" disabled={loading || !email.trim()}
+                  className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all hover:-translate-y-0.5 disabled:opacity-60 flex items-center justify-center gap-2"
+                  style={{ background: "linear-gradient(135deg,#6366f1,#7c3aed)", boxShadow: "0 6px 20px rgba(99,102,241,0.35)" }}>
+                  {loading ? (<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Đang gửi...</>) : "Đặt lại mật khẩu"}
                 </button>
               </form>
 
-              <div className="mt-6 pt-6 border-t border-[#d1d7dc] dark:border-[#3e4143]">
-                <Link href="/auth/login" className="flex items-center justify-center gap-1.5 text-sm font-bold text-[#5624d0] dark:text-[#c0a5f7] hover:underline">
+              <div className="mt-6 pt-6 border-t text-center" style={{ borderColor: "rgba(199,210,254,0.5)" }}>
+                <Link href="/auth/login" className="flex items-center justify-center gap-1.5 text-sm font-bold text-[#6366f1] hover:text-[#4f46e5] transition-colors">
                   <ArrowLeft className="w-4 h-4" /> Quay lại đăng nhập
                 </Link>
               </div>
