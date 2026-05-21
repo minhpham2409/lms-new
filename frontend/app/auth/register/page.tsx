@@ -52,7 +52,7 @@ export default function RegisterPage() {
 
           {error && (
             <div className="mb-4 p-3 rounded-lg text-sm font-medium"
-              style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)", color: "var(--destructive)" }}>
+              style={{ background: "rgba(248,180,134,0.08)", border: "1px solid rgba(248,180,134,0.15)", color: "var(--destructive)" }}>
               {error}
             </div>
           )}

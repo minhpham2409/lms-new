@@ -72,10 +72,10 @@ export default function ProfilePage() {
   }
 
   const roleLabels: Record<string, { label: string; color: string; bg: string }> = {
-    student: { label: "Học sinh", color: "#5624d0", bg: "#f3f0ff" },
-    teacher: { label: "Giáo viên", color: "#0891b2", bg: "#e0f2fe" },
-    parent: { label: "Phụ huynh", color: "#f59e0b", bg: "#fef3c7" },
-    admin: { label: "Quản trị", color: "#ef4444", bg: "#fee2e2" },
+    student: { label: "Học sinh", color: "#F8B486", bg: "#f3f0ff" },
+    teacher: { label: "Giáo viên", color: "#94A3B8", bg: "#e0f2fe" },
+    parent: { label: "Phụ huynh", color: "#FFCCAA", bg: "#fef3c7" },
+    admin: { label: "Quản trị", color: "#F8B486", bg: "#fee2e2" },
   };
   const roleInfo = roleLabels[user?.role || ""] || { label: user?.role || "", color: "#6a6f73", bg: "#f7f9fa" };
   const initials = ((user?.firstName?.charAt(0) || "") + (user?.lastName?.charAt(0) || user?.username?.charAt(0) || "?")).toUpperCase();
@@ -84,7 +84,7 @@ export default function ProfilePage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#1c1d1f]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#a435f0]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#FFCCAA]" />
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function ProfilePage() {
             <div className="bg-white dark:bg-[#2d2f31] border border-[#d1d7dc] dark:border-[#3e4143] rounded p-5 mb-5">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold text-white" style={{ background: "#a435f0" }}>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold text-white" style={{ background: "#FFCCAA" }}>
                     {initials}
                   </div>
                   <button className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#2d2f31] dark:bg-white rounded-full flex items-center justify-center">
@@ -133,7 +133,7 @@ export default function ProfilePage() {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id as "info" | "security" | "sessions")}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors text-left ${i < TAB_ITEMS.length - 1 ? "border-b border-[#d1d7dc] dark:border-[#3e4143]" : ""} ${activeTab === id ? "bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.1)] text-[#5624d0] dark:text-[#c0a5f7] font-bold" : "text-[#2d2f31] dark:text-[#b0b5b9] hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]"}`}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors text-left ${i < TAB_ITEMS.length - 1 ? "border-b border-[#d1d7dc] dark:border-[#3e4143]" : ""} ${activeTab === id ? "bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.1)] text-[#F8B486] dark:text-[#c0a5f7] font-bold" : "text-[#2d2f31] dark:text-[#b0b5b9] hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143]"}`}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   {label}
@@ -159,7 +159,7 @@ export default function ProfilePage() {
                         <input
                           value={form.firstName}
                           onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                          className="w-full px-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0] text-sm transition-colors"
+                          className="w-full px-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486] text-sm transition-colors"
                           placeholder="Nguyễn"
                         />
                       </div>
@@ -168,7 +168,7 @@ export default function ProfilePage() {
                         <input
                           value={form.lastName}
                           onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                          className="w-full px-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0] text-sm transition-colors"
+                          className="w-full px-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486] text-sm transition-colors"
                           placeholder="Văn A"
                         />
                       </div>
@@ -191,7 +191,7 @@ export default function ProfilePage() {
                         value={form.bio}
                         onChange={(e) => setForm({ ...form, bio: e.target.value })}
                         rows={4}
-                        className="w-full px-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0] text-sm transition-colors resize-none"
+                        className="w-full px-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486] text-sm transition-colors resize-none"
                         placeholder="Giới thiệu đôi nét về bản thân, sở thích học tập hoặc kinh nghiệm của bạn..."
                         maxLength={500}
                       />
@@ -201,13 +201,13 @@ export default function ProfilePage() {
                       <button
                         onClick={saveProfile}
                         disabled={saving}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold text-sm transition-colors rounded disabled:opacity-60"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFCCAA] hover:bg-[#8710d8] text-white font-bold text-sm transition-colors rounded disabled:opacity-60"
                       >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                         {saving ? "Đang lưu..." : "Lưu thay đổi"}
                       </button>
                       {saveSuccess && (
-                        <span className="flex items-center gap-1.5 text-sm text-[#10b981] font-medium">
+                        <span className="flex items-center gap-1.5 text-sm text-[#F8B486] font-medium">
                           <CheckCircle2 className="w-4 h-4" /> Đã lưu thành công!
                         </span>
                       )}
@@ -235,7 +235,7 @@ export default function ProfilePage() {
                           value={pwForm.currentPassword}
                           onChange={e => setPwForm({ ...pwForm, currentPassword: e.target.value })}
                           placeholder="••••••••"
-                          className="w-full pl-10 pr-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0] text-sm transition-colors"
+                          className="w-full pl-10 pr-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486] text-sm transition-colors"
                         />
                       </div>
                     </div>
@@ -249,7 +249,7 @@ export default function ProfilePage() {
                         value={pwForm.newPassword}
                         onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })}
                         placeholder="••••••••"
-                        className="w-full px-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0] text-sm transition-colors"
+                        className="w-full px-4 py-3 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486] text-sm transition-colors"
                       />
                       <p className="text-xs text-[#6a6f73] mt-1.5">Mật khẩu phải có ít nhất 6 ký tự</p>
                     </div>
@@ -260,10 +260,10 @@ export default function ProfilePage() {
                         value={pwForm.confirmPassword}
                         onChange={e => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
                         placeholder="••••••••"
-                        className={`w-full px-4 py-3 border bg-transparent text-[#2d2f31] dark:text-white rounded outline-none text-sm transition-colors ${pwForm.confirmPassword && pwForm.newPassword !== pwForm.confirmPassword ? "border-[#ef4444]" : "border-[#d1d7dc] dark:border-[#6a6f73] focus:border-[#5624d0]"}`}
+                        className={`w-full px-4 py-3 border bg-transparent text-[#2d2f31] dark:text-white rounded outline-none text-sm transition-colors ${pwForm.confirmPassword && pwForm.newPassword !== pwForm.confirmPassword ? "border-[#F8B486]" : "border-[#d1d7dc] dark:border-[#6a6f73] focus:border-[#F8B486]"}`}
                       />
                       {pwForm.confirmPassword && pwForm.newPassword !== pwForm.confirmPassword && (
-                        <p className="text-xs text-[#ef4444] mt-1.5">Mật khẩu không khớp</p>
+                        <p className="text-xs text-[#F8B486] mt-1.5">Mật khẩu không khớp</p>
                       )}
                     </div>
                     <div className="pt-4 border-t border-[#d1d7dc] dark:border-[#3e4143]">
@@ -291,8 +291,8 @@ export default function ProfilePage() {
                 <div className="p-6">
                   <div className="space-y-4 max-w-2xl">
                     <div className="flex items-center gap-4 p-4 border border-[#d1d7dc] dark:border-[#3e4143] rounded bg-[#f7f9fa] dark:bg-[#1c1d1f]">
-                      <div className="w-10 h-10 rounded-full bg-[#10b981]/10 flex items-center justify-center">
-                        <Shield className="w-5 h-5 text-[#10b981]" />
+                      <div className="w-10 h-10 rounded-full bg-[#F8B486]/10 flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-[#F8B486]" />
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-sm text-[#2d2f31] dark:text-white">Phiên hiện tại</p>
@@ -300,7 +300,7 @@ export default function ProfilePage() {
                           Trình duyệt web • Đang hoạt động
                         </p>
                       </div>
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold bg-[#10b981]/10 text-[#10b981]">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold bg-[#F8B486]/10 text-[#F8B486]">
                         <CheckCircle2 className="w-3 h-3" /> Hiện tại
                       </span>
                     </div>

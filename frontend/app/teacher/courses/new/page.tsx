@@ -223,7 +223,7 @@ export default function CourseWizardPage() {
                 <button onClick={() => handleSave(false)} disabled={saving} className="btn-secondary px-6">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Lưu nháp"}
                 </button>
-                <button onClick={() => handleSave(true)} disabled={saving} className="btn-primary px-8" style={{ background: "#10b981", borderColor: "#10b981" }}>
+                <button onClick={() => handleSave(true)} disabled={saving} className="btn-primary px-8" style={{ background: "#F8B486", borderColor: "#F8B486" }}>
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Xuất bản khóa học"}
                 </button>
               </div>

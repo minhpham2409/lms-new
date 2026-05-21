@@ -16,12 +16,12 @@ import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
-const roleColors: Record<string, string> = { student: "#a435f0", teacher: "#0891b2", parent: "#f59e0b", admin: "#ef4444" };
+const roleColors: Record<string, string> = { student: "#FFCCAA", teacher: "#94A3B8", parent: "#FFCCAA", admin: "#F8B486" };
 const roleLabels: Record<string, string> = { student: "Học sinh", teacher: "Giáo viên", parent: "Phụ huynh", admin: "Admin" };
 const statusIcons: Record<string, { color: string; Icon: any }> = {
-  completed: { color: "#10b981", Icon: CheckCircle2 }, paid: { color: "#10b981", Icon: CheckCircle2 },
-  pending: { color: "#f59e0b", Icon: Clock }, refunded: { color: "#ef4444", Icon: XCircle },
-  active: { color: "#10b981", Icon: CheckCircle2 }, expired: { color: "#ef4444", Icon: XCircle },
+  completed: { color: "#F8B486", Icon: CheckCircle2 }, paid: { color: "#F8B486", Icon: CheckCircle2 },
+  pending: { color: "#FFCCAA", Icon: Clock }, refunded: { color: "#F8B486", Icon: XCircle },
+  active: { color: "#F8B486", Icon: CheckCircle2 }, expired: { color: "#F8B486", Icon: XCircle },
 };
 
 type Tab = "overview" | "revenue" | "users" | "courses" | "orders" | "coupons" | "payouts" | "queues" | "race" | "fee";
@@ -50,27 +50,27 @@ function CreateTeacherModal({ onClose, onCreate }: { onClose: () => void; onCrea
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Họ *</label>
-              <input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} placeholder="Nguyễn" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+              <input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} placeholder="Nguyễn" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
             </div>
             <div>
               <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Tên *</label>
-              <input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} placeholder="Văn A" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+              <input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} placeholder="Văn A" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
             </div>
           </div>
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Username *</label>
-            <input value={form.username} onChange={e => setForm({...form, username: e.target.value})} placeholder="teacher_name" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+            <input value={form.username} onChange={e => setForm({...form, username: e.target.value})} placeholder="teacher_name" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
           </div>
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Email *</label>
-            <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="teacher@lumilearn.edu.vn" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+            <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="teacher@lumilearn.edu.vn" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
           </div>
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Mật khẩu *</label>
-            <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Ít nhất 6 ký tự" required minLength={6} className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+            <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Ít nhất 6 ký tự" required minLength={6} className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
           </div>
           <div className="pt-2 flex gap-3">
-            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold text-sm rounded transition-colors disabled:opacity-60">
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#FFCCAA] hover:bg-[#8710d8] text-white font-bold text-sm rounded transition-colors disabled:opacity-60">
               {saving ? "Đang tạo..." : "Tạo tài khoản giáo viên"}
             </button>
             <button type="button" onClick={onClose} className="px-4 py-2.5 border border-[#d1d7dc] dark:border-[#6a6f73] text-sm font-bold text-[#2d2f31] dark:text-white rounded hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors">
@@ -114,22 +114,22 @@ function CreateCouponModal({ onClose, onCreate }: { onClose: () => void; onCreat
         <form onSubmit={submit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Mã Coupon *</label>
-            <input value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="GIAM10" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0] uppercase" />
+            <input value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="GIAM10" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486] uppercase" />
           </div>
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Phần trăm giảm (%) *</label>
-            <input type="number" min="1" max="100" value={form.discount} onChange={e => setForm({...form, discount: Number(e.target.value)})} required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+            <input type="number" min="1" max="100" value={form.discount} onChange={e => setForm({...form, discount: Number(e.target.value)})} required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
           </div>
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Số lần dùng tối đa (Tùy chọn)</label>
-            <input type="number" min="1" value={form.maxUses} onChange={e => setForm({...form, maxUses: e.target.value})} placeholder="Để trống nếu không giới hạn" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+            <input type="number" min="1" value={form.maxUses} onChange={e => setForm({...form, maxUses: e.target.value})} placeholder="Để trống nếu không giới hạn" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
           </div>
           <div>
             <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Ngày hết hạn (Tùy chọn)</label>
-            <input type="date" value={form.expiresAt} onChange={e => setForm({...form, expiresAt: e.target.value})} className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#5624d0]" />
+            <input type="date" value={form.expiresAt} onChange={e => setForm({...form, expiresAt: e.target.value})} className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
           </div>
           <div className="pt-2 flex gap-3">
-            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold text-sm rounded transition-colors disabled:opacity-60">
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#FFCCAA] hover:bg-[#8710d8] text-white font-bold text-sm rounded transition-colors disabled:opacity-60">
               {saving ? "Đang tạo..." : "Tạo mã"}
             </button>
             <button type="button" onClick={onClose} className="px-4 py-2.5 border border-[#d1d7dc] dark:border-[#6a6f73] text-sm font-bold text-[#2d2f31] dark:text-white rounded hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors">
@@ -369,7 +369,7 @@ export default function AdminPage() {
 
   if (authLoading || !user || user.role !== "admin") {
     return (<div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-      <div className="w-8 h-8 border-2 border-[#ef4444] border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-[#F8B486] border-t-transparent rounded-full animate-spin" />
     </div>);
   }
 
@@ -407,8 +407,8 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(239,68,68,0.15)" }}>
-                <Shield className="w-6 h-6" style={{ color: "#ef4444" }} />
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(248,180,134,0.15)" }}>
+                <Shield className="w-6 h-6" style={{ color: "#F8B486" }} />
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold">Admin Panel</h1>
@@ -423,9 +423,9 @@ export default function AdminPage() {
               <button key={t.id} onClick={() => setTab(t.id)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap"
                 style={{
-                  background: tab === t.id ? "rgba(124,58,237,0.15)" : "var(--muted)",
-                  border: `1px solid ${tab === t.id ? "rgba(124,58,237,0.3)" : "var(--border)"}`,
-                  color: tab === t.id ? "#a78bfa" : "var(--foreground-muted)",
+                  background: tab === t.id ? "rgba(248,180,134,0.15)" : "var(--muted)",
+                  border: `1px solid ${tab === t.id ? "rgba(248,180,134,0.3)" : "var(--border)"}`,
+                  color: tab === t.id ? "#FFCCAA" : "var(--foreground-muted)",
                 }}>
                 <t.icon className="w-4 h-4" /> {t.label}
               </button>
@@ -433,7 +433,7 @@ export default function AdminPage() {
           </div>
 
           {dataLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "#5624d0" }} /></div>
+            <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F8B486" }} /></div>
           ) : (
             <>
               {/* OVERVIEW */}
@@ -453,12 +453,12 @@ export default function AdminPage() {
                     {/* Top stats */}
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                       {[
-                        { label: "Người dùng", value: stats?.users ?? users.length, icon: Users, color: "#5624d0", sub: `+${(stats?.recentUsers || []).length} mới` },
-                        { label: "Khóa học", value: stats?.courses ?? courses.length, icon: BookOpen, color: "#0891b2", sub: `${csData.published} xuất bản` },
-                        { label: "Bài học", value: stats?.lessons ?? 0, icon: Activity, color: "#ec4899", sub: "tổng bài" },
-                        { label: "Đăng ký", value: stats?.enrollments ?? 0, icon: TrendingUp, color: "#10b981", sub: "lượt đăng ký" },
-                        { label: "Đơn hàng", value: orders.length, icon: Package, color: "#f59e0b", sub: `${pendingOrders.length} chờ xử lý` },
-                        { label: "Doanh thu", value: revenueData?.totalRevenue ? `${(revenueData.totalRevenue / 1000000).toFixed(1)}M` : stats?.revenue ? `${(stats.revenue / 1000000).toFixed(1)}M` : "0", icon: DollarSign, color: "#10b981", sub: "VNĐ" },
+                        { label: "Người dùng", value: stats?.users ?? users.length, icon: Users, color: "#F8B486", sub: `+${(stats?.recentUsers || []).length} mới` },
+                        { label: "Khóa học", value: stats?.courses ?? courses.length, icon: BookOpen, color: "#94A3B8", sub: `${csData.published} xuất bản` },
+                        { label: "Bài học", value: stats?.lessons ?? 0, icon: Activity, color: "#FFCCAA", sub: "tổng bài" },
+                        { label: "Đăng ký", value: stats?.enrollments ?? 0, icon: TrendingUp, color: "#F8B486", sub: "lượt đăng ký" },
+                        { label: "Đơn hàng", value: orders.length, icon: Package, color: "#FFCCAA", sub: `${pendingOrders.length} chờ xử lý` },
+                        { label: "Doanh thu", value: revenueData?.totalRevenue ? `${(revenueData.totalRevenue / 1000000).toFixed(1)}M` : stats?.revenue ? `${(stats.revenue / 1000000).toFixed(1)}M` : "0", icon: DollarSign, color: "#F8B486", sub: "VNĐ" },
                       ].map(({ label, value, icon: Icon, color, sub }) => (
                         <div key={label} className="bg-card border border-border p-4 hover:shadow-md transition-shadow">
                           <div className="flex items-center justify-between mb-2">
@@ -477,7 +477,7 @@ export default function AdminPage() {
                       {/* Revenue chart */}
                       <div className="lg:col-span-2 bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-1 flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" style={{ color: "#10b981" }} /> Doanh thu 12 tháng
+                          <DollarSign className="w-4 h-4" style={{ color: "#F8B486" }} /> Doanh thu 12 tháng
                         </h3>
                         <p className="text-[10px] mb-4" style={{ color: "#6a6f73" }}>
                           Tổng: {(revenueData?.totalRevenue || 0).toLocaleString()} ₫
@@ -493,7 +493,7 @@ export default function AdminPage() {
                                 </div>
                                 <div className="w-full rounded-t-md transition-all duration-300 hover:opacity-80" style={{
                                   height: `${Math.max(h, 4)}%`,
-                                  background: isLast ? "linear-gradient(to top, #10b981, #0891b2)" : "rgba(16,185,129,0.25)",
+                                  background: isLast ? "linear-gradient(to top, #F8B486, #94A3B8)" : "rgba(248,180,134,0.25)",
                                   minHeight: 4,
                                 }} />
                                 <span className="text-[9px]" style={{ color: "#6a6f73" }}>{m.month.split('-')[1]}</span>
@@ -506,14 +506,14 @@ export default function AdminPage() {
                       {/* User role distribution */}
                       <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                          <Users className="w-4 h-4" style={{ color: "#5624d0" }} /> Phân bố người dùng
+                          <Users className="w-4 h-4" style={{ color: "#F8B486" }} /> Phân bố người dùng
                         </h3>
                         <div className="space-y-3">
                           {([
-                            { role: "student", label: "Học sinh", color: "#5624d0", icon: "🎓" },
-                            { role: "teacher", label: "Giáo viên", color: "#0891b2", icon: "👨‍🏫" },
-                            { role: "parent", label: "Phụ huynh", color: "#f59e0b", icon: "👪" },
-                            { role: "admin", label: "Admin", color: "#ef4444", icon: "🛡️" },
+                            { role: "student", label: "Học sinh", color: "#F8B486", icon: "🎓" },
+                            { role: "teacher", label: "Giáo viên", color: "#94A3B8", icon: "👨‍🏫" },
+                            { role: "parent", label: "Phụ huynh", color: "#FFCCAA", icon: "👪" },
+                            { role: "admin", label: "Admin", color: "#F8B486", icon: "🛡️" },
                           ] as const).map(({ role, label, color, icon }) => {
                             const count = roleData[role] || 0;
                             const pct = totalRoleUsers > 0 ? Math.round((count / totalRoleUsers) * 100) : 0;
@@ -541,12 +541,12 @@ export default function AdminPage() {
                       {/* Course status */}
                       <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                          <BookOpen className="w-4 h-4" style={{ color: "#0891b2" }} /> Trạng thái khóa học
+                          <BookOpen className="w-4 h-4" style={{ color: "#94A3B8" }} /> Trạng thái khóa học
                         </h3>
                         <div className="grid grid-cols-3 gap-3 text-center mb-4">
                           {[
-                            { label: "Xuất bản", value: csData.published, color: "#10b981" },
-                            { label: "Chờ duyệt", value: csData.pending, color: "#f59e0b" },
+                            { label: "Xuất bản", value: csData.published, color: "#F8B486" },
+                            { label: "Chờ duyệt", value: csData.pending, color: "#FFCCAA" },
                             { label: "Nháp", value: csData.draft, color: "#6b7280" },
                           ].map(({ label, value, color }) => (
                             <div key={label} className="p-3 rounded-xl" style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
@@ -556,8 +556,8 @@ export default function AdminPage() {
                           ))}
                         </div>
                         {pendingCourses.length > 0 && (
-                          <div className="p-2.5 rounded-xl" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
-                            <p className="text-xs font-semibold flex items-center gap-1" style={{ color: "#f59e0b" }}>
+                          <div className="p-2.5 rounded-xl" style={{ background: "rgba(255,204,170,0.08)", border: "1px solid rgba(255,204,170,0.2)" }}>
+                            <p className="text-xs font-semibold flex items-center gap-1" style={{ color: "#FFCCAA" }}>
                               <Clock className="w-3 h-3" /> {pendingCourses.length} khóa học cần xử lý
                             </p>
                           </div>
@@ -567,7 +567,7 @@ export default function AdminPage() {
                       {/* Top courses */}
                       <div className="lg:col-span-2 bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4" style={{ color: "#ec4899" }} /> Top khóa học (theo học sinh)
+                          <TrendingUp className="w-4 h-4" style={{ color: "#FFCCAA" }} /> Top khóa học (theo học sinh)
                         </h3>
                         {topCourses.length === 0 ? (
                           <p className="text-xs text-center py-4" style={{ color: "#6a6f73" }}>Chưa có dữ liệu</p>
@@ -576,7 +576,7 @@ export default function AdminPage() {
                             {topCourses.map((c: any, i: number) => {
                               const maxEnroll = topCourses[0]?.enrollments || 1;
                               const barW = Math.max((c.enrollments / maxEnroll) * 100, 8);
-                              const colors = ["#a435f0", "#0891b2", "#ec4899", "#f59e0b", "#10b981"];
+                              const colors = ["#FFCCAA", "#94A3B8", "#FFCCAA", "#FFCCAA", "#F8B486"];
                               return (
                                 <div key={c.id} className="flex items-center gap-3">
                                   <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: colors[i % 5] }}>
@@ -603,12 +603,12 @@ export default function AdminPage() {
                       {/* Recent users */}
                       <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                          <Users className="w-4 h-4" style={{ color: "#5624d0" }} /> Người dùng mới nhất
+                          <Users className="w-4 h-4" style={{ color: "#F8B486" }} /> Người dùng mới nhất
                         </h3>
                         <div className="space-y-2">
                           {(stats?.recentUsers || []).map((u: any) => (
                             <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: "var(--muted)" }}>
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: roleColors[u.role] || "#a435f0" }}>
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: roleColors[u.role] || "#FFCCAA" }}>
                                 {(u.username || "?").charAt(0).toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -624,13 +624,13 @@ export default function AdminPage() {
                       {/* Recent courses */}
                       <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                          <BookOpen className="w-4 h-4" style={{ color: "#0891b2" }} /> Khóa học gần đây
+                          <BookOpen className="w-4 h-4" style={{ color: "#94A3B8" }} /> Khóa học gần đây
                         </h3>
                         <div className="space-y-2">
                           {(stats?.recentCourses || []).map((c: any) => (
                             <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: "var(--muted)" }}>
-                              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(8,145,178,0.12)" }}>
-                                <BookOpen className="w-4 h-4" style={{ color: "#0891b2" }} />
+                              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(148,163,184,0.12)" }}>
+                                <BookOpen className="w-4 h-4" style={{ color: "#94A3B8" }} />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold truncate">{c.title}</p>
@@ -659,10 +659,10 @@ export default function AdminPage() {
                   <div className="space-y-6">
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {[
-                        { label: "Tiền đã nhận", value: money(summary.receivedRevenue || summary.grossRevenue), icon: DollarSign, color: "#10b981", sub: "Gồm cả đơn còn thiếu" },
-                        { label: "Nền tảng giữ lại", value: money(summary.platformRevenue), icon: Percent, color: "#5624d0", sub: "Sau chia giáo viên" },
-                        { label: "Đã ghi nhận GV", value: money(summary.teacherRevenue), icon: Wallet, color: "#0891b2", sub: "Ví giáo viên" },
-                        { label: "Giảm giá", value: money(summary.discountTotal), icon: Tag, color: "#f59e0b", sub: "Từ coupon/ưu đãi" },
+                        { label: "Tiền đã nhận", value: money(summary.receivedRevenue || summary.grossRevenue), icon: DollarSign, color: "#F8B486", sub: "Gồm cả đơn còn thiếu" },
+                        { label: "Nền tảng giữ lại", value: money(summary.platformRevenue), icon: Percent, color: "#F8B486", sub: "Sau chia giáo viên" },
+                        { label: "Đã ghi nhận GV", value: money(summary.teacherRevenue), icon: Wallet, color: "#94A3B8", sub: "Ví giáo viên" },
+                        { label: "Giảm giá", value: money(summary.discountTotal), icon: Tag, color: "#FFCCAA", sub: "Từ coupon/ưu đãi" },
                       ].map(({ label, value, icon: Icon, color, sub }) => (
                         <div key={label} className="bg-card border border-border p-5 shadow-sm">
                           <div className="w-10 h-10 rounded flex items-center justify-center mb-3" style={{ background: `${color}18` }}>
@@ -678,14 +678,14 @@ export default function AdminPage() {
                     <div className="grid lg:grid-cols-3 gap-6">
                       <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold mb-4 flex items-center gap-2">
-                          <Activity className="w-4 h-4 text-[#a435f0]" /> Trạng thái thanh toán
+                          <Activity className="w-4 h-4 text-[#FFCCAA]" /> Trạng thái thanh toán
                         </h3>
                         <div className="space-y-3">
                           {[
-                            { label: "Đã thanh toán", count: summary.paidOrders, amount: summary.grossRevenue, color: "#10b981" },
-                            { label: "Chờ thanh toán", count: summary.pendingOrders, amount: summary.pendingAmount, color: "#f59e0b" },
-                            { label: "Chuyển thừa", count: refunds.filter((r: any) => r.status !== "PAID").length, amount: summary.overpaidAmount, color: "#0891b2" },
-                            { label: "Thất bại", count: summary.failedOrders, amount: summary.failedAmount, color: "#ef4444" },
+                            { label: "Đã thanh toán", count: summary.paidOrders, amount: summary.grossRevenue, color: "#F8B486" },
+                            { label: "Chờ thanh toán", count: summary.pendingOrders, amount: summary.pendingAmount, color: "#FFCCAA" },
+                            { label: "Chuyển thừa", count: refunds.filter((r: any) => r.status !== "PAID").length, amount: summary.overpaidAmount, color: "#94A3B8" },
+                            { label: "Thất bại", count: summary.failedOrders, amount: summary.failedAmount, color: "#F8B486" },
                           ].map((row) => (
                             <div key={row.label} className="p-3 rounded border border-border">
                               <div className="flex justify-between items-center">
@@ -700,7 +700,7 @@ export default function AdminPage() {
 
                       <div className="lg:col-span-2 bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-[#10b981]" /> Top khóa học theo doanh thu
+                          <TrendingUp className="w-4 h-4 text-[#F8B486]" /> Top khóa học theo doanh thu
                         </h3>
                         {topCourses.length === 0 ? (
                           <p className="text-sm py-8 text-center" style={{ color: "#6a6f73" }}>Chưa có doanh thu khóa học</p>
@@ -708,14 +708,14 @@ export default function AdminPage() {
                           <div className="space-y-3">
                             {topCourses.map((course: any, index: number) => (
                               <div key={course.id} className="flex items-center gap-3">
-                                <span className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold bg-[#a435f0]/10 text-[#a435f0]">{index + 1}</span>
+                                <span className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold bg-[#FFCCAA]/10 text-[#FFCCAA]">{index + 1}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-bold truncate">{course.title}</p>
                                   <p className="text-xs" style={{ color: "#6a6f73" }}>
                                     {course.teacher?.firstName || course.teacher?.username || "Giáo viên"} · {course.orders} lượt mua
                                   </p>
                                 </div>
-                                <span className="font-extrabold text-sm text-[#10b981]">{money(course.revenue)}</span>
+                                <span className="font-extrabold text-sm text-[#F8B486]">{money(course.revenue)}</span>
                               </div>
                             ))}
                           </div>
@@ -726,7 +726,7 @@ export default function AdminPage() {
                     <div className="grid lg:grid-cols-2 gap-6">
                       <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold mb-4 flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-[#10b981]" /> Đơn đã thu gần đây
+                          <CheckCircle2 className="w-4 h-4 text-[#F8B486]" /> Đơn đã thu gần đây
                         </h3>
                         <div className="space-y-3">
                           {recentOrders.length === 0 ? (
@@ -741,9 +741,9 @@ export default function AdminPage() {
                                   </p>
                                 </div>
                                 <div className="text-right flex-shrink-0">
-                                  <p className="text-sm font-extrabold text-[#10b981]">{money(order.payment?.paidAmount || order.finalPrice)}</p>
+                                  <p className="text-sm font-extrabold text-[#F8B486]">{money(order.payment?.paidAmount || order.finalPrice)}</p>
                                   {Number(order.payment?.overpaidAmount || 0) > 0 && (
-                                    <p className="text-[10px] text-[#f59e0b]">Dư {money(order.payment.overpaidAmount)}</p>
+                                    <p className="text-[10px] text-[#FFCCAA]">Dư {money(order.payment.overpaidAmount)}</p>
                                   )}
                                   <p className="text-[10px] font-mono" style={{ color: "#6a6f73" }}>{order.payment?.txnRef || "—"}</p>
                                 </div>
@@ -755,7 +755,7 @@ export default function AdminPage() {
 
                       <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-bold mb-4 flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-[#f59e0b]" /> Cần đối soát
+                          <AlertTriangle className="w-4 h-4 text-[#FFCCAA]" /> Cần đối soát
                         </h3>
                         <div className="space-y-3">
                           {paymentIssues.length === 0 ? (
@@ -763,10 +763,10 @@ export default function AdminPage() {
                           ) : paymentIssues.map((event: any) => {
                             const payload = event.payload || {};
                             return (
-                              <div key={event.id} className="p-3 rounded border border-[#f59e0b]/30 bg-[#f59e0b]/5">
+                              <div key={event.id} className="p-3 rounded border border-[#FFCCAA]/30 bg-[#FFCCAA]/5">
                                 <div className="flex justify-between gap-3">
                                   <div className="min-w-0">
-                                    <p className="text-sm font-bold text-[#f59e0b]">{event.error || "Webhook cần kiểm tra"}</p>
+                                    <p className="text-sm font-bold text-[#FFCCAA]">{event.error || "Webhook cần kiểm tra"}</p>
                                     <p className="text-xs truncate" style={{ color: "#6a6f73" }}>
                                       Nội dung: {payload.content || payload.description || "—"}
                                     </p>
@@ -785,7 +785,7 @@ export default function AdminPage() {
 
                     <div className="bg-card border border-border p-6 shadow-sm">
                       <h3 className="font-bold mb-4 flex items-center gap-2">
-                        <BanknoteIcon className="w-4 h-4 text-[#0891b2]" /> Yêu cầu hoàn tiền chuyển dư
+                        <BanknoteIcon className="w-4 h-4 text-[#94A3B8]" /> Yêu cầu hoàn tiền chuyển dư
                       </h3>
                       {refunds.length === 0 ? (
                         <p className="text-sm py-6 text-center" style={{ color: "#6a6f73" }}>Chưa có yêu cầu hoàn tiền</p>
@@ -799,11 +799,11 @@ export default function AdminPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex justify-between gap-2">
                                   <p className="text-sm font-bold truncate">#{refund.orderId?.substring(0, 8)}</p>
-                                  <span className="text-[10px] font-bold" style={{ color: refund.status === "PAID" ? "#10b981" : "#f59e0b" }}>
+                                  <span className="text-[10px] font-bold" style={{ color: refund.status === "PAID" ? "#F8B486" : "#FFCCAA" }}>
                                     {refund.status === "PAID" ? "Đã hoàn" : "Chờ hoàn"}
                                   </span>
                                 </div>
-                                <p className="text-lg font-extrabold text-[#0891b2]">{money(refund.amount)}</p>
+                                <p className="text-lg font-extrabold text-[#94A3B8]">{money(refund.amount)}</p>
                                 <p className="text-xs truncate" style={{ color: "#6a6f73" }}>
                                   {refund.bankName} · {refund.bankAccount} · {refund.bankOwner}
                                 </p>
@@ -833,7 +833,7 @@ export default function AdminPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setShowCreateTeacher(true)}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-[#a435f0] hover:bg-[#8710d8] text-white text-xs font-bold rounded transition-colors whitespace-nowrap"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-[#FFCCAA] hover:bg-[#8710d8] text-white text-xs font-bold rounded transition-colors whitespace-nowrap"
                       >
                         + Tạo giáo viên
                       </button>
@@ -855,11 +855,11 @@ export default function AdminPage() {
                           <tr key={u.id} className="transition-colors hover:bg-[var(--muted)]" style={{ borderBottom: "1px solid var(--border)" }}>
                             <td className="px-4 py-3.5 font-semibold">{u.firstName || u.username}</td>
                             <td className="px-4 py-3.5" style={{ color: "#6a6f73" }}>{u.email}</td>
-                            <td className="px-4 py-3.5"><span className="badge" style={{ background: `${roleColors[u.role] || "#a435f0"}18`, color: roleColors[u.role] || "#a435f0", border: `1px solid ${roleColors[u.role] || "#a435f0"}33` }}>{roleLabels[u.role] || u.role}</span></td>
+                            <td className="px-4 py-3.5"><span className="badge" style={{ background: `${roleColors[u.role] || "#FFCCAA"}18`, color: roleColors[u.role] || "#FFCCAA", border: `1px solid ${roleColors[u.role] || "#FFCCAA"}33` }}>{roleLabels[u.role] || u.role}</span></td>
                             <td className="px-4 py-3.5">
                               <span className="flex items-center gap-1 text-xs">
-                                {u.isActive ? <UserCheck className="w-3 h-3" style={{ color: "#10b981" }} /> : <UserX className="w-3 h-3" style={{ color: "#ef4444" }} />}
-                                <span style={{ color: u.isActive ? "#10b981" : "#ef4444" }}>{u.isActive ? "Active" : "Inactive"}</span>
+                                {u.isActive ? <UserCheck className="w-3 h-3" style={{ color: "#F8B486" }} /> : <UserX className="w-3 h-3" style={{ color: "#F8B486" }} />}
+                                <span style={{ color: u.isActive ? "#F8B486" : "#F8B486" }}>{u.isActive ? "Active" : "Inactive"}</span>
                               </span>
                             </td>
                             <td className="px-4 py-3.5" style={{ color: "#6a6f73" }}>{new Date(u.createdAt).toLocaleDateString("vi-VN")}</td>
@@ -867,7 +867,7 @@ export default function AdminPage() {
                               <button onClick={() => toggleUserStatus(u.id, u.isActive)} className="btn-ghost px-2 py-1" title={u.isActive ? "Khóa" : "Mở khóa"}>
                                 {u.isActive ? <Lock className="w-3.5 h-3.5 text-yellow-500" /> : <Unlock className="w-3.5 h-3.5 text-green-500" />}
                               </button>
-                              <button onClick={() => deleteUser(u.id)} className="btn-ghost px-2 py-1"><Trash2 className="w-3.5 h-3.5" style={{ color: "#ef4444" }} /></button>
+                              <button onClick={() => deleteUser(u.id)} className="btn-ghost px-2 py-1"><Trash2 className="w-3.5 h-3.5" style={{ color: "#F8B486" }} /></button>
                             </div></td>
                           </tr>
                         ))}
@@ -895,12 +895,12 @@ export default function AdminPage() {
                           <tr key={c.id} className="transition-colors hover:bg-[var(--muted)]" style={{ borderBottom: "1px solid var(--border)" }}>
                             <td className="px-4 py-3.5 font-semibold max-w-[200px] truncate">{c.title}</td>
                             <td className="px-4 py-3.5" style={{ color: "#6a6f73" }}>{c.author?.username || "—"}</td>
-                            <td className="px-4 py-3.5" style={{ color: "#10b981" }}>{c.price > 0 ? `${c.price.toLocaleString()} ₫` : "Miễn phí"}</td>
+                            <td className="px-4 py-3.5" style={{ color: "#F8B486" }}>{c.price > 0 ? `${c.price.toLocaleString()} ₫` : "Miễn phí"}</td>
                             <td className="px-4 py-3.5">{c._count?.enrollments || 0}</td>
                             <td className="px-4 py-3.5"><span className={`badge ${c.status === "published" ? "badge-success" : "badge-warning"} text-[10px]`}>{c.status === "published" ? "Xuất bản" : c.status === "draft" ? "Nháp" : c.status}</span></td>
                             <td className="px-4 py-3.5"><div className="flex gap-1">
-                              {c.status !== "published" && <button onClick={() => publishCourse(c.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#10b981" }}>Duyệt</button>}
-                              {c.status !== "published" && c.status !== "rejected" && <button onClick={() => rejectCourse(c.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#ef4444" }}>Từ chối</button>}
+                              {c.status !== "published" && <button onClick={() => publishCourse(c.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#F8B486" }}>Duyệt</button>}
+                              {c.status !== "published" && c.status !== "rejected" && <button onClick={() => rejectCourse(c.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#F8B486" }}>Từ chối</button>}
                               <button onClick={() => window.open(`/courses/${c.id}`, '_blank')} className="btn-ghost px-2 py-1"><Eye className="w-3.5 h-3.5" /></button>
                             </div></td>
                           </tr>
@@ -931,7 +931,7 @@ export default function AdminPage() {
                           const st = statusIcons[o.status] || statusIcons.pending;
                           return (
                             <tr key={o.id} className="transition-colors hover:bg-[var(--muted)]" style={{ borderBottom: "1px solid var(--border)" }}>
-                              <td className="px-4 py-3.5 font-mono font-bold" style={{ color: "#a435f0" }}>{o.id.substring(0, 8)}</td>
+                              <td className="px-4 py-3.5 font-mono font-bold" style={{ color: "#FFCCAA" }}>{o.id.substring(0, 8)}</td>
                               <td className="px-4 py-3.5">{o.user?.username || "—"}</td>
                               <td className="px-4 py-3.5 font-semibold">{(o.finalPrice || o.totalPrice || 0).toLocaleString()} ₫</td>
                               <td className="px-4 py-3.5"><span className="flex items-center gap-1 text-xs"><st.Icon className="w-3 h-3" style={{ color: st.color }} /><span style={{ color: st.color }}>{o.status}</span></span></td>
@@ -949,7 +949,7 @@ export default function AdminPage() {
               {tab === "coupons" && (
                 <div className="bg-card border border-border shadow-sm p-6">
                   <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
-                    <h2 className="font-bold flex items-center gap-2"><Tag className="w-5 h-5 text-[#a435f0]" /> Quản lý Mã giảm giá</h2>
+                    <h2 className="font-bold flex items-center gap-2"><Tag className="w-5 h-5 text-[#FFCCAA]" /> Quản lý Mã giảm giá</h2>
                     <button onClick={() => setShowCreateCoupon(true)} className="btn-primary">Tạo mã mới</button>
                   </div>
                   {coupons.length === 0 ? (
@@ -964,7 +964,7 @@ export default function AdminPage() {
                         return (
                           <div key={c.id} className="card-base card-hover">
                             <div className="flex items-center justify-between mb-3">
-                              <span className="font-mono font-bold text-lg" style={{ color: "#a435f0" }}>{c.code}</span>
+                              <span className="font-mono font-bold text-lg" style={{ color: "#FFCCAA" }}>{c.code}</span>
                               <span className="flex items-center gap-1 text-xs"><st.Icon className="w-3 h-3" style={{ color: st.color }} /><span style={{ color: st.color }}>{c.isActive ? "active" : "expired"}</span></span>
                             </div>
                             <p className="text-2xl font-extrabold mb-3 gradient-text">{c.discount}%</p>
@@ -999,13 +999,13 @@ export default function AdminPage() {
                           <tr><td colSpan={8} className="px-4 py-8 text-center text-sm" style={{ color: "#6a6f73" }}>Chưa có yêu cầu rút tiền nào</td></tr>
                         ) : payouts.map((p: any) => {
                           const bank = p.bankDetails || {};
-                          const statusColors: Record<string, string> = { PENDING: "#f59e0b", APPROVED: "#10b981", REJECTED: "#ef4444", CANCELLED: "#6b7280" };
+                          const statusColors: Record<string, string> = { PENDING: "#FFCCAA", APPROVED: "#F8B486", REJECTED: "#F8B486", CANCELLED: "#6b7280" };
                           const statusLabels: Record<string, string> = { PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối", CANCELLED: "Đã hủy" };
                           const sc = statusColors[p.status] || "#6b7280";
                           return (
                             <tr key={p.id} className="transition-colors hover:bg-[var(--muted)]" style={{ borderBottom: "1px solid var(--border)" }}>
                               <td className="px-4 py-3.5 font-semibold">{p.user?.username || p.user?.firstName || "—"}</td>
-                              <td className="px-4 py-3.5 font-bold" style={{ color: "#ef4444" }}>{Number(p.amount).toLocaleString()} ₫</td>
+                              <td className="px-4 py-3.5 font-bold" style={{ color: "#F8B486" }}>{Number(p.amount).toLocaleString()} ₫</td>
                               <td className="px-4 py-3.5" style={{ color: "#6a6f73" }}>{bank.bankName || p.user?.bankName || "—"}</td>
                               <td className="px-4 py-3.5 font-mono text-xs">{bank.bankAccount || p.user?.bankAccount || "—"}</td>
                               <td className="px-4 py-3.5">{bank.bankOwner || p.user?.bankOwner || "—"}</td>
@@ -1020,8 +1020,8 @@ export default function AdminPage() {
                               <td className="px-4 py-3.5">
                                 {p.status === "PENDING" && (
                                   <div className="flex gap-1">
-                                    <button onClick={() => approvePayout(p.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#10b981" }}>Duyệt</button>
-                                    <button onClick={() => rejectPayout(p.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#ef4444" }}>Từ chối</button>
+                                    <button onClick={() => approvePayout(p.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#F8B486" }}>Duyệt</button>
+                                    <button onClick={() => rejectPayout(p.id)} className="btn-ghost px-2 py-1 text-xs" style={{ color: "#F8B486" }}>Từ chối</button>
                                   </div>
                                 )}
                               </td>
@@ -1036,17 +1036,17 @@ export default function AdminPage() {
               {/* QUEUES */}
               {tab === "queues" && (
                 <div className="bg-card border border-border shadow-sm p-6">
-                  <h2 className="font-bold mb-4 flex items-center gap-2"><Server className="w-5 h-5 text-[#a435f0]" /> Sức khỏe hàng đợi (Queues)</h2>
+                  <h2 className="font-bold mb-4 flex items-center gap-2"><Server className="w-5 h-5 text-[#FFCCAA]" /> Sức khỏe hàng đợi (Queues)</h2>
                   {queues ? (
                     <div className="space-y-4">
                       {queues.queues && queues.queues.map((q: any) => (
                         <div key={q.name} className="p-4 border border-border rounded flex justify-between items-center bg-[var(--muted)]">
                           <div>
-                            <p className="font-bold text-[#a435f0]">{q.name}</p>
+                            <p className="font-bold text-[#FFCCAA]">{q.name}</p>
                             <div className="flex gap-4 mt-2 text-sm text-[#6a6f73]">
-                              <p>Active: <span className="font-bold text-[#10b981]">{q.active}</span></p>
-                              <p>Waiting: <span className="font-bold text-[#f59e0b]">{q.waiting}</span></p>
-                              <p>Failed: <span className="font-bold text-[#ef4444]">{q.failed}</span></p>
+                              <p>Active: <span className="font-bold text-[#F8B486]">{q.active}</span></p>
+                              <p>Waiting: <span className="font-bold text-[#FFCCAA]">{q.waiting}</span></p>
+                              <p>Failed: <span className="font-bold text-[#F8B486]">{q.failed}</span></p>
                             </div>
                           </div>
                           {q.isPaused ? (
@@ -1067,7 +1067,7 @@ export default function AdminPage() {
               {tab === "race" && (
                 <div className="bg-card border border-border shadow-sm p-6">
                   <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
-                    <h2 className="font-bold flex items-center gap-2"><Flag className="w-5 h-5 text-[#a435f0]" /> Cấu hình Thi đua Tháng</h2>
+                    <h2 className="font-bold flex items-center gap-2"><Flag className="w-5 h-5 text-[#FFCCAA]" /> Cấu hình Thi đua Tháng</h2>
                     <button onClick={finalizeRace} className="btn-primary">Tổng kết tháng này</button>
                   </div>
                   {raceConfig ? (
@@ -1077,7 +1077,7 @@ export default function AdminPage() {
                         {Object.entries(raceConfig).map(([k, v]) => (
                           <div key={k} className="p-3 border border-border rounded flex justify-between items-center bg-[var(--muted)]">
                             <span className="font-medium text-sm">{k}</span>
-                            <span className="font-bold text-[#a435f0]">{String(v)} XP</span>
+                            <span className="font-bold text-[#FFCCAA]">{String(v)} XP</span>
                           </div>
                         ))}
                       </div>
@@ -1091,7 +1091,7 @@ export default function AdminPage() {
               {/* FEE CONFIG */}
               {tab === "fee" && (
                 <div className="bg-card border border-border shadow-sm p-6 max-w-xl">
-                  <h2 className="font-bold flex items-center gap-2 mb-6"><Percent className="w-5 h-5 text-[#a435f0]" /> Cấu hình Phí Nền tảng</h2>
+                  <h2 className="font-bold flex items-center gap-2 mb-6"><Percent className="w-5 h-5 text-[#FFCCAA]" /> Cấu hình Phí Nền tảng</h2>
                   {feeConfig ? (
                     <form onSubmit={saveFeeConfig} className="space-y-4">
                       <div>

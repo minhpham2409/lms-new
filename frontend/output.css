@@ -1661,17 +1661,17 @@
     --tw-border-style: none;
     border-style: none;
   }
-  .border-\[\#7c3aed\] {
-    border-color: #7c3aed;
+  .border-\[\#F8B486\] {
+    border-color: #F8B486;
   }
-  .border-\[\#0891b2\] {
-    border-color: #0891b2;
+  .border-\[\#94A3B8\] {
+    border-color: #94A3B8;
   }
-  .border-\[\#ef4444\] {
-    border-color: #ef4444;
+  .border-\[\#F8B486\] {
+    border-color: #F8B486;
   }
-  .border-\[\#f59e0b\] {
-    border-color: #f59e0b;
+  .border-\[\#FFCCAA\] {
+    border-color: #FFCCAA;
   }
   .border-\[var\(--border\)\] {
     border-color: var(--border);
@@ -2760,14 +2760,14 @@
   .whitespace-pre-wrap {
     white-space: pre-wrap;
   }
-  .text-\[\#7c3aed\] {
-    color: #7c3aed;
+  .text-\[\#F8B486\] {
+    color: #F8B486;
   }
-  .text-\[\#0891b2\] {
-    color: #0891b2;
+  .text-\[\#94A3B8\] {
+    color: #94A3B8;
   }
-  .text-\[\#f59e0b\] {
-    color: #f59e0b;
+  .text-\[\#FFCCAA\] {
+    color: #FFCCAA;
   }
   .text-\[var\(--foreground-muted\)\] {
     color: var(--foreground-muted);
@@ -3393,10 +3393,10 @@
       }
     }
   }
-  .group-hover\:text-\[\#a78bfa\] {
+  .group-hover\:text-\[\#FFCCAA\] {
     &:is(:where(.group):hover *) {
       @media (hover: hover) {
-        color: #a78bfa;
+        color: #FFCCAA;
       }
     }
   }
@@ -3578,17 +3578,17 @@
       }
     }
   }
-  .hover\:border-\[\#7c3aed\] {
+  .hover\:border-\[\#F8B486\] {
     &:hover {
       @media (hover: hover) {
-        border-color: #7c3aed;
+        border-color: #F8B486;
       }
     }
   }
   .hover\:border-\[rgba\(124\,58\,237\,0\.3\)\] {
     &:hover {
       @media (hover: hover) {
-        border-color: rgba(124,58,237,0.3);
+        border-color: rgba(248,180,134,0.3);
       }
     }
   }
@@ -3622,7 +3622,7 @@
   .hover\:bg-\[rgba\(124\,58\,237\,0\.04\)\] {
     &:hover {
       @media (hover: hover) {
-        background-color: rgba(124,58,237,0.04);
+        background-color: rgba(248,180,134,0.04);
       }
     }
   }
@@ -3845,10 +3845,10 @@
       }
     }
   }
-  .hover\:text-\[\#a78bfa\] {
+  .hover\:text-\[\#FFCCAA\] {
     &:hover {
       @media (hover: hover) {
-        color: #a78bfa;
+        color: #FFCCAA;
       }
     }
   }
@@ -5348,36 +5348,36 @@
   --card-foreground: #e8edf8;
   --popover: #131a2e;
   --popover-foreground: #e8edf8;
-  --primary: #7c3aed;
+  --primary: #F8B486;
   --primary-light: #9b5ff0;
   --primary-dark: #5b21b6;
   --primary-foreground: #ffffff;
-  --secondary: #0891b2;
-  --secondary-light: #22d3ee;
+  --secondary: #94A3B8;
+  --secondary-light: #94A3B8;
   --secondary-foreground: #ffffff;
   --muted: rgba(255, 255, 255, 0.05);
   --muted-foreground: #8892a4;
   --accent: #3b82f6;
   --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --destructive: #F8B486;
+  --success: #F8B486;
+  --warning: #FFCCAA;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.15);
   --input: rgba(255, 255, 255, 0.06);
-  --ring: rgba(124, 58, 237, 0.5);
-  --gradient-brand: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #0891b2 100%);
-  --gradient-glow: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.3), transparent 70%);
+  --ring: rgba(248,180,134, 0.5);
+  --gradient-brand: linear-gradient(135deg, #F8B486 0%, #F8B486 50%, #94A3B8 100%);
+  --gradient-glow: radial-gradient(ellipse at center, rgba(248,180,134, 0.3), transparent 70%);
   --gradient-hero: linear-gradient(160deg, #080c14 0%, #0d1322 40%, #130a2a 100%);
-  --gradient-card: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(8, 145, 178, 0.05) 100%);
+  --gradient-card: linear-gradient(135deg, rgba(248,180,134, 0.1) 0%, rgba(148,163,184, 0.05) 100%);
   --sidebar: rgba(10, 14, 26, 0.95);
   --sidebar-foreground: #e8edf8;
   --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-primary: #7c3aed;
+  --sidebar-primary: #F8B486;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(124, 58, 237, 0.15);
-  --sidebar-accent-foreground: #a78bfa;
-  --sidebar-ring: rgba(124, 58, 237, 0.4);
+  --sidebar-accent: rgba(248,180,134, 0.15);
+  --sidebar-accent-foreground: #FFCCAA;
+  --sidebar-ring: rgba(248,180,134, 0.4);
 }
 html.light {
   --background: #f8f9fc;
@@ -5390,12 +5390,12 @@ html.light {
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #7c3aed;
+  --primary: #F8B486;
   --primary-light: #9b5ff0;
   --primary-dark: #5b21b6;
   --primary-foreground: #ffffff;
-  --secondary: #0891b2;
-  --secondary-light: #22d3ee;
+  --secondary: #94A3B8;
+  --secondary-light: #94A3B8;
   --secondary-foreground: #ffffff;
   --muted: rgba(0, 0, 0, 0.05);
   --muted-foreground: #475569;
@@ -5407,19 +5407,19 @@ html.light {
   --border: rgba(0, 0, 0, 0.12);
   --border-strong: rgba(0, 0, 0, 0.22);
   --input: rgba(0, 0, 0, 0.04);
-  --ring: rgba(124, 58, 237, 0.4);
-  --gradient-brand: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #0891b2 100%);
-  --gradient-glow: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.15), transparent 70%);
+  --ring: rgba(248,180,134, 0.4);
+  --gradient-brand: linear-gradient(135deg, #F8B486 0%, #F8B486 50%, #94A3B8 100%);
+  --gradient-glow: radial-gradient(ellipse at center, rgba(248,180,134, 0.15), transparent 70%);
   --gradient-hero: linear-gradient(160deg, #f8f9fc 0%, #eef0f6 40%, #e8e4f4 100%);
-  --gradient-card: linear-gradient(135deg, rgba(124, 58, 237, 0.06) 0%, rgba(8, 145, 178, 0.03) 100%);
+  --gradient-card: linear-gradient(135deg, rgba(248,180,134, 0.06) 0%, rgba(148,163,184, 0.03) 100%);
   --sidebar: #ffffff;
   --sidebar-foreground: #0f172a;
   --sidebar-border: rgba(0, 0, 0, 0.1);
-  --sidebar-primary: #7c3aed;
+  --sidebar-primary: #F8B486;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(124, 58, 237, 0.1);
+  --sidebar-accent: rgba(248,180,134, 0.1);
   --sidebar-accent-foreground: #6d28d9;
-  --sidebar-ring: rgba(124, 58, 237, 0.3);
+  --sidebar-ring: rgba(248,180,134, 0.3);
 }
 html.light .glass {
   background: rgba(255, 255, 255, 0.9);
@@ -5430,49 +5430,49 @@ html.light .glass-strong {
   border-color: rgba(0, 0, 0, 0.18);
 }
 html.light .glass-card {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(8, 145, 178, 0.04) 100%);
-  border-color: rgba(124, 58, 237, 0.2);
+  background: linear-gradient(135deg, rgba(248,180,134, 0.08) 0%, rgba(148,163,184, 0.04) 100%);
+  border-color: rgba(248,180,134, 0.2);
 }
 html.light .glow-violet {
-  box-shadow: 0 0 40px rgba(124, 58, 237, 0.15), 0 0 80px rgba(124, 58, 237, 0.08);
+  box-shadow: 0 0 40px rgba(248,180,134, 0.15), 0 0 80px rgba(248,180,134, 0.08);
 }
 html.light .orb-violet {
-  background: rgba(124, 58, 237, 0.12);
+  background: rgba(248,180,134, 0.12);
 }
 html.light .orb-cyan {
-  background: rgba(8, 145, 178, 0.1);
+  background: rgba(148,163,184, 0.1);
 }
 html.light .orb-blue {
   background: rgba(59, 130, 246, 0.08);
 }
 html.light .stat-card {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, #ffffff 100%);
-  border-color: rgba(124, 58, 237, 0.18);
+  background: linear-gradient(135deg, rgba(248,180,134, 0.08) 0%, #ffffff 100%);
+  border-color: rgba(248,180,134, 0.18);
 }
 html.light .divider {
   background: linear-gradient(to right, transparent, rgba(0,0,0,0.2), transparent);
 }
 html.light .section-tag {
-  background: rgba(124, 58, 237, 0.12);
-  border-color: rgba(124, 58, 237, 0.3);
+  background: rgba(248,180,134, 0.12);
+  border-color: rgba(248,180,134, 0.3);
   color: #5b21b6;
 }
 html.light .badge-primary {
-  background: rgba(124, 58, 237, 0.14);
+  background: rgba(248,180,134, 0.14);
   color: #5b21b6;
-  border-color: rgba(124, 58, 237, 0.3);
+  border-color: rgba(248,180,134, 0.3);
 }
 html.light .card-base {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 html.light .card-hover:hover {
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(248,180,134, 0.2);
 }
 html.light .course-card {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 html.light .course-card:hover {
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(248,180,134, 0.2);
 }
 html.light .input-base {
   background: #ffffff;
@@ -5480,8 +5480,8 @@ html.light .input-base {
 }
 html.light .input-base:focus {
   background: #ffffff;
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  border-color: #F8B486;
+  box-shadow: 0 0 0 3px rgba(248,180,134, 0.15);
 }
 html.light .btn-secondary {
   background: #ffffff;
@@ -5512,9 +5512,9 @@ html.light .badge-warning {
   border-color: rgba(217, 119, 6, 0.25);
 }
 html.light .badge-cyan {
-  background: rgba(8, 145, 178, 0.12);
+  background: rgba(148,163,184, 0.12);
   color: #0e7490;
-  border-color: rgba(8, 145, 178, 0.25);
+  border-color: rgba(148,163,184, 0.25);
 }
 html.light .table-row:hover {
   background: rgba(0, 0, 0, 0.04);
@@ -5526,10 +5526,10 @@ html.light ::-webkit-scrollbar-track {
   background: #e5e7ee;
 }
 html.light ::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.4);
+  background: rgba(248,180,134, 0.4);
 }
 html.light ::selection {
-  background: rgba(124, 58, 237, 0.3);
+  background: rgba(248,180,134, 0.3);
   color: #0f172a;
 }
 @layer base {
@@ -5561,14 +5561,14 @@ html.light ::selection {
     background: var(--background-2);
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(124, 58, 237, 0.4);
+    background: rgba(248,180,134, 0.4);
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(124, 58, 237, 0.7);
+    background: rgba(248,180,134, 0.7);
   }
   ::selection {
-    background: rgba(124, 58, 237, 0.35);
+    background: rgba(248,180,134, 0.35);
     color: white;
   }
   h1, h2, h3, h4, h5, h6 {
@@ -5596,7 +5596,7 @@ html.light ::selection {
     background-clip: text;
   }
   .gradient-text-cyan {
-    background: linear-gradient(135deg, #22d3ee, #818cf8);
+    background: linear-gradient(135deg, #94A3B8, #818cf8);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -5614,18 +5614,18 @@ html.light ::selection {
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
   .glass-card {
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(8, 145, 178, 0.04) 100%);
+    background: linear-gradient(135deg, rgba(248,180,134, 0.08) 0%, rgba(148,163,184, 0.04) 100%);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(124, 58, 237, 0.15);
+    border: 1px solid rgba(248,180,134, 0.15);
   }
   .glow-violet {
-    box-shadow: 0 0 40px rgba(124, 58, 237, 0.25), 0 0 80px rgba(124, 58, 237, 0.1);
+    box-shadow: 0 0 40px rgba(248,180,134, 0.25), 0 0 80px rgba(248,180,134, 0.1);
   }
   .glow-cyan {
-    box-shadow: 0 0 40px rgba(8, 145, 178, 0.25), 0 0 80px rgba(8, 145, 178, 0.1);
+    box-shadow: 0 0 40px rgba(148,163,184, 0.25), 0 0 80px rgba(148,163,184, 0.1);
   }
   .glow-text {
-    text-shadow: 0 0 30px rgba(124, 58, 237, 0.5);
+    text-shadow: 0 0 30px rgba(248,180,134, 0.5);
   }
   .border-gradient {
     border: 1px solid transparent;
@@ -5663,10 +5663,10 @@ html.light ::selection {
     pointer-events: none;
   }
   .orb-violet {
-    background: rgba(124, 58, 237, 0.25);
+    background: rgba(248,180,134, 0.25);
   }
   .orb-cyan {
-    background: rgba(8, 145, 178, 0.2);
+    background: rgba(148,163,184, 0.2);
   }
   .orb-blue {
     background: rgba(59, 130, 246, 0.15);
@@ -5790,7 +5790,7 @@ html.light ::selection {
     }
   }
   .border-flow {
-    background: linear-gradient(-45deg, #7c3aed, #4f46e5, #0891b2, #7c3aed);
+    background: linear-gradient(-45deg, #F8B486, #F8B486, #94A3B8, #F8B486);
     background-size: 300% 300%;
     animation: border-flow 4s ease infinite;
   }
@@ -5818,7 +5818,7 @@ html.light ::selection {
   .cursor::after {
     content: '|';
     animation: blink 1s step-end infinite;
-    color: #7c3aed;
+    color: #F8B486;
     font-weight: 300;
   }
   @keyframes gradient-shift {
@@ -5833,7 +5833,7 @@ html.light ::selection {
     }
   }
   .gradient-animated {
-    background: linear-gradient(-45deg, #7c3aed, #4f46e5, #0891b2, #22d3ee, #7c3aed);
+    background: linear-gradient(-45deg, #F8B486, #F8B486, #94A3B8, #94A3B8, #F8B486);
     background-size: 400% 400%;
     animation: gradient-shift 8s ease infinite;
   }
@@ -5848,7 +5848,7 @@ html.light ::selection {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 60%);
+    background: radial-gradient(circle, rgba(248,180,134,0.08) 0%, transparent 60%);
     opacity: 0;
     transition: opacity 0.5s ease;
     pointer-events: none;
@@ -5872,10 +5872,10 @@ html.light ::selection {
   }
   @keyframes ring-glow {
     0%, 100% {
-      box-shadow: 0 0 0 0 rgba(124,58,237,0.4);
+      box-shadow: 0 0 0 0 rgba(248,180,134,0.4);
     }
     50% {
-      box-shadow: 0 0 0 6px rgba(124,58,237,0);
+      box-shadow: 0 0 0 6px rgba(248,180,134,0);
     }
   }
   .ring-glow {
@@ -5883,7 +5883,7 @@ html.light ::selection {
   }
   .gradient-line {
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(124,58,237,0.4), rgba(8,145,178,0.3), transparent);
+    background: linear-gradient(to right, transparent, rgba(248,180,134,0.4), rgba(148,163,184,0.3), transparent);
   }
   @keyframes text-shimmer {
     0% {
@@ -5894,7 +5894,7 @@ html.light ::selection {
     }
   }
   .text-shimmer {
-    background: linear-gradient(90deg, #7c3aed, #0891b2, #a78bfa, #22d3ee, #7c3aed);
+    background: linear-gradient(90deg, #F8B486, #94A3B8, #FFCCAA, #94A3B8, #F8B486);
     background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -5919,10 +5919,10 @@ html.light ::selection {
   }
   .hover-lift:hover {
     transform: translateY(-6px);
-    box-shadow: 0 20px 60px rgba(124,58,237,0.15), 0 0 0 1px rgba(124,58,237,0.1);
+    box-shadow: 0 20px 60px rgba(248,180,134,0.15), 0 0 0 1px rgba(248,180,134,0.1);
   }
   .dot-pattern {
-    background-image: radial-gradient(rgba(124,58,237,0.15) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(248,180,134,0.15) 1px, transparent 1px);
     background-size: 24px 24px;
   }
   .animated-underline {
@@ -6008,11 +6008,11 @@ html.light ::selection {
     --tw-duration: 200ms;
     transition-duration: 200ms;
     background: var(--gradient-brand);
-    box-shadow: 0 0 30px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 0 30px rgba(248,180,134, 0.3);
   }
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 40px rgba(124, 58, 237, 0.4);
+    box-shadow: 0 8px 40px rgba(248,180,134, 0.4);
   }
   .btn-primary:active {
     transform: translateY(0);
@@ -6077,8 +6077,8 @@ html.light ::selection {
   }
   .card-hover:hover {
     transform: translateY(-4px);
-    border-color: rgba(124, 58, 237, 0.3);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(124, 58, 237, 0.1);
+    border-color: rgba(248,180,134, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(248,180,134, 0.1);
   }
   .input-base {
     width: 100%;
@@ -6102,7 +6102,7 @@ html.light ::selection {
     color: var(--muted-foreground);
   }
   .input-base:focus {
-    border-color: rgba(124, 58, 237, 0.5);
+    border-color: rgba(248,180,134, 0.5);
     box-shadow: 0 0 0 3px var(--ring);
     background: var(--input);
   }
@@ -6119,24 +6119,24 @@ html.light ::selection {
     font-weight: var(--font-weight-semibold);
   }
   .badge-primary {
-    background: rgba(124, 58, 237, 0.2);
-    color: #a78bfa;
-    border: 1px solid rgba(124, 58, 237, 0.3);
+    background: rgba(248,180,134, 0.2);
+    color: #FFCCAA;
+    border: 1px solid rgba(248,180,134, 0.3);
   }
   .badge-cyan {
-    background: rgba(8, 145, 178, 0.2);
-    color: #22d3ee;
-    border: 1px solid rgba(8, 145, 178, 0.3);
+    background: rgba(148,163,184, 0.2);
+    color: #94A3B8;
+    border: 1px solid rgba(148,163,184, 0.3);
   }
   .badge-success {
-    background: rgba(16, 185, 129, 0.2);
+    background: rgba(248,180,134, 0.2);
     color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(248,180,134, 0.3);
   }
   .badge-warning {
-    background: rgba(245, 158, 11, 0.2);
+    background: rgba(255,204,170, 0.2);
     color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(255,204,170, 0.3);
   }
   .progress-bar {
     position: relative;
@@ -6184,16 +6184,16 @@ html.light ::selection {
     --tw-tracking: var(--tracking-wider);
     letter-spacing: var(--tracking-wider);
     text-transform: uppercase;
-    background: rgba(124, 58, 237, 0.15);
-    border: 1px solid rgba(124, 58, 237, 0.3);
-    color: #a78bfa;
+    background: rgba(248,180,134, 0.15);
+    border: 1px solid rgba(248,180,134, 0.3);
+    color: #FFCCAA;
   }
   .stat-card {
     border-radius: calc(var(--radius) + 8px);
     padding: calc(var(--spacing) * 6);
     text-align: center;
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(19, 26, 46, 0.8) 100%);
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: linear-gradient(135deg, rgba(248,180,134, 0.1) 0%, rgba(19, 26, 46, 0.8) 100%);
+    border: 1px solid rgba(248,180,134, 0.2);
   }
   .sidebar-item {
     display: flex;
@@ -6218,9 +6218,9 @@ html.light ::selection {
     color: var(--foreground);
   }
   .sidebar-item.active {
-    background: rgba(124, 58, 237, 0.2);
-    color: #a78bfa;
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: rgba(248,180,134, 0.2);
+    color: #FFCCAA;
+    border: 1px solid rgba(248,180,134, 0.2);
   }
   .course-card {
     overflow: hidden;
@@ -6235,8 +6235,8 @@ html.light ::selection {
   }
   .course-card:hover {
     transform: translateY(-6px);
-    border-color: rgba(124, 58, 237, 0.25);
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(124, 58, 237, 0.1);
+    border-color: rgba(248,180,134, 0.25);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(248,180,134, 0.1);
   }
   .feature-icon {
     display: flex;
@@ -6246,7 +6246,7 @@ html.light ::selection {
     justify-content: center;
     border-radius: calc(var(--radius) + 8px);
     background: var(--gradient-brand);
-    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 8px 24px rgba(248,180,134, 0.3);
   }
   .timeline-dot {
     height: calc(var(--spacing) * 3);
@@ -6255,8 +6255,8 @@ html.light ::selection {
     border-style: var(--tw-border-style);
     border-width: 2px;
     background: var(--primary);
-    border-color: rgba(124, 58, 237, 0.3);
-    box-shadow: 0 0 12px rgba(124, 58, 237, 0.5);
+    border-color: rgba(248,180,134, 0.3);
+    box-shadow: 0 0 12px rgba(248,180,134, 0.5);
   }
   .table-row {
     transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;

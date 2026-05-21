@@ -364,13 +364,13 @@ export default function CartPage() {
             {!paymentSent ? (
               <>
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-extrabold flex items-center gap-2"><QrCode className="w-5 h-5" style={{ color: "#5624d0" }} /> Thanh toán</h2>
+                  <h2 className="text-lg font-extrabold flex items-center gap-2"><QrCode className="w-5 h-5" style={{ color: "#F8B486" }} /> Thanh toán</h2>
                   <button onClick={() => setShowPayment(false)} className="btn-ghost px-2 py-2"><X className="w-5 h-5" /></button>
                 </div>
 
                 {sending ? (
                   <div className="text-center py-12">
-                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: "#5624d0" }} />
+                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: "#F8B486" }} />
                     <p className="text-sm font-semibold">Đang tạo đơn hàng & mã QR...</p>
                   </div>
                 ) : qrPayment ? (
@@ -389,7 +389,7 @@ export default function CartPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-sm" style={{ color: "#ef4444" }}>Không thể tạo mã QR. Vui lòng đóng và thử lại.</p>
+                    <p className="text-sm" style={{ color: "#F8B486" }}>Không thể tạo mã QR. Vui lòng đóng và thử lại.</p>
                   </div>
                 )}
 

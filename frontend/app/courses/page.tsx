@@ -16,17 +16,17 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 const categories = ["Tất cả", "Toán", "Lý", "Hóa", "Sinh", "Anh văn", "Văn", "Lập trình"];
 
 const colorMap: Record<string, string> = {
-  "Toán": "#a435f0", "Lý": "#3b82f6", "Hóa": "#f59e0b", "Sinh": "#10b981",
-  "Anh văn": "#0891b2", "Văn": "#ec4899", "Lập trình": "#f97316",
+  "Toán": "#FFCCAA", "Lý": "#3b82f6", "Hóa": "#FFCCAA", "Sinh": "#F8B486",
+  "Anh văn": "#94A3B8", "Văn": "#FFCCAA", "Lập trình": "#f97316",
 };
 
 const gradientMap: Record<string, string> = {
-  "Toán": "linear-gradient(135deg, #a435f0, #5624d0)",
+  "Toán": "linear-gradient(135deg, #FFCCAA, #F8B486)",
   "Lý": "linear-gradient(135deg, #3b82f6, #2563eb)",
-  "Hóa": "linear-gradient(135deg, #f59e0b, #d97706)",
-  "Sinh": "linear-gradient(135deg, #10b981, #059669)",
-  "Anh văn": "linear-gradient(135deg, #0891b2, #0e7490)",
-  "Văn": "linear-gradient(135deg, #ec4899, #db2777)",
+  "Hóa": "linear-gradient(135deg, #FFCCAA, #d97706)",
+  "Sinh": "linear-gradient(135deg, #F8B486, #059669)",
+  "Anh văn": "linear-gradient(135deg, #94A3B8, #0e7490)",
+  "Văn": "linear-gradient(135deg, #FFCCAA, #db2777)",
   "Lập trình": "linear-gradient(135deg, #f97316, #ea580c)",
 };
 
@@ -226,7 +226,7 @@ function CoursesPageContent() {
                              return (
                                 <Link key={course.id} href={`/courses/${course.id}`} className="block">
                                    <div className="flex flex-col sm:flex-row gap-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group">
-                                      <div className="w-full sm:w-64 aspect-video rounded-md relative overflow-hidden shrink-0 border border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #6366f1, #4f46e5)' }}>
+                                      <div className="w-full sm:w-64 aspect-video rounded-md relative overflow-hidden shrink-0 border border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #6366f1, #F8B486)' }}>
                                          <div className="absolute inset-0 flex flex-col items-center justify-center">
                                             <span className="text-4xl font-extrabold text-white/30 mb-1">{course.title.charAt(0).toUpperCase()}</span>
                                             <Play className="w-8 h-8 text-white/60 group-hover:scale-110 transition-transform" />
@@ -262,7 +262,7 @@ function CoursesPageContent() {
                           return (
                              <Link key={course.id} href={`/courses/${course.id}`} className="block">
                                 <div className="border border-border rounded-lg overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col">
-                                   <div className="w-full aspect-video relative overflow-hidden border-b border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #6366f1, #4f46e5)' }}>
+                                   <div className="w-full aspect-video relative overflow-hidden border-b border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #6366f1, #F8B486)' }}>
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                                          <span className="text-5xl font-extrabold text-white/30 mb-1">{course.title.charAt(0).toUpperCase()}</span>
                                          <Play className="w-8 h-8 text-white/60 group-hover:scale-110 transition-transform" />

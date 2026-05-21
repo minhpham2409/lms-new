@@ -106,13 +106,13 @@ export default function TeacherGradesPage() {
         </p>
 
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "#5624d0" }} /></div>
+          <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F8B486" }} /></div>
         ) : !selectedCourse ? (
           /* ===== COURSE LIST ===== */
           <>
             {courseGroups.length === 0 ? (
               <div className="card-base text-center py-16">
-                <CheckCircle2 className="w-14 h-14 mx-auto mb-4" style={{ color: "#10b981", opacity: 0.4 }} />
+                <CheckCircle2 className="w-14 h-14 mx-auto mb-4" style={{ color: "#F8B486", opacity: 0.4 }} />
                 <h3 className="font-bold text-lg mb-1">Không có bài nào cần chấm</h3>
                 <p className="text-sm" style={{ color: "#6a6f73" }}>Tất cả bài nộp đã được chấm điểm 🎉</p>
               </div>
@@ -125,10 +125,10 @@ export default function TeacherGradesPage() {
                   <button key={group.courseId}
                     onClick={() => setSelectedCourse(group.courseId)}
                     className="card-base card-hover w-full text-left flex items-center gap-4 transition-all"
-                    style={{ borderLeft: "3px solid #a435f0" }}>
+                    style={{ borderLeft: "3px solid #FFCCAA" }}>
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: "rgba(124,58,237,0.12)" }}>
-                      <BookOpen className="w-6 h-6" style={{ color: "#5624d0" }} />
+                      style={{ background: "rgba(248,180,134,0.12)" }}>
+                      <BookOpen className="w-6 h-6" style={{ color: "#F8B486" }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-sm truncate">{group.courseTitle}</h3>
@@ -138,7 +138,7 @@ export default function TeacherGradesPage() {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold"
-                        style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
+                        style={{ background: "rgba(248,180,134,0.12)", color: "#F8B486" }}>
                         <Bell className="w-3 h-3" /> {group.submissions.length}
                       </span>
                       <ChevronDown className="w-4 h-4" style={{ color: "#6a6f73" }} />
@@ -158,7 +158,7 @@ export default function TeacherGradesPage() {
 
             <div className="mb-6">
               <h2 className="text-lg font-extrabold flex items-center gap-2">
-                <BookOpen className="w-5 h-5" style={{ color: "#5624d0" }} />
+                <BookOpen className="w-5 h-5" style={{ color: "#F8B486" }} />
                 {activeCourse?.courseTitle || "Khóa học"}
               </h2>
               <p className="text-xs mt-1" style={{ color: "#6a6f73" }}>
@@ -168,7 +168,7 @@ export default function TeacherGradesPage() {
 
             {(!activeCourse || activeCourse.submissions.length === 0) ? (
               <div className="card-base text-center py-12">
-                <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: "#10b981", opacity: 0.4 }} />
+                <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: "#F8B486", opacity: 0.4 }} />
                 <p className="font-semibold">Đã chấm hết bài của khóa này! 🎉</p>
                 <button onClick={() => setSelectedCourse(null)} className="btn-secondary text-sm mt-4">
                   Quay lại
@@ -194,14 +194,14 @@ export default function TeacherGradesPage() {
                         onClick={() => setExpanded(isOpen ? null : sub.id)}>
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
-                            style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
+                            style={{ background: "linear-gradient(135deg, #FFCCAA, #94A3B8)" }}>
                             {name.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-semibold text-sm">{name}</span>
                               <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                                style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>
+                                style={{ background: "rgba(255,204,170,0.15)", color: "#FFCCAA" }}>
                                 ⏳ Chờ chấm
                               </span>
                             </div>
@@ -245,9 +245,9 @@ export default function TeacherGradesPage() {
                           )}
 
                           {/* Grading form */}
-                          <div className="p-4 rounded-xl" style={{ background: "rgba(124,58,237,0.05)", border: "1px solid rgba(124,58,237,0.15)" }}>
+                          <div className="p-4 rounded-xl" style={{ background: "rgba(248,180,134,0.05)", border: "1px solid rgba(248,180,134,0.15)" }}>
                             <p className="text-sm font-bold mb-3 flex items-center gap-2">
-                              <Star className="w-4 h-4" style={{ color: "#f59e0b" }} /> Chấm điểm (tối đa {maxScore})
+                              <Star className="w-4 h-4" style={{ color: "#FFCCAA" }} /> Chấm điểm (tối đa {maxScore})
                             </p>
                             <div className="flex gap-3 mb-3">
                               <input type="number" min={0} max={maxScore} step={0.5}

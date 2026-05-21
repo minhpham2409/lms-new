@@ -434,11 +434,11 @@ export default function DashboardPage() {
                               <div className="flex gap-2 flex-shrink-0">
                                  <button
                                    onClick={() => acceptParentLink(req.id)}
-                                   className="px-4 py-2 bg-[#a435f0] hover:bg-[#8710d8] text-white text-xs font-bold rounded transition-colors"
+                                   className="px-4 py-2 bg-[#FFCCAA] hover:bg-[#8710d8] text-white text-xs font-bold rounded transition-colors"
                                  >✓ Chấp nhận</button>
                                  <button
                                    onClick={() => rejectParentLink(req.id)}
-                                   className="px-4 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] text-[#6a6f73] text-xs font-bold rounded hover:bg-[#fee2e2] hover:text-[#ef4444] hover:border-[#ef4444] transition-colors"
+                                   className="px-4 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] text-[#6a6f73] text-xs font-bold rounded hover:bg-[#fee2e2] hover:text-[#F8B486] hover:border-[#F8B486] transition-colors"
                                  >✕ Từ chối</button>
                               </div>
                            </div>

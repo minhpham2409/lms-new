@@ -148,14 +148,14 @@ export function Step3Lessons({ sections, setSections, token }: any) {
   return (
     <div className="space-y-6 animate-scale-in">
       <h3 className="font-bold text-lg flex items-center gap-2 px-2">
-        <Play className="w-5 h-5" style={{ color: "#f59e0b" }} /> Bước 3: Bài giảng & Nội dung
+        <Play className="w-5 h-5" style={{ color: "#FFCCAA" }} /> Bước 3: Bài giảng & Nội dung
       </h3>
 
       {sections.map((sec: any, si: number) => (
-        <div key={sec.id} className="card-base" style={{ borderColor: sec.expanded ? "#f59e0b" : "var(--border)" }}>
+        <div key={sec.id} className="card-base" style={{ borderColor: sec.expanded ? "#FFCCAA" : "var(--border)" }}>
           <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => toggleSection(sec.id)}>
             <h4 className="font-bold flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white" style={{ background: "#f59e0b" }}>{si + 1}</span>
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white" style={{ background: "#FFCCAA" }}>{si + 1}</span>
               {sec.title || "Chương chưa có tên"}
             </h4>
             <div className="flex items-center gap-3">
@@ -181,7 +181,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                       <div className="grid md:grid-cols-3 gap-3">
                         {/* ===== VIDEO ===== */}
                         <div className="p-3 rounded-lg space-y-2" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
-                          <label className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#ef4444" }}>
+                          <label className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#F8B486" }}>
                             <Video className="w-3.5 h-3.5" /> Video bài giảng
                           </label>
 
@@ -197,9 +197,9 @@ export function Step3Lessons({ sections, setSections, token }: any) {
 
                           {/* File upload */}
                           {isUploadedVideo(les.videoUrl) ? (
-                            <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-                              <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#ef4444" }} />
-                              <span className="text-[10px] truncate flex-1" style={{ color: "#ef4444" }}>Video đã tải lên</span>
+                            <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "rgba(248,180,134,0.08)", border: "1px solid rgba(248,180,134,0.2)" }}>
+                              <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#F8B486" }} />
+                              <span className="text-[10px] truncate flex-1" style={{ color: "#F8B486" }}>Video đã tải lên</span>
                               <button type="button" onClick={() => updateLesson(sec.id, les.id, { videoUrl: "" })}
                                 className="text-[10px]" style={{ color: "#6a6f73" }}>Xóa</button>
                             </div>
@@ -209,7 +209,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                               onUploaded={(url, mediaAssetId) => updateLesson(sec.id, les.id, { videoUrl: url, mediaAssetId })}
                               uploading={uploading} setUploading={setUploading}
                               accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
-                              label="Tải video từ máy" color="#ef4444"
+                              label="Tải video từ máy" color="#F8B486"
                             />
                           )}
                         </div>
@@ -247,7 +247,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
 
                         {/* ===== ASSIGNMENT IMAGE ===== */}
                         <div className="p-3 rounded-lg space-y-2" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
-                          <label className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#10b981" }}>
+                          <label className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#F8B486" }}>
                             <ImageIcon className="w-3.5 h-3.5" /> Ảnh đề bài tập
                           </label>
                           <p className="text-[10px]" style={{ color: "#6a6f73" }}>Học sinh nộp bài bằng ảnh chụp</p>
@@ -261,7 +261,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                                 />
                               </div>
                               <button type="button" onClick={() => updateLesson(sec.id, les.id, { assignmentImageUrl: "" })}
-                                className="text-[10px] w-full text-center" style={{ color: "#ef4444" }}>Xóa ảnh</button>
+                                className="text-[10px] w-full text-center" style={{ color: "#F8B486" }}>Xóa ảnh</button>
                             </div>
                           ) : (
                             <UploadButton
@@ -269,7 +269,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                               onUploaded={(url) => updateLesson(sec.id, les.id, { assignmentImageUrl: url })}
                               uploading={uploading} setUploading={setUploading}
                               accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
-                              label="Chọn ảnh đề bài" color="#10b981"
+                              label="Chọn ảnh đề bài" color="#F8B486"
                             />
                           )}
                         </div>
@@ -277,7 +277,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                     </div>
 
                     <button type="button" onClick={() => removeLesson(sec.id, les.id)} className="btn-ghost px-2 py-2 mt-2">
-                      <Trash2 className="w-4 h-4" style={{ color: "#ef4444" }} />
+                      <Trash2 className="w-4 h-4" style={{ color: "#F8B486" }} />
                     </button>
                   </div>
                 </div>

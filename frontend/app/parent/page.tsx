@@ -563,7 +563,7 @@ export default function ParentPage() {
         className="min-h-screen flex items-center justify-center"
         style={{ background: "var(--background)" }}
       >
-        <div className="w-8 h-8 border-2 border-[#f59e0b] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#FFCCAA] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -631,7 +631,7 @@ export default function ParentPage() {
               style={{ color: "#6a6f73" }}
             >
               Đơn hàng{" "}
-              <span className="font-mono" style={{ color: "#5624d0" }}>
+              <span className="font-mono" style={{ color: "#F8B486" }}>
                 #{qrPopup.id?.substring(0, 8)}
               </span>
             </p>
@@ -650,7 +650,7 @@ export default function ParentPage() {
             <p className="text-3xl font-extrabold gradient-text mb-2">
               {qrPopup.amount.toLocaleString()} ₫
             </p>
-            <p className="text-xs" style={{ color: "#f59e0b" }}>
+            <p className="text-xs" style={{ color: "#FFCCAA" }}>
               Dùng ứng dụng ngân hàng để quét mã QR
             </p>
           </div>
@@ -867,7 +867,7 @@ export default function ParentPage() {
             <div className="flex justify-center py-20">
               <Loader2
                 className="w-10 h-10 animate-spin"
-                style={{ color: "#5624d0" }}
+                style={{ color: "#F8B486" }}
               />
             </div>
           ) : (
@@ -967,13 +967,13 @@ export default function ParentPage() {
                     }}
                   >
                     <t.icon
-                      className={`w-4 h-4 ${tab === t.id ? "text-[#a435f0]" : ""}`}
+                      className={`w-4 h-4 ${tab === t.id ? "text-[#FFCCAA]" : ""}`}
                     />{" "}
                     {t.label}
                     {(t as any).badge > 0 && (
                       <span
                         className="w-5 h-5 rounded-full text-[10px] flex items-center justify-center text-white shadow-sm"
-                        style={{ background: "#ef4444" }}
+                        style={{ background: "#F8B486" }}
                       >
                         {(t as any).badge}
                       </span>
@@ -983,7 +983,7 @@ export default function ParentPage() {
                       !(t as any).badge && (
                         <span
                           className="w-5 h-5 rounded-full text-[10px] flex items-center justify-center text-white shadow-sm"
-                          style={{ background: "#ef4444" }}
+                          style={{ background: "#F8B486" }}
                         >
                           {incomingRequests.length + outgoingRequests.length}
                         </span>
@@ -992,8 +992,8 @@ export default function ParentPage() {
                       <div
                         className="absolute bottom-0 left-0 right-0 h-0.5"
                         style={{
-                          background: "#a435f0",
-                          boxShadow: "0 -2px 10px rgba(124,58,237,0.5)",
+                          background: "#FFCCAA",
+                          boxShadow: "0 -2px 10px rgba(248,180,134,0.5)",
                         }}
                       ></div>
                     )}
@@ -1027,8 +1027,8 @@ export default function ParentPage() {
                             <span
                               className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
                               style={{
-                                background: "rgba(16,185,129,0.15)",
-                                color: "#10b981",
+                                background: "rgba(248,180,134,0.15)",
+                                color: "#F8B486",
                               }}
                             >
                               {child.isActive !== false
@@ -1066,7 +1066,7 @@ export default function ParentPage() {
                           childDashboard?.enrollments?.length ??
                           childCourses.length,
                         icon: BookOpen,
-                        color: "#5624d0",
+                        color: "#F8B486",
                         sub: "đã đăng ký",
                       },
                       {
@@ -1074,14 +1074,14 @@ export default function ParentPage() {
                         value:
                           childDashboard?.activity?.videoLessonsCompleted ?? 0,
                         icon: CheckCircle2,
-                        color: "#10b981",
+                        color: "#F8B486",
                         sub: "hoàn thành",
                       },
                       {
                         label: "Quiz đã làm",
                         value: childDashboard?.activity?.quizAttempts ?? 0,
                         icon: Award,
-                        color: "#f59e0b",
+                        color: "#FFCCAA",
                         sub: "lần làm quiz",
                       },
                       {
@@ -1089,14 +1089,14 @@ export default function ParentPage() {
                         value:
                           childDashboard?.activity?.assignmentSubmissions ?? 0,
                         icon: TrendingUp,
-                        color: "#0891b2",
+                        color: "#94A3B8",
                         sub: "bài tập",
                       },
                       {
                         label: "Chứng chỉ",
                         value: childDashboard?.certificates?.length ?? 0,
                         icon: Award,
-                        color: "#ec4899",
+                        color: "#FFCCAA",
                         sub: "đã nhận",
                       },
                     ].map(({ label, value, icon: Icon, color, sub }) => (
@@ -1177,9 +1177,9 @@ export default function ParentPage() {
                                     style={{
                                       borderColor:
                                         pct >= 100
-                                          ? "#10b981"
+                                          ? "#F8B486"
                                           : pct > 0
-                                            ? "#a435f0"
+                                            ? "#FFCCAA"
                                             : "var(--muted)",
                                     }}
                                   >
@@ -1198,8 +1198,8 @@ export default function ParentPage() {
                                       width: `${pct}%`,
                                       background:
                                         pct >= 100
-                                          ? "#10b981"
-                                          : "linear-gradient(90deg, #a435f0, #c084fc)",
+                                          ? "#F8B486"
+                                          : "linear-gradient(90deg, #FFCCAA, #c084fc)",
                                     }}
                                   >
                                     {pct > 0 && pct < 100 && (
@@ -1216,7 +1216,7 @@ export default function ParentPage() {
                                   </span>
                                   <span
                                     style={{
-                                      color: pct >= 100 ? "#10b981" : "inherit",
+                                      color: pct >= 100 ? "#F8B486" : "inherit",
                                     }}
                                   >
                                     {pct >= 100 ? "🎉 Hoàn thành" : "Đang học"}
@@ -1422,8 +1422,8 @@ export default function ParentPage() {
                                     width: `${pct}%`,
                                     background:
                                       pct >= 100
-                                        ? "#10b981"
-                                        : "linear-gradient(90deg, #a435f0, #5624d0)",
+                                        ? "#F8B486"
+                                        : "linear-gradient(90deg, #FFCCAA, #F8B486)",
                                   }}
                                 />
                               </div>
@@ -1507,10 +1507,10 @@ export default function ParentPage() {
                                     style={{
                                       background:
                                         avg >= 8
-                                          ? "linear-gradient(90deg, #10b981, #34d399)"
+                                          ? "linear-gradient(90deg, #F8B486, #34d399)"
                                           : avg >= 5
-                                            ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                                            : "linear-gradient(90deg, #ef4444, #f87171)",
+                                            ? "linear-gradient(90deg, #FFCCAA, #fbbf24)"
+                                            : "linear-gradient(90deg, #F8B486, #f87171)",
                                     }}
                                   ></div>
                                   <div className="p-6">
@@ -1543,10 +1543,10 @@ export default function ParentPage() {
                                             style={{
                                               color:
                                                 avg >= 8
-                                                  ? "#10b981"
+                                                  ? "#F8B486"
                                                   : avg >= 5
-                                                    ? "#f59e0b"
-                                                    : "#ef4444",
+                                                    ? "#FFCCAA"
+                                                    : "#F8B486",
                                             }}
                                           >
                                             {avg.toFixed(1)}
@@ -1608,8 +1608,8 @@ export default function ParentPage() {
                                                         style={{
                                                           width: `${pct}%`,
                                                           background: passed
-                                                            ? "#10b981"
-                                                            : "#ef4444",
+                                                            ? "#F8B486"
+                                                            : "#F8B486",
                                                         }}
                                                       />
                                                     </div>
@@ -1619,8 +1619,8 @@ export default function ParentPage() {
                                                       className="text-2xl font-black"
                                                       style={{
                                                         color: passed
-                                                          ? "#10b981"
-                                                          : "#ef4444",
+                                                          ? "#F8B486"
+                                                          : "#F8B486",
                                                       }}
                                                     >
                                                       {sub.score}
@@ -1666,7 +1666,7 @@ export default function ParentPage() {
                                 <div>
                                   <p
                                     className="text-xl font-extrabold"
-                                    style={{ color: "#5624d0" }}
+                                    style={{ color: "#F8B486" }}
                                   >
                                     {courses.length}
                                   </p>
@@ -1680,7 +1680,7 @@ export default function ParentPage() {
                                 <div>
                                   <p
                                     className="text-xl font-extrabold"
-                                    style={{ color: "#10b981" }}
+                                    style={{ color: "#F8B486" }}
                                   >
                                     {
                                       childGrades.filter(
@@ -1698,7 +1698,7 @@ export default function ParentPage() {
                                 <div>
                                   <p
                                     className="text-xl font-extrabold"
-                                    style={{ color: "#0891b2" }}
+                                    style={{ color: "#94A3B8" }}
                                   >
                                     {(() => {
                                       const g = childGrades.filter(
@@ -1725,7 +1725,7 @@ export default function ParentPage() {
                                 <div>
                                   <p
                                     className="text-xl font-extrabold"
-                                    style={{ color: "#f59e0b" }}
+                                    style={{ color: "#FFCCAA" }}
                                   >
                                     {
                                       childGrades.filter(
@@ -1756,7 +1756,7 @@ export default function ParentPage() {
                   <h3 className="text-lg font-extrabold mb-4 flex items-center gap-2">
                     <CreditCard
                       className="w-5 h-5"
-                      style={{ color: "#5624d0" }}
+                      style={{ color: "#F8B486" }}
                     />{" "}
                     Thanh toán chờ xử lý
                   </h3>
@@ -1764,7 +1764,7 @@ export default function ParentPage() {
                     <div className="bg-card border border-border p-6 shadow-sm text-center py-12">
                       <CheckCircle2
                         className="w-12 h-12 mx-auto mb-3"
-                        style={{ color: "#10b981" }}
+                        style={{ color: "#F8B486" }}
                       />
                       <h3 className="font-bold mb-2">
                         Không có thanh toán chờ
@@ -1883,13 +1883,13 @@ export default function ParentPage() {
                             <div
                               className="p-3 rounded-xl mt-2"
                               style={{
-                                background: "rgba(16,185,129,0.08)",
-                                border: "1px solid rgba(16,185,129,0.2)",
+                                background: "rgba(248,180,134,0.08)",
+                                border: "1px solid rgba(248,180,134,0.2)",
                               }}
                             >
                               <p
                                 className="text-xs font-medium flex items-center gap-1.5"
-                                style={{ color: "#10b981" }}
+                                style={{ color: "#F8B486" }}
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Sau khi chuyển
                                 khoản đúng nội dung, hệ thống sẽ tự động kích hoạt khóa học
@@ -1934,9 +1934,9 @@ export default function ParentPage() {
                       {/* Summary row */}
                       <div className="grid grid-cols-3 gap-4 mb-2">
                         {[
-                          { label: "Tổng đơn", value: childTransactions.length, color: "#5624d0" },
-                          { label: "Đã thanh toán", value: childTransactions.filter((o: any) => isOrderPaid(o)).length, color: "#10b981" },
-                          { label: "Chờ xử lý", value: childTransactions.filter((o: any) => o.status === "pending").length, color: "#f59e0b" },
+                          { label: "Tổng đơn", value: childTransactions.length, color: "#F8B486" },
+                          { label: "Đã thanh toán", value: childTransactions.filter((o: any) => isOrderPaid(o)).length, color: "#F8B486" },
+                          { label: "Chờ xử lý", value: childTransactions.filter((o: any) => o.status === "pending").length, color: "#FFCCAA" },
                         ].map(({ label, value, color }) => (
                           <div key={label} className="bg-card border border-border p-4 text-center">
                             <p className="text-2xl font-extrabold" style={{ color }}>{value}</p>
@@ -1947,11 +1947,11 @@ export default function ParentPage() {
 
                       {childTransactions.map((order: any) => {
                         const statusMap: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-                          paid:      { label: "Đã thanh toán", color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: "✅" },
-                          completed: { label: "Đã thanh toán", color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: "✅" },
-                          pending:   { label: "Chờ thanh toán", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", icon: "⏳" },
-                          cancelled: { label: "Đã hủy",        color: "#ef4444", bg: "rgba(239,68,68,0.1)",  icon: "❌" },
-                          failed:    { label: "Thất bại",      color: "#ef4444", bg: "rgba(239,68,68,0.1)",  icon: "❌" },
+                          paid:      { label: "Đã thanh toán", color: "#F8B486", bg: "rgba(248,180,134,0.1)", icon: "✅" },
+                          completed: { label: "Đã thanh toán", color: "#F8B486", bg: "rgba(248,180,134,0.1)", icon: "✅" },
+                          pending:   { label: "Chờ thanh toán", color: "#FFCCAA", bg: "rgba(255,204,170,0.1)", icon: "⏳" },
+                          cancelled: { label: "Đã hủy",        color: "#F8B486", bg: "rgba(248,180,134,0.1)",  icon: "❌" },
+                          failed:    { label: "Thất bại",      color: "#F8B486", bg: "rgba(248,180,134,0.1)",  icon: "❌" },
                         };
                         const st = statusMap[order.status] || { label: order.status, color: "#6b7280", bg: "rgba(107,114,128,0.1)", icon: "•" };
                         const total = order.finalPrice || order.totalPrice || 0;
@@ -1988,7 +1988,7 @@ export default function ParentPage() {
 
                             <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--border)" }}>
                               <span className="text-xs" style={{ color: "#6a6f73" }}>Tổng cộng</span>
-                              <span className="text-lg font-extrabold" style={{ color: "#5624d0" }}>
+                              <span className="text-lg font-extrabold" style={{ color: "#F8B486" }}>
                                 {total.toLocaleString("vi-VN")} ₫
                               </span>
                             </div>
@@ -2040,7 +2040,7 @@ export default function ParentPage() {
                               <button
                                 onClick={() => rejectRequest(r.id)}
                                 className="btn-ghost text-xs px-3 py-1"
-                                style={{ color: "#ef4444" }}
+                                style={{ color: "#F8B486" }}
                               >
                                 <XCircle className="w-3 h-3" /> Từ chối
                               </button>
@@ -2074,7 +2074,7 @@ export default function ParentPage() {
                             <button
                               onClick={() => deleteRequest(r.id)}
                               className="btn-ghost text-xs"
-                              style={{ color: "#ef4444" }}
+                              style={{ color: "#F8B486" }}
                             >
                               Hủy
                             </button>

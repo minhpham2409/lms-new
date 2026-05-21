@@ -7,7 +7,7 @@ export function Step1BasicInfo({ title, setTitle, description, setDescription, c
   return (
     <div className="card-base animate-scale-in">
       <h3 className="font-bold mb-6 flex items-center gap-2 text-lg">
-        <BookOpen className="w-5 h-5" style={{ color: "#5624d0" }} /> Bước 1: Thông tin cơ bản
+        <BookOpen className="w-5 h-5" style={{ color: "#F8B486" }} /> Bước 1: Thông tin cơ bản
       </h3>
       <div className="space-y-5">
         <div>
@@ -47,15 +47,15 @@ export function Step1BasicInfo({ title, setTitle, description, setDescription, c
                     <span className="font-bold">{Number(price).toLocaleString("vi-VN")} ₫</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: "#ef4444" }}>Phí nền tảng (20%)</span>
-                    <span className="font-semibold" style={{ color: "#ef4444" }}>
+                    <span style={{ color: "#F8B486" }}>Phí nền tảng (20%)</span>
+                    <span className="font-semibold" style={{ color: "#F8B486" }}>
                       −{Math.round(Number(price) * 0.2).toLocaleString("vi-VN")} ₫
                     </span>
                   </div>
                   <div className="border-t pt-1.5 mt-1.5" style={{ borderColor: "var(--border)" }}>
                     <div className="flex justify-between text-sm">
-                      <span className="font-bold" style={{ color: "#10b981" }}>✅ Bạn nhận được</span>
-                      <span className="font-extrabold text-base" style={{ color: "#10b981" }}>
+                      <span className="font-bold" style={{ color: "#F8B486" }}>✅ Bạn nhận được</span>
+                      <span className="font-extrabold text-base" style={{ color: "#F8B486" }}>
                         {Math.round(Number(price) * 0.8).toLocaleString("vi-VN")} ₫
                       </span>
                     </div>

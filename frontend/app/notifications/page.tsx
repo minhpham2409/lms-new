@@ -15,7 +15,7 @@ const typeConfig: Record<string, { icon: any; color: string; bg: string; label: 
   info: { icon: Info, color: "#0369a1", bg: "#e0f2fe", label: "Thông tin" },
   warning: { icon: AlertTriangle, color: "#92400e", bg: "#fef3c7", label: "Cảnh báo" },
   error: { icon: XCircle, color: "#b91c1c", bg: "#fee2e2", label: "Lỗi" },
-  achievement: { icon: Zap, color: "#7c3aed", bg: "#ede9fe", label: "Thành tích" },
+  achievement: { icon: Zap, color: "#F8B486", bg: "#ede9fe", label: "Thành tích" },
   reward: { icon: Gift, color: "#be185d", bg: "#fce7f3", label: "Phần thưởng" },
 };
 
@@ -67,7 +67,7 @@ export default function NotificationsPage() {
 
   if (authLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#1c1d1f]">
-      <Loader2 className="w-8 h-8 animate-spin text-[#a435f0]" />
+      <Loader2 className="w-8 h-8 animate-spin text-[#FFCCAA]" />
     </div>
   );
 
@@ -84,10 +84,10 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-[#2d2f31] dark:text-white flex items-center gap-2.5">
-                <Bell className="w-6 h-6 text-[#5624d0]" />
+                <Bell className="w-6 h-6 text-[#F8B486]" />
                 Thông báo
                 {unread.length > 0 && (
-                  <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#a435f0] text-white">
+                  <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#FFCCAA] text-white">
                     {unread.length}
                   </span>
                 )}
@@ -95,7 +95,7 @@ export default function NotificationsPage() {
               <p className="text-sm text-[#6a6f73] mt-1">{notifications.length} thông báo · {unread.length} chưa đọc</p>
             </div>
             {unread.length > 0 && (
-              <button onClick={markAllRead} className="text-sm font-bold text-[#5624d0] dark:text-[#c0a5f7] hover:underline">
+              <button onClick={markAllRead} className="text-sm font-bold text-[#F8B486] dark:text-[#c0a5f7] hover:underline">
                 Đánh dấu tất cả đã đọc
               </button>
             )}
@@ -119,7 +119,7 @@ export default function NotificationsPage() {
       <div className="max-w-[750px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-[#a435f0]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#FFCCAA]" />
           </div>
         ) : displayed.length === 0 ? (
           <div className="bg-white dark:bg-[#2d2f31] border border-[#d1d7dc] dark:border-[#3e4143] rounded p-16 text-center">
@@ -147,7 +147,7 @@ export default function NotificationsPage() {
                 <div
                   key={n.id}
                   onClick={() => { if (isUnread) markRead(n.id); if (notifLink) window.location.href = notifLink; }}
-                  className={`bg-white dark:bg-[#2d2f31] border rounded cursor-pointer transition-all hover:shadow-sm group ${isUnread ? "border-l-4 border-[#a435f0] border-y-[#d1d7dc] border-r-[#d1d7dc] dark:border-y-[#3e4143] dark:border-r-[#3e4143]" : "border-[#d1d7dc] dark:border-[#3e4143]"}`}
+                  className={`bg-white dark:bg-[#2d2f31] border rounded cursor-pointer transition-all hover:shadow-sm group ${isUnread ? "border-l-4 border-[#FFCCAA] border-y-[#d1d7dc] border-r-[#d1d7dc] dark:border-y-[#3e4143] dark:border-r-[#3e4143]" : "border-[#d1d7dc] dark:border-[#3e4143]"}`}
                   style={{ background: isUnread ? "rgba(164,53,240,0.02)" : undefined }}
                 >
                   <div className="flex items-start gap-4 p-4">
@@ -161,12 +161,12 @@ export default function NotificationsPage() {
                           <p className="text-xs text-[#6a6f73] mt-0.5 line-clamp-2">{displayMessage}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          {isUnread && <div className="w-2 h-2 rounded-full bg-[#a435f0]" />}
+                          {isUnread && <div className="w-2 h-2 rounded-full bg-[#FFCCAA]" />}
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
                             className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#fee2e2] rounded transition-all"
                           >
-                            <Trash2 className="w-3.5 h-3.5 text-[#ef4444]" />
+                            <Trash2 className="w-3.5 h-3.5 text-[#F8B486]" />
                           </button>
                         </div>
                       </div>
@@ -178,7 +178,7 @@ export default function NotificationsPage() {
                           {cfg.label}
                         </span>
                         {notifLink && (
-                          <span className="text-[11px] font-bold text-[#5624d0] dark:text-[#c0a5f7]">
+                          <span className="text-[11px] font-bold text-[#F8B486] dark:text-[#c0a5f7]">
                             Xem chi tiết →
                           </span>
                         )}

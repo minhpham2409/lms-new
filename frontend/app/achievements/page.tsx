@@ -59,9 +59,9 @@ const TIER_COLORS: Record<string, { bg: string; border: string; text: string; gl
   bronze:    { bg: "rgba(180,100,30,0.12)",  border: "rgba(180,100,30,0.4)",   text: "#cd7f32", textLight: "#cd7f32", glow: "rgba(205,127,50,0.3)" },
   silver:    { bg: "rgba(140,140,160,0.12)", border: "rgba(140,140,160,0.4)",  text: "#a0a0b0", textLight: "#a0a0b0", glow: "rgba(160,160,180,0.3)" },
   gold:      { bg: "rgba(200,170,0,0.12)",   border: "rgba(200,170,0,0.4)",    text: "#d4a500", textLight: "#d4a500", glow: "rgba(255,215,0,0.3)" },
-  platinum:  { bg: "rgba(124,58,237,0.12)",  border: "rgba(124,58,237,0.4)",   text: "#a78bfa", textLight: "#a78bfa", glow: "rgba(124,58,237,0.3)" },
-  diamond:   { bg: "rgba(6,182,212,0.12)",   border: "rgba(6,182,212,0.4)",    text: "#22d3ee", textLight: "#22d3ee", glow: "rgba(34,211,238,0.3)" },
-  legendary: { bg: "rgba(220,130,0,0.12)",   border: "rgba(220,130,0,0.4)",    text: "#f59e0b", textLight: "#f59e0b", glow: "rgba(245,158,11,0.4)" },
+  platinum:  { bg: "rgba(248,180,134,0.12)",  border: "rgba(248,180,134,0.4)",   text: "#FFCCAA", textLight: "#FFCCAA", glow: "rgba(248,180,134,0.3)" },
+  diamond:   { bg: "rgba(6,182,212,0.12)",   border: "rgba(6,182,212,0.4)",    text: "#94A3B8", textLight: "#94A3B8", glow: "rgba(34,211,238,0.3)" },
+  legendary: { bg: "rgba(220,130,0,0.12)",   border: "rgba(220,130,0,0.4)",    text: "#FFCCAA", textLight: "#FFCCAA", glow: "rgba(255,204,170,0.4)" },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {

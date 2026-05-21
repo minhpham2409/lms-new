@@ -6,7 +6,7 @@ export function Step4Review({ title, category, level, price, sections }: any) {
   return (
     <div className="card-base animate-scale-in">
       <h3 className="font-bold mb-6 flex items-center gap-2 text-lg">
-        <CheckCircle2 className="w-5 h-5" style={{ color: "#10b981" }} /> Bước 4: Xem lại & Hoàn thành
+        <CheckCircle2 className="w-5 h-5" style={{ color: "#F8B486" }} /> Bước 4: Xem lại & Hoàn thành
       </h3>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -23,8 +23,8 @@ export function Step4Review({ title, category, level, price, sections }: any) {
         <div>
           <h4 className="font-semibold text-sm mb-3" style={{ color: "#6a6f73" }}>Thống kê nội dung</h4>
           <div className="space-y-3 p-4 rounded-xl" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
-            <p><strong>Tổng số chương:</strong> <span className="font-bold text-[#0891b2]">{sections.length}</span></p>
-            <p><strong>Tổng số bài giảng:</strong> <span className="font-bold text-[#f59e0b]">{totalLessons}</span></p>
+            <p><strong>Tổng số chương:</strong> <span className="font-bold text-[#94A3B8]">{sections.length}</span></p>
+            <p><strong>Tổng số bài giảng:</strong> <span className="font-bold text-[#FFCCAA]">{totalLessons}</span></p>
           </div>
         </div>
       </div>
@@ -37,7 +37,7 @@ export function Step4Review({ title, category, level, price, sections }: any) {
           <div className="space-y-3">
             {sections.map((sec: any, si: number) => (
               <div key={sec.id} className="p-3 rounded-lg" style={{ border: "1px solid var(--border)" }}>
-                <p className="font-bold text-sm mb-2 text-[#0891b2]">Chương {si + 1}: {sec.title || "Chưa có tên"}</p>
+                <p className="font-bold text-sm mb-2 text-[#94A3B8]">Chương {si + 1}: {sec.title || "Chưa có tên"}</p>
                 <div className="space-y-2 ml-4 border-l-2 pl-3" style={{ borderColor: "var(--border)" }}>
                   {sec.lessons.length === 0 ? (
                     <p className="text-xs text-red-500">Chưa có bài học</p>
@@ -48,7 +48,7 @@ export function Step4Review({ title, category, level, price, sections }: any) {
                         <div className="flex gap-2">
                           {les.videoUrl ? <span className="badge badge-success text-[10px]"><Play className="w-2.5 h-2.5 inline mr-1"/>Có video</span> : <span className="badge badge-warning text-[10px]">Thiếu video</span>}
                           {les.documentUrl && <span className="badge text-[10px]" style={{ background: "rgba(59,130,246,0.1)", color: "#3b82f6" }}><FileText className="w-2.5 h-2.5 inline mr-1"/>Có tài liệu</span>}
-                          {les.assignmentImageUrl && <span className="badge text-[10px]" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}><ImageIcon className="w-2.5 h-2.5 inline mr-1"/>Có ảnh bài tập</span>}
+                          {les.assignmentImageUrl && <span className="badge text-[10px]" style={{ background: "rgba(248,180,134,0.1)", color: "#F8B486" }}><ImageIcon className="w-2.5 h-2.5 inline mr-1"/>Có ảnh bài tập</span>}
                         </div>
                       </div>
                     ))

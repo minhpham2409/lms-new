@@ -141,7 +141,7 @@ export default function MonthlyRacePage() {
   if (loading || pageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-        <Loader2 className="w-10 h-10 animate-spin" style={{ color: "#5624d0" }} />
+        <Loader2 className="w-10 h-10 animate-spin" style={{ color: "#F8B486" }} />
       </div>
     );
   }
@@ -150,12 +150,12 @@ export default function MonthlyRacePage() {
   const renderStatsBreakdown = (stats: MonthlyStats | LeaderboardEntry) => (
     <div className="space-y-4">
       {[
-        { icon: Video, label: "Video đã xem", value: stats.videosWatched, xp: stats.videosWatched * 5, color: "#5624d0" },
-        { icon: Target, label: "Quiz hoàn thành", value: stats.quizzesDone, xp: stats.quizzesDone * 10, color: "#0891b2" },
-        { icon: BookOpen, label: "Bài tập nộp", value: stats.assignmentsDone, xp: stats.assignmentsDone * 8, color: "#10b981" },
-        { icon: Calendar, label: "Ngày check-in", value: stats.checkInDays, xp: stats.checkInDays * 3, color: "#f59e0b" },
+        { icon: Video, label: "Video đã xem", value: stats.videosWatched, xp: stats.videosWatched * 5, color: "#F8B486" },
+        { icon: Target, label: "Quiz hoàn thành", value: stats.quizzesDone, xp: stats.quizzesDone * 10, color: "#94A3B8" },
+        { icon: BookOpen, label: "Bài tập nộp", value: stats.assignmentsDone, xp: stats.assignmentsDone * 8, color: "#F8B486" },
+        { icon: Calendar, label: "Ngày check-in", value: stats.checkInDays, xp: stats.checkInDays * 3, color: "#FFCCAA" },
         { icon: Award, label: "Huy hiệu mới", value: stats.badgesEarned, xp: stats.badgesEarned * 20, color: "#ffd700" },
-        { icon: Trophy, label: "Khóa hoàn thành", value: stats.coursesCompleted, xp: stats.coursesCompleted * 50, color: "#ef4444" },
+        { icon: Trophy, label: "Khóa hoàn thành", value: stats.coursesCompleted, xp: stats.coursesCompleted * 50, color: "#F8B486" },
         { icon: Crown, label: "Chứng chỉ", value: stats.certificatesEarned, xp: stats.certificatesEarned * 30, color: "#a855f7" },
       ].map(item => (
         <div key={item.label} className="flex items-center gap-4">
@@ -168,7 +168,7 @@ export default function MonthlyRacePage() {
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-base font-extrabold">{item.value}</p>
-            <p className="text-xs font-medium" style={{ color: "#10b981" }}>+{item.xp} XP</p>
+            <p className="text-xs font-medium" style={{ color: "#F8B486" }}>+{item.xp} XP</p>
           </div>
         </div>
       ))}
@@ -200,11 +200,11 @@ export default function MonthlyRacePage() {
             </button>
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl font-bold"
-                   style={{ background: "rgba(124,58,237,0.1)", border: "2px solid rgba(124,58,237,0.3)", color: "#5624d0" }}>
+                   style={{ background: "rgba(248,180,134,0.1)", border: "2px solid rgba(248,180,134,0.3)", color: "#F8B486" }}>
                 {selectedUser.name.charAt(0).toUpperCase()}
               </div>
               <h3 className="text-2xl font-extrabold">{selectedUser.name}</h3>
-              <p className="text-lg font-bold mt-1" style={{ color: "#f59e0b" }}>{selectedUser.xp} XP</p>
+              <p className="text-lg font-bold mt-1" style={{ color: "#FFCCAA" }}>{selectedUser.xp} XP</p>
             </div>
             <div className="max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                {renderStatsBreakdown(selectedUser)}
@@ -219,7 +219,7 @@ export default function MonthlyRacePage() {
           {/* Header */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full mb-5"
-                 style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)", color: "#f59e0b" }}>
+                 style={{ background: "rgba(255,204,170,0.08)", border: "1px solid rgba(255,204,170,0.15)", color: "#FFCCAA" }}>
               <Zap className="w-5 h-5" />
               <span className="text-sm font-bold uppercase tracking-wider">Cuộc đua tháng</span>
             </div>
@@ -241,7 +241,7 @@ export default function MonthlyRacePage() {
               <h2 className="text-2xl font-extrabold">{MONTH_NAMES[month]} {year}</h2>
               {isCurrentMonth && (
                 <p className="text-sm mt-1 font-medium" style={{ color: "#6a6f73" }}>
-                  Còn <span className="font-bold text-base" style={{ color: "#f59e0b" }}>{daysLeft}</span> ngày
+                  Còn <span className="font-bold text-base" style={{ color: "#FFCCAA" }}>{daysLeft}</span> ngày
                 </p>
               )}
             </div>
@@ -260,7 +260,7 @@ export default function MonthlyRacePage() {
                 <span>{Math.round(progressPercent)}% tháng</span>
               </div>
               <div className="progress-bar" style={{ height: 8 }}>
-                <div className="progress-fill" style={{ width: `${progressPercent}%`, background: "linear-gradient(to right, #f59e0b, #ef4444)" }} />
+                <div className="progress-fill" style={{ width: `${progressPercent}%`, background: "linear-gradient(to right, #FFCCAA, #F8B486)" }} />
               </div>
             </div>
           )}
@@ -270,11 +270,11 @@ export default function MonthlyRacePage() {
             {/* Left: My Stats */}
             <div className="space-y-6">
               {/* My XP Card */}
-              <div className="card-base relative overflow-hidden" style={{ border: "1px solid rgba(124,58,237,0.3)" }}>
+              <div className="card-base relative overflow-hidden" style={{ border: "1px solid rgba(248,180,134,0.3)" }}>
                 <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10"
-                     style={{ background: "radial-gradient(circle, #a435f0, transparent)", transform: "translate(30%, -30%)" }} />
+                     style={{ background: "radial-gradient(circle, #FFCCAA, transparent)", transform: "translate(30%, -30%)" }} />
                 <h3 className="font-bold text-base mb-5 flex items-center gap-2">
-                  <Star className="w-5 h-5" style={{ color: "#f59e0b" }} /> Điểm của bạn
+                  <Star className="w-5 h-5" style={{ color: "#FFCCAA" }} /> Điểm của bạn
                 </h3>
 
                 <div className="text-center mb-6">
@@ -283,9 +283,9 @@ export default function MonthlyRacePage() {
                 </div>
 
                 {myRank > 0 && (
-                  <div className="text-center p-4 rounded-xl mb-6" style={{ background: "rgba(124,58,237,0.08)" }}>
+                  <div className="text-center p-4 rounded-xl mb-6" style={{ background: "rgba(248,180,134,0.08)" }}>
                     <p className="text-sm font-medium mb-1" style={{ color: "#6a6f73" }}>Xếp hạng hiện tại</p>
-                    <p className="text-3xl font-extrabold" style={{ color: myRank <= 3 ? RANK_STYLES[myRank - 1]?.color : "#a435f0" }}>
+                    <p className="text-3xl font-extrabold" style={{ color: myRank <= 3 ? RANK_STYLES[myRank - 1]?.color : "#FFCCAA" }}>
                       {myRank <= 3 ? RANK_STYLES[myRank - 1].emoji : `#${myRank}`}
                     </p>
                   </div>
@@ -302,7 +302,7 @@ export default function MonthlyRacePage() {
                     <div key={r.rank} className="flex items-center justify-between text-sm py-2 px-3 rounded-lg"
                          style={{ background: "var(--muted)" }}>
                       <span className="font-bold">{r.rank}</span>
-                      <span className="font-extrabold" style={{ color: "#10b981" }}>{r.discount}</span>
+                      <span className="font-extrabold" style={{ color: "#F8B486" }}>{r.discount}</span>
                     </div>
                   ))}
                 </div>
@@ -312,7 +312,7 @@ export default function MonthlyRacePage() {
               {myStats && (
                 <div className="card-base">
                   <h3 className="font-bold text-base mb-5 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" style={{ color: "#10b981" }} /> Chi tiết hoạt động
+                    <TrendingUp className="w-5 h-5" style={{ color: "#F8B486" }} /> Chi tiết hoạt động
                   </h3>
                   {renderStatsBreakdown(myStats.stats)}
                 </div>
@@ -321,7 +321,7 @@ export default function MonthlyRacePage() {
               {/* XP Guide */}
               <div className="card-base">
                 <h3 className="font-bold text-base mb-4 flex items-center gap-2">
-                  <Zap className="w-5 h-5" style={{ color: "#f59e0b" }} /> Cách tính XP
+                  <Zap className="w-5 h-5" style={{ color: "#FFCCAA" }} /> Cách tính XP
                 </h3>
                 <div className="space-y-2 text-sm font-medium">
                   {[
@@ -335,7 +335,7 @@ export default function MonthlyRacePage() {
                   ].map(r => (
                     <div key={r.act} className="flex justify-between py-1.5 px-3 rounded-lg" style={{ background: "var(--muted)" }}>
                       <span style={{ color: "#6a6f73" }}>{r.act}</span>
-                      <span className="font-bold" style={{ color: "#10b981" }}>{r.xp}</span>
+                      <span className="font-bold" style={{ color: "#F8B486" }}>{r.xp}</span>
                     </div>
                   ))}
                 </div>
@@ -382,7 +382,7 @@ export default function MonthlyRacePage() {
                                 {entry.name.charAt(0).toUpperCase()}
                               </div>
                               <p className="text-sm font-bold text-center truncate w-full mb-1">
-                                {entry.name} {isMe && <span style={{ color: "#a435f0" }}>(bạn)</span>}
+                                {entry.name} {isMe && <span style={{ color: "#FFCCAA" }}>(bạn)</span>}
                               </p>
                               <p className="text-xs font-extrabold mb-3" style={{ color: rs.color }}>{entry.xp} XP</p>
                               <div className={`w-full ${height} rounded-t-2xl flex items-start justify-center pt-4 transition-colors`}
@@ -404,8 +404,8 @@ export default function MonthlyRacePage() {
                              onClick={() => setSelectedUser(entry)}
                              className="flex items-center gap-5 p-5 rounded-xl transition-all w-full text-left hover:scale-[1.01] hover:bg-[var(--muted)] focus:outline-none"
                              style={{
-                               background: isMe ? "rgba(124,58,237,0.08)" : "var(--muted)",
-                               border: isMe ? "1px solid rgba(124,58,237,0.3)" : "1px solid transparent",
+                               background: isMe ? "rgba(248,180,134,0.08)" : "var(--muted)",
+                               border: isMe ? "1px solid rgba(248,180,134,0.3)" : "1px solid transparent",
                              }}>
                           {/* Rank */}
                           <div className="w-12 h-12 rounded-full flex items-center justify-center font-extrabold text-lg flex-shrink-0"
@@ -421,10 +421,10 @@ export default function MonthlyRacePage() {
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-base truncate">
                               {entry.name}
-                              {isMe && <span className="text-sm ml-2 font-semibold" style={{ color: "#a435f0" }}>(bạn)</span>}
+                              {isMe && <span className="text-sm ml-2 font-semibold" style={{ color: "#FFCCAA" }}>(bạn)</span>}
                             </p>
                             <div className="flex items-center gap-4 mt-1.5">
-                              <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: "#ef4444" }}>
+                              <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: "#F8B486" }}>
                                 <Flame className="w-4 h-4" /> {entry.streak}
                               </span>
                               <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: "#6a6f73" }}>
@@ -438,7 +438,7 @@ export default function MonthlyRacePage() {
 
                           {/* XP */}
                           <div className="text-right flex-shrink-0">
-                            <p className="text-2xl font-extrabold" style={{ color: isTop3 ? RANK_STYLES[i]?.color : "#a435f0" }}>
+                            <p className="text-2xl font-extrabold" style={{ color: isTop3 ? RANK_STYLES[i]?.color : "#FFCCAA" }}>
                               {entry.xp}
                             </p>
                             <p className="text-xs font-bold" style={{ color: "#6a6f73" }}>XP</p>
@@ -454,7 +454,7 @@ export default function MonthlyRacePage() {
               {history.length > 0 && (
                 <div className="card-base">
                   <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    <Gift className="w-6 h-6" style={{ color: "#10b981" }} /> Lịch sử vinh danh
+                    <Gift className="w-6 h-6" style={{ color: "#F8B486" }} /> Lịch sử vinh danh
                   </h3>
                   <div className="space-y-5">
                     {history.map(h => (
@@ -469,7 +469,7 @@ export default function MonthlyRacePage() {
                                 <span className="font-bold flex-1">{w.name}</span>
                                 <span className="text-sm font-extrabold" style={{ color: "#6a6f73" }}>{w.xp} XP</span>
                                 <span className="text-sm px-2.5 py-1 rounded-full font-bold"
-                                      style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
+                                      style={{ background: "rgba(248,180,134,0.1)", color: "#F8B486" }}>
                                   -{w.discount}%
                                 </span>
                               </div>

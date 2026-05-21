@@ -16,17 +16,17 @@ export function StepIndicator({ steps, current }: { steps: Step[]; current: numb
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300"
                 style={{
-                  background: done ? "#10b981" : active ? "linear-gradient(135deg, #a435f0, #0891b2)" : "var(--muted)",
+                  background: done ? "#F8B486" : active ? "linear-gradient(135deg, #FFCCAA, #94A3B8)" : "var(--muted)",
                   color: done || active ? "#fff" : "var(--foreground-muted)",
-                  border: `2px solid ${done ? "#10b981" : active ? "#a435f0" : "var(--border)"}`,
-                  boxShadow: active ? "0 0 20px rgba(124,58,237,0.3)" : "none",
+                  border: `2px solid ${done ? "#F8B486" : active ? "#FFCCAA" : "var(--border)"}`,
+                  boxShadow: active ? "0 0 20px rgba(248,180,134,0.3)" : "none",
                 }}
               >
                 <Icon className="w-5 h-5" />
               </div>
               <span
                 className="text-[11px] font-semibold text-center leading-tight"
-                style={{ color: done ? "#10b981" : active ? "#a78bfa" : "var(--foreground-muted)" }}
+                style={{ color: done ? "#F8B486" : active ? "#FFCCAA" : "var(--foreground-muted)" }}
               >
                 {s.label}
               </span>
@@ -34,7 +34,7 @@ export function StepIndicator({ steps, current }: { steps: Step[]; current: numb
             {i < steps.length - 1 && (
               <div
                 className="h-[2px] w-12 mx-1 rounded-full transition-all duration-300"
-                style={{ background: done ? "#10b981" : "var(--border)", marginBottom: 20 }}
+                style={{ background: done ? "#F8B486" : "var(--border)", marginBottom: 20 }}
               />
             )}
           </div>

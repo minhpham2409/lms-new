@@ -41,7 +41,7 @@ export default function OrdersPage() {
 
   if (authLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#1c1d1f]">
-      <Loader2 className="w-8 h-8 animate-spin text-[#a435f0]" />
+      <Loader2 className="w-8 h-8 animate-spin text-[#FFCCAA]" />
     </div>
   );
 
@@ -53,7 +53,7 @@ export default function OrdersPage() {
       <div className="border-b border-[#d1d7dc] dark:border-[#3e4143] pt-[70px]">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h1 className="text-2xl font-bold text-[#2d2f31] dark:text-white flex items-center gap-2.5">
-            <Package className="w-6 h-6 text-[#5624d0]" /> Lịch sử đơn hàng
+            <Package className="w-6 h-6 text-[#F8B486]" /> Lịch sử đơn hàng
           </h1>
           <p className="text-sm text-[#6a6f73] mt-1">Xem lại các khóa học bạn đã mua</p>
         </div>
@@ -62,7 +62,7 @@ export default function OrdersPage() {
       <div className="max-w-[900px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#a435f0]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#FFCCAA]" />
           </div>
         ) : orders.length === 0 ? (
           <div className="bg-white dark:bg-[#2d2f31] border border-[#d1d7dc] dark:border-[#3e4143] rounded p-16 text-center">
@@ -71,7 +71,7 @@ export default function OrdersPage() {
             </div>
             <h3 className="text-lg font-bold text-[#2d2f31] dark:text-white mb-2">Chưa có đơn hàng nào</h3>
             <p className="text-sm text-[#6a6f73] mb-6">Hãy khám phá và đăng ký các khóa học hấp dẫn</p>
-            <Link href="/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold text-sm transition-colors rounded">
+            <Link href="/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFCCAA] hover:bg-[#8710d8] text-white font-bold text-sm transition-colors rounded">
               Khám phá khóa học <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -116,7 +116,7 @@ export default function OrdersPage() {
                           <p className="text-xs text-[#6a6f73]">{item.price === 0 ? "Miễn phí" : `${Number(item.price).toLocaleString("vi-VN")} ₫`}</p>
                         </div>
                         {item.course && (
-                          <Link href={`/courses/${item.courseId || item.course?.id}`} className="flex-shrink-0 text-xs font-bold text-[#5624d0] dark:text-[#c0a5f7] hover:underline flex items-center gap-1">
+                          <Link href={`/courses/${item.courseId || item.course?.id}`} className="flex-shrink-0 text-xs font-bold text-[#F8B486] dark:text-[#c0a5f7] hover:underline flex items-center gap-1">
                             Xem khóa học <ChevronRight className="w-3 h-3" />
                           </Link>
                         )}

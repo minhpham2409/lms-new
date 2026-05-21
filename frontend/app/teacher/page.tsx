@@ -19,7 +19,7 @@ import {
 } from "recharts";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-const courseColors = ["#a435f0", "#3b82f6", "#f59e0b", "#10b981", "#ec4899", "#0891b2"];
+const courseColors = ["#FFCCAA", "#3b82f6", "#FFCCAA", "#F8B486", "#FFCCAA", "#94A3B8"];
 
 type Tab = "overview" | "courses" | "students" | "analytics" | "wallet" | "reviews" | "settings";
 
@@ -247,7 +247,7 @@ export default function TeacherPage() {
   if (loading || !user || user.role !== "teacher") {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-        <div className="w-8 h-8 border-2 border-[#0891b2] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#94A3B8] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -293,7 +293,7 @@ export default function TeacherPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="flex items-center gap-6">
               <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-extrabold text-white shadow-2xl relative group"
-                style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
+                style={{ background: "linear-gradient(135deg, #FFCCAA, #94A3B8)" }}>
                 {(user?.firstName || user?.username || "?").charAt(0).toUpperCase()}
                 <div className="absolute inset-0 rounded-2xl border-2 border-white/20" />
                 <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
@@ -343,8 +343,8 @@ export default function TeacherPage() {
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap relative overflow-hidden
                     ${isActive ? 'text-white shadow-lg' : 'text-[var(--foreground-muted)] hover:text-white hover:bg-white/5'}`}
                   style={{
-                    background: isActive ? "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(8,145,178,0.15))" : "transparent",
-                    border: `1px solid ${isActive ? "rgba(124,58,237,0.3)" : "transparent"}`,
+                    background: isActive ? "linear-gradient(135deg, rgba(248,180,134,0.15), rgba(148,163,184,0.15))" : "transparent",
+                    border: `1px solid ${isActive ? "rgba(248,180,134,0.3)" : "transparent"}`,
                   }}>
                   <t.icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} /> {t.label}
                   {t.badge ? <span className="w-5 h-5 rounded-full text-[10px] flex items-center justify-center bg-red-500 text-white shadow-lg">{t.badge}</span> : null}
@@ -360,10 +360,10 @@ export default function TeacherPage() {
                 {/* Top Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: "Khóa học", value: String(stats?.totalCourses || myCourses.length), icon: BookOpen, color: "#5624d0", sub: `${stats?.publishedCourses || 0} đã xuất bản`, grad: "from-indigo-500 to-purple-500" },
-                    { label: "Tổng học sinh", value: String(stats?.totalStudents || 0), icon: Users, color: "#0891b2", sub: "tích lũy", grad: "from-cyan-500 to-blue-500" },
-                    { label: "Doanh thu", value: stats?.totalRevenue ? `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫` : "0 ₫", icon: DollarSign, color: "#10b981", sub: "tổng cộng", grad: "from-emerald-500 to-teal-500" },
-                    { label: "Đánh giá TB", value: stats?.avgRating ? `⭐ ${stats.avgRating}` : "—", icon: Star, color: "#f59e0b", sub: stats?.totalReviews ? `${stats.totalReviews} lượt đánh giá` : "chưa có", grad: "from-amber-500 to-orange-500" },
+                    { label: "Khóa học", value: String(stats?.totalCourses || myCourses.length), icon: BookOpen, color: "#F8B486", sub: `${stats?.publishedCourses || 0} đã xuất bản`, grad: "from-indigo-500 to-purple-500" },
+                    { label: "Tổng học sinh", value: String(stats?.totalStudents || 0), icon: Users, color: "#94A3B8", sub: "tích lũy", grad: "from-cyan-500 to-blue-500" },
+                    { label: "Doanh thu", value: stats?.totalRevenue ? `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫` : "0 ₫", icon: DollarSign, color: "#F8B486", sub: "tổng cộng", grad: "from-emerald-500 to-teal-500" },
+                    { label: "Đánh giá TB", value: stats?.avgRating ? `⭐ ${stats.avgRating}` : "—", icon: Star, color: "#FFCCAA", sub: stats?.totalReviews ? `${stats.totalReviews} lượt đánh giá` : "chưa có", grad: "from-amber-500 to-orange-500" },
                   ].map(({ label, value, icon: Icon, color, sub, grad }, _i) => (
                     <div key={label} className="bg-card border border-border rounded-lg p-5">
                       <div className="flex items-start justify-between mb-4">
@@ -588,8 +588,8 @@ export default function TeacherPage() {
                           <LineChart data={stats.monthlyData}>
                             <defs>
                               <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="#F8B486" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#F8B486" stopOpacity={0}/>
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -597,7 +597,7 @@ export default function TeacherPage() {
                             <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/1000}k`} />
                             <RechartsTooltip content={<CustomTooltip />} />
                             <Legend wrapperStyle={{ fontSize: '12px', opacity: 0.8 }} />
-                            <Line type="monotone" name="Doanh thu" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#0f172a" }} activeDot={{ r: 6 }} />
+                            <Line type="monotone" name="Doanh thu" dataKey="revenue" stroke="#F8B486" strokeWidth={3} dot={{ r: 4, fill: "#F8B486", strokeWidth: 2, stroke: "#0f172a" }} activeDot={{ r: 6 }} />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
@@ -616,8 +616,8 @@ export default function TeacherPage() {
                           <BarChart data={stats.monthlyData}>
                             <defs>
                               <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#0891b2" stopOpacity={0.8}/>
-                                <stop offset="100%" stopColor="#0891b2" stopOpacity={0.2}/>
+                                <stop offset="0%" stopColor="#94A3B8" stopOpacity={0.8}/>
+                                <stop offset="100%" stopColor="#94A3B8" stopOpacity={0.2}/>
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -665,7 +665,7 @@ export default function TeacherPage() {
                       <div key={s.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-lg"
-                            style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
+                            style={{ background: "linear-gradient(135deg, #FFCCAA, #94A3B8)" }}>
                             {(s.user?.firstName || s.user?.username || "?").charAt(0).toUpperCase()}
                           </div>
                           <div>
@@ -717,9 +717,9 @@ export default function TeacherPage() {
               <div className="space-y-6">
                 <div className="grid md:grid-cols-3 gap-4">
                   {[
-                    { label: "Số dư có thể rút", value: money(wallet?.balance), color: "#10b981", icon: DollarSign },
-                    { label: "Đang chờ rút", value: money(wallet?.pendingBalance), color: "#f59e0b", icon: CreditCard },
-                    { label: "Tổng đã kiếm", value: money(wallet?.totalEarned), color: "#0891b2", icon: TrendingUp },
+                    { label: "Số dư có thể rút", value: money(wallet?.balance), color: "#F8B486", icon: DollarSign },
+                    { label: "Đang chờ rút", value: money(wallet?.pendingBalance), color: "#FFCCAA", icon: CreditCard },
+                    { label: "Tổng đã kiếm", value: money(wallet?.totalEarned), color: "#94A3B8", icon: TrendingUp },
                   ].map(({ label, value, color, icon: Icon }) => (
                     <div key={label} className="bg-card border border-border rounded-lg p-5">
                       <div className="flex items-center justify-between mb-4">
@@ -816,9 +816,9 @@ export default function TeacherPage() {
                           <div className="space-y-2 max-h-60 overflow-y-auto">
                             {myPayouts.map((p: any) => {
                               const statusConfig: Record<string, { color: string; bg: string; border: string; icon: string; label: string }> = {
-                                PENDING: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.25)", icon: "⏳", label: "Chờ duyệt" },
-                                APPROVED: { color: "#10b981", bg: "rgba(16,185,129,0.15)", border: "rgba(16,185,129,0.35)", icon: "✅", label: "Thành công" },
-                                REJECTED: { color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.25)", icon: "❌", label: "Từ chối" },
+                                PENDING: { color: "#FFCCAA", bg: "rgba(255,204,170,0.1)", border: "rgba(255,204,170,0.25)", icon: "⏳", label: "Chờ duyệt" },
+                                APPROVED: { color: "#F8B486", bg: "rgba(248,180,134,0.15)", border: "rgba(248,180,134,0.35)", icon: "✅", label: "Thành công" },
+                                REJECTED: { color: "#F8B486", bg: "rgba(248,180,134,0.1)", border: "rgba(248,180,134,0.25)", icon: "❌", label: "Từ chối" },
                               };
                               const cfg = statusConfig[p.status] || { color: "#6b7280", bg: "rgba(107,114,128,0.1)", border: "rgba(107,114,128,0.25)", icon: "•", label: p.status };
                               return (
