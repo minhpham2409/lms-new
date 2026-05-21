@@ -7,21 +7,14 @@ import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
-import {
-  BookOpen, Users, DollarSign, TrendingUp, Plus, Eye, Edit, Star,
-  BarChart3, MessageCircle, Play, Trash2,
-  Calendar, ArrowUpRight, CheckCircle2, Settings, CreditCard, Building2, Send, Loader2,
-  X,
-} from "lucide-react";
 import { toast } from "sonner";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from "recharts";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-const courseColors = ["#FFCCAA", "#3b82f6", "#FFCCAA", "#F8B486", "#FFCCAA", "#94A3B8"];
 
-type Tab = "overview" | "courses" | "students" | "analytics" | "wallet" | "reviews" | "settings";
+type Tab = "overview" | "courses" | "students" | "analytics" | "wallet" | "settings";
 
 export default function TeacherPage() {
   const router = useRouter();
@@ -45,8 +38,15 @@ export default function TeacherPage() {
   const [myPayouts, setMyPayouts] = useState<any[]>([]);
 
   useEffect(() => {
-    if (token) { fetchMyCourses(); fetchStats(); fetchPendingStudents(); fetchPendingSubmissions(); fetchWallet(); fetchBankInfo(); fetchMyPayouts(); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (token) {
+      fetchMyCourses();
+      fetchStats();
+      fetchPendingStudents();
+      fetchPendingSubmissions();
+      fetchWallet();
+      fetchBankInfo();
+      fetchMyPayouts();
+    }
   }, [token]);
 
   async function fetchMyCourses() {
@@ -246,20 +246,19 @@ export default function TeacherPage() {
 
   if (loading || !user || user.role !== "teacher") {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
-        <div className="w-8 h-8 border-2 border-[#94A3B8] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#051025]">
+        <div className="text-[#F8B486] font-bold text-xl animate-pulse">ĐANG TẢI...</div>
       </div>
     );
   }
 
-  const tabs: { id: Tab; label: string; icon: any; badge?: number }[] = [
-    { id: "overview", label: "Tổng quan", icon: BarChart3 },
-    { id: "courses", label: "Quản lý khóa học", icon: BookOpen },
-    { id: "students", label: "Duyệt học sinh", icon: Users, badge: pendingStudents.length },
-    { id: "analytics", label: "Phân tích chi tiết", icon: TrendingUp },
-    { id: "wallet", label: "Ví doanh thu", icon: CreditCard },
-    { id: "reviews", label: "Hỏi đáp & Đánh giá", icon: MessageCircle },
-    { id: "settings", label: "Cài đặt thanh toán", icon: Settings },
+  const tabs: { id: Tab; label: string; badge?: number }[] = [
+    { id: "overview", label: "TỔNG QUAN" },
+    { id: "courses", label: "QUẢN LÝ KHÓA HỌC" },
+    { id: "students", label: "DUYỆT HỌC SINH", badge: pendingStudents.length },
+    { id: "analytics", label: "PHÂN TÍCH CHI TIẾT" },
+    { id: "wallet", label: "VÍ DOANH THU" },
+    { id: "settings", label: "CÀI ĐẶT THANH TOÁN" },
   ];
 
   const money = (value: any) => `${Number(value || 0).toLocaleString("vi-VN")} ₫`;
@@ -267,12 +266,12 @@ export default function TeacherPage() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass-strong p-3 rounded-xl border border-white/10 shadow-2xl">
-          <p className="text-xs font-semibold mb-2">{label}</p>
+        <div className="bg-[#121E36] p-4 rounded-xl border border-white/5 shadow-2xl">
+          <p className="text-xs font-bold text-[#F8FAFC] mb-2 uppercase tracking-wider">{label}</p>
           {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center justify-between gap-4 text-xs">
-              <span style={{ color: entry.color }}>{entry.name}:</span>
-              <span className="font-bold">
+            <div key={index} className="flex items-center justify-between gap-6 text-sm">
+              <span style={{ color: entry.color }} className="font-semibold">{entry.name}:</span>
+              <span className="font-bold text-[#F8FAFC]">
                 {entry.name === "Doanh thu" ? `${entry.value.toLocaleString()} ₫` : entry.value}
               </span>
             </div>
@@ -284,70 +283,71 @@ export default function TeacherPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
+    <div className="min-h-screen flex flex-col bg-[#051025] text-[#F8FAFC]">
       <Navbar />
       
-      <div className="pt-24 pb-12 relative shrink-0 border-b border-border bg-[#1c1d1f] text-white">
-        
+      {/* Header Banner */}
+      <div className="pt-24 pb-12 relative border-b border-white/5">
+        <div className="absolute inset-0 bg-[#0A1A35] opacity-50 overflow-hidden">
+          <Image src="/images/hero_star_light.png" alt="Cover" fill className="object-cover opacity-30" />
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="flex items-center gap-6">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-extrabold text-white shadow-2xl relative group"
-                style={{ background: "linear-gradient(135deg, #FFCCAA, #94A3B8)" }}>
+              <div className="w-20 h-20 bg-[#121E36] border-2 border-white/5 flex items-center justify-center text-4xl font-extrabold text-[#F8B486]">
                 {(user?.firstName || user?.username || "?").charAt(0).toUpperCase()}
-                <div className="absolute inset-0 rounded-2xl border-2 border-white/20" />
-                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="badge badge-primary text-[10px] uppercase tracking-wider">Tài khoản Giáo viên</span>
-                  {stats?.avgRating >= 4.5 && <span className="badge badge-warning text-[10px] flex items-center gap-1"><Star className="w-3 h-3 fill-amber-500 text-amber-500" /> Top Rated</span>}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#F8B486] bg-[#F8B486]/10 px-3 py-1 rounded">
+                    TÀI KHOẢN GIÁO VIÊN
+                  </span>
+                  {stats?.avgRating >= 4.5 && (
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#FFCCAA] bg-[#FFCCAA]/10 px-3 py-1 rounded">
+                      TOP RATED
+                    </span>
+                  )}
                 </div>
-                <h1 className="text-3xl font-extrabold text-white tracking-tight">
-                  Chào mừng trở lại, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{user?.firstName || user?.username || "Giáo viên"}</span> 👋
+                <h1 className="text-3xl font-extrabold text-[#F8FAFC] tracking-tight">
+                  CHÀO MỪNG TRỞ LẠI, <span className="text-[#F8B486]">{user?.firstName || user?.username || "GIÁO VIÊN"}</span>
                 </h1>
-                <p className="text-sm mt-2 flex items-center gap-2" style={{ color: "#6a6f73" }}>
-                  <Calendar className="w-4 h-4" /> Hôm nay là {new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                <p className="text-sm mt-2 font-medium text-[#94A3B8]">
+                  {new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
               </div>
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
-              <Link href="/teacher/grades" className="bg-muted text-foreground px-4 py-2 rounded font-bold hover:bg-border transition-colors flex items-center gap-2">
-                <span className="relative z-10 flex items-center gap-2">
-                  📝 Chấm bài tập
-                  {pendingSubmissionCount > 0 && (
-                    <span className="w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center bg-red-500 text-white shadow-lg shadow-red-500/30 animate-pulse">
-                      {pendingSubmissionCount}
-                    </span>
-                  )}
-                </span>
+              <Link href="/teacher/grades" className="bg-[#121E36] text-[#F8FAFC] border border-white/5 px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/5 transition-colors relative">
+                CHẤM BÀI TẬP
+                {pendingSubmissionCount > 0 && (
+                  <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] flex items-center justify-center bg-[#F8B486] text-[#051025] animate-pulse">
+                    {pendingSubmissionCount}
+                  </span>
+                )}
               </Link>
-              <Link href="/teacher/courses/new" className="bg-primary text-white px-4 py-2 rounded font-bold hover:bg-primary/90 transition-colors flex items-center gap-2">
-                <Plus className="w-4 h-4" /> Tạo khóa học mới
+              <Link href="/teacher/courses/new" className="bg-[#F8B486] text-[#051025] px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#FFCCAA] transition-colors">
+                TẠO KHÓA HỌC MỚI
               </Link>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 py-8">
+      <div className="flex-1 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Tabs */}
-          <div className="flex flex-wrap gap-2 mb-8 pb-2">
+          <div className="flex flex-wrap gap-2 mb-10 pb-4 border-b border-white/5">
             {tabs.map((t) => {
               const isActive = tab === t.id;
               return (
                 <button key={t.id} onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap relative overflow-hidden
-                    ${isActive ? 'text-white shadow-lg' : 'text-[var(--foreground-muted)] hover:text-white hover:bg-white/5'}`}
-                  style={{
-                    background: isActive ? "linear-gradient(135deg, rgba(248,180,134,0.15), rgba(148,163,184,0.15))" : "transparent",
-                    border: `1px solid ${isActive ? "rgba(248,180,134,0.3)" : "transparent"}`,
-                  }}>
-                  <t.icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} /> {t.label}
-                  {t.badge ? <span className="w-5 h-5 rounded-full text-[10px] flex items-center justify-center bg-red-500 text-white shadow-lg">{t.badge}</span> : null}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 relative
+                    ${isActive ? 'text-[#F8B486]' : 'text-[#94A3B8] hover:text-[#F8FAFC]'}`}>
+                  {t.label}
+                  {t.badge ? <span className="px-2 py-0.5 rounded text-[10px] bg-[#F8B486] text-[#051025]">{t.badge}</span> : null}
+                  {isActive && <div className="absolute -bottom-[17px] left-0 right-0 h-[2px] bg-[#F8B486]" />}
                 </button>
               );
             })}
@@ -358,72 +358,58 @@ export default function TeacherPage() {
             {tab === "overview" && (
               <div className="space-y-6">
                 {/* Top Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   {[
-                    { label: "Khóa học", value: String(stats?.totalCourses || myCourses.length), icon: BookOpen, color: "#F8B486", sub: `${stats?.publishedCourses || 0} đã xuất bản`, grad: "from-indigo-500 to-purple-500" },
-                    { label: "Tổng học sinh", value: String(stats?.totalStudents || 0), icon: Users, color: "#94A3B8", sub: "tích lũy", grad: "from-cyan-500 to-blue-500" },
-                    { label: "Doanh thu", value: stats?.totalRevenue ? `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫` : "0 ₫", icon: DollarSign, color: "#F8B486", sub: "tổng cộng", grad: "from-emerald-500 to-teal-500" },
-                    { label: "Đánh giá TB", value: stats?.avgRating ? `⭐ ${stats.avgRating}` : "—", icon: Star, color: "#FFCCAA", sub: stats?.totalReviews ? `${stats.totalReviews} lượt đánh giá` : "chưa có", grad: "from-amber-500 to-orange-500" },
-                  ].map(({ label, value, icon: Icon, color, sub, grad }, _i) => (
-                    <div key={label} className="bg-card border border-border rounded-lg p-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="w-12 h-12 rounded flex items-center justify-center" style={{ background: `${color}15` }}>
-                          <Icon className="w-6 h-6" style={{ color }} />
-                        </div>
-                        <div className="p-1.5 rounded-lg bg-white/5 backdrop-blur-md border border-white/10">
-                          <TrendingUp className="w-3.5 h-3.5" style={{ color }} />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-3xl font-bold">{value}</p>
-                        <p className="text-sm font-medium mt-1 text-foreground-muted">{label}</p>
-                        <p className="text-xs mt-1 font-bold" style={{ color: color }}>{sub}</p>
-                      </div>
+                    { label: "KHÓA HỌC", value: String(stats?.totalCourses || myCourses.length), sub: `${stats?.publishedCourses || 0} ĐÃ XUẤT BẢN` },
+                    { label: "HỌC SINH TÍCH LŨY", value: String(stats?.totalStudents || 0), sub: "TỔNG SỐ HỌC VIÊN" },
+                    { label: "DOANH THU", value: stats?.totalRevenue ? `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫` : "0 ₫", sub: "TỔNG DOANH THU" },
+                    { label: "ĐÁNH GIÁ TRUNG BÌNH", value: stats?.avgRating ? stats.avgRating : "—", sub: stats?.totalReviews ? `${stats.totalReviews} LƯỢT ĐÁNH GIÁ` : "CHƯA CÓ ĐÁNH GIÁ" },
+                  ].map(({ label, value, sub }) => (
+                    <div key={label} className="bg-[#121E36] border border-white/5 p-6 rounded-xl hover:border-white/10 transition-colors">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{label}</p>
+                      <p className="text-3xl font-extrabold text-[#F8B486] mb-1">{value}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] opacity-60">{sub}</p>
                     </div>
                   ))}
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
                   {/* Recent Activity / Courses */}
-                  <div className="lg:col-span-2 bg-card rounded-lg p-6 border border-border">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="font-bold text-lg flex items-center gap-2">
-                        <Play className="w-5 h-5 text-indigo-400" /> Khóa học hoạt động gần đây
+                  <div className="lg:col-span-2 bg-[#121E36] border border-white/5 rounded-xl p-8">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="font-bold text-base uppercase tracking-wider text-[#F8FAFC]">
+                        KHÓA HỌC GẦN ĐÂY
                       </h3>
-                      <button onClick={() => setTab("courses")} className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
-                        Xem tất cả <ArrowUpRight className="w-3 h-3" />
+                      <button onClick={() => setTab("courses")} className="text-[10px] font-bold uppercase tracking-wider text-[#F8B486] hover:text-[#FFCCAA]">
+                        XEM TẤT CẢ →
                       </button>
                     </div>
                     
                     {myCourses.length === 0 ? (
-                      <div className="text-center py-10 bg-white/5 rounded-xl border border-white/5 border-dashed">
-                        <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-40 text-indigo-300" />
-                        <p className="text-sm font-medium text-white">Chưa có khóa học nào</p>
-                        <p className="text-xs mt-1 text-indigo-200/50">Bắt đầu chia sẻ kiến thức ngay hôm nay</p>
+                      <div className="text-center py-16">
+                        <div className="text-3xl mb-4 text-[#F8B486]/30">[]</div>
+                        <p className="text-sm font-bold uppercase tracking-wider text-[#F8FAFC]">CHƯA CÓ KHÓA HỌC</p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {myCourses.slice(0, 4).map((c: any, i: number) => (
-                          <div key={c.id} className="group flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all cursor-pointer"
+                      <div className="space-y-4">
+                        {myCourses.slice(0, 4).map((c: any) => (
+                          <div key={c.id} className="group flex items-center justify-between p-4 bg-[#051025] rounded-lg border border-white/5 hover:border-[#F8B486]/50 transition-colors cursor-pointer"
                             onClick={() => router.push(`/teacher/courses/${c.id}`)}>
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-md" style={{ background: `linear-gradient(135deg, ${courseColors[i % courseColors.length]}30, ${courseColors[(i+1) % courseColors.length]}10)` }}>
-                                <BookOpen className="w-5 h-5" style={{ color: courseColors[i % courseColors.length] }} />
-                              </div>
+                            <div className="flex items-center gap-5">
                               <div>
-                                <p className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">{c.title}</p>
-                                <div className="flex items-center gap-3 mt-1">
-                                  <p className="text-[11px] font-medium text-indigo-200/60 flex items-center gap-1">
-                                    <Users className="w-3 h-3" /> {c._count?.enrollments || 0} học viên
+                                <p className="text-sm font-bold text-[#F8FAFC] group-hover:text-[#F8B486] transition-colors">{c.title}</p>
+                                <div className="flex items-center gap-4 mt-2">
+                                  <p className="text-[10px] font-bold tracking-wider text-[#94A3B8]">
+                                    {c._count?.enrollments || 0} HỌC VIÊN
                                   </p>
-                                  <p className="text-[11px] font-medium text-indigo-200/60 flex items-center gap-1">
-                                    <DollarSign className="w-3 h-3" /> {c.price > 0 ? `${c.price.toLocaleString()}đ` : "Miễn phí"}
+                                  <p className="text-[10px] font-bold tracking-wider text-[#94A3B8]">
+                                    {c.price > 0 ? `${c.price.toLocaleString()}Đ` : "MIỄN PHÍ"}
                                   </p>
                                 </div>
                               </div>
                             </div>
-                            <span className={`badge ${c.status === "published" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"} text-[10px]`}>
-                              {c.status === "published" ? "Xuất bản" : "Nháp"}
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-[#F8B486] bg-[#F8B486]/10 px-3 py-1 rounded">
+                              {c.status === "published" ? "XUẤT BẢN" : "NHÁP"}
                             </span>
                           </div>
                         ))}
@@ -431,53 +417,43 @@ export default function TeacherPage() {
                     )}
                   </div>
 
-                  <div className="bg-card rounded-lg p-6 border border-border">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-cyan-400" /> Thao tác nhanh
+                  <div className="bg-[#121E36] border border-white/5 rounded-xl p-8">
+                    <h3 className="font-bold text-base uppercase tracking-wider text-[#F8FAFC] mb-8">
+                      THAO TÁC NHANH
                     </h3>
-                    <div className="space-y-3">
-                      <Link href="/teacher/courses/new" className="flex items-center gap-4 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all group">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Plus className="w-5 h-5 text-indigo-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-white">Tạo khóa học</p>
-                          <p className="text-xs text-indigo-200/60 mt-0.5">Thêm nội dung và bài học mới</p>
-                        </div>
+                    <div className="space-y-4">
+                      <Link href="/teacher/courses/new" className="block p-5 bg-[#051025] rounded-lg border border-white/5 hover:border-[#F8B486]/50 transition-colors group">
+                        <p className="text-xs font-bold text-[#F8FAFC] group-hover:text-[#F8B486] mb-1">TẠO KHÓA HỌC MỚI</p>
+                        <p className="text-[10px] font-bold tracking-wider text-[#94A3B8]">THÊM BÀI HỌC VÀ NỘI DUNG</p>
                       </Link>
                       
-                      <button onClick={() => setTab("students")} className="w-full flex items-center gap-4 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition-all group text-left relative overflow-hidden">
-                        <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <CheckCircle2 className="w-5 h-5 text-cyan-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-white">Duyệt học sinh</p>
-                          <p className="text-xs text-cyan-200/60 mt-0.5">Kiểm tra thanh toán chờ duyệt</p>
-                        </div>
+                      <button onClick={() => setTab("students")} className="w-full text-left p-5 bg-[#051025] rounded-lg border border-white/5 hover:border-[#F8B486]/50 transition-colors group relative">
+                        <p className="text-xs font-bold text-[#F8FAFC] group-hover:text-[#F8B486] mb-1">DUYỆT HỌC SINH</p>
+                        <p className="text-[10px] font-bold tracking-wider text-[#94A3B8]">XÁC NHẬN THANH TOÁN CHỜ DUYỆT</p>
                         {pendingStudents.length > 0 && (
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg animate-pulse">
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#F8B486] rounded-full flex items-center justify-center text-xs font-bold text-[#051025] animate-pulse">
                             {pendingStudents.length}
                           </div>
                         )}
                       </button>
 
-                      <div className="mt-6 pt-6 border-t border-white/10">
-                        <p className="text-xs font-semibold text-indigo-200/50 uppercase tracking-wider mb-4">Học viên mới nhất</p>
-                        <div className="space-y-3">
+                      <div className="mt-8 pt-6 border-t border-white/5">
+                        <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-4">HỌC VIÊN MỚI NHẤT</p>
+                        <div className="space-y-4">
                           {stats?.recentEnrollments?.length > 0 ? (
                             stats.recentEnrollments.slice(0, 3).map((e: any, idx: number) => (
-                              <div key={idx} className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
+                              <div key={idx} className="flex items-center gap-4">
+                                <div className="w-8 h-8 bg-[#121E36] flex items-center justify-center text-[10px] font-bold text-[#F8B486] border border-white/5">
                                   {(e.user?.username || "?").charAt(0).toUpperCase()}
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-bold text-white truncate">{e.user?.username}</p>
-                                  <p className="text-[10px] text-indigo-200/60 truncate">Vừa tham gia: {e.course?.title}</p>
+                                <div>
+                                  <p className="text-[11px] font-bold text-[#F8FAFC]">{e.user?.username}</p>
+                                  <p className="text-[9px] font-bold tracking-wider text-[#94A3B8] truncate max-w-[150px]">{e.course?.title}</p>
                                 </div>
                               </div>
                             ))
                           ) : (
-                            <p className="text-xs text-indigo-200/50">Chưa có học viên mới</p>
+                            <p className="text-[10px] font-bold text-[#94A3B8] uppercase">CHƯA CÓ HỌC VIÊN</p>
                           )}
                         </div>
                       </div>
@@ -488,86 +464,81 @@ export default function TeacherPage() {
             )}
 
             {tab === "courses" && (
-              <div className="bg-card border border-border rounded-lg overflow-hidden">
-                <div className="p-6 border-b border-border flex items-center justify-between">
-                  <h3 className="font-bold text-lg">Tất cả khóa học</h3>
-                  <Link href="/teacher/courses/new" className="btn-primary py-2 text-xs"><Plus className="w-4 h-4"/> Thêm mới</Link>
+              <div className="bg-[#121E36] border border-white/5 rounded-xl overflow-hidden">
+                <div className="p-8 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-bold text-lg uppercase tracking-wider text-[#F8FAFC]">TẤT CẢ KHÓA HỌC</h3>
+                    <p className="text-[10px] font-bold text-[#94A3B8] tracking-widest mt-1">QUẢN LÝ VÀ CHỈNH SỬA</p>
+                  </div>
+                  <Link href="/teacher/courses/new" className="bg-[#F8B486] text-[#051025] px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#FFCCAA] transition-colors">
+                    THÊM KHÓA HỌC
+                  </Link>
                 </div>
+                
                 {coursesLoading ? (
                   <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                    <div className="text-[#F8B486] font-bold text-sm animate-pulse uppercase">ĐANG TẢI...</div>
                   </div>
                 ) : myCourses.length === 0 ? (
-                  <div className="text-center py-20">
-                    <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-30 text-indigo-300" />
-                    <h3 className="text-lg font-bold text-white mb-2">Chưa có khóa học nào</h3>
-                    <p className="text-sm text-indigo-200/60 mb-6">Bạn chưa tạo bất kỳ khóa học nào trên hệ thống.</p>
-                    <Link href="/teacher/courses/new" className="btn-primary mx-auto w-fit">
-                      <Plus className="w-4 h-4" /> Bắt đầu tạo khóa học
+                  <div className="text-center py-24">
+                    <div className="text-4xl mb-4 text-[#F8B486]/30">[]</div>
+                    <h3 className="text-sm font-bold uppercase text-[#F8FAFC] mb-2">CHƯA CÓ KHÓA HỌC NÀO</h3>
+                    <Link href="/teacher/courses/new" className="text-xs font-bold text-[#F8B486] uppercase tracking-wider hover:text-[#FFCCAA]">
+                      BẮT ĐẦU TẠO KHÓA HỌC →
                     </Link>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-white/5 text-xs uppercase font-bold text-indigo-200/70 border-b border-white/10">
+                    <table className="w-full text-left">
+                      <thead className="bg-[#051025]">
                         <tr>
-                          <th className="px-6 py-4">Khóa học</th>
-                          <th className="px-6 py-4">Trạng thái</th>
-                          <th className="px-6 py-4">Học viên</th>
-                          <th className="px-6 py-4">Giá bán</th>
-                          <th className="px-6 py-4 text-right">Thao tác</th>
+                          <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">KHÓA HỌC</th>
+                          <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">TRẠNG THÁI</th>
+                          <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">HỌC VIÊN</th>
+                          <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">GIÁ BÁN</th>
+                          <th className="px-8 py-5 text-right text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">THAO TÁC</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {myCourses.map((c: any, ci: number) => {
-                          const color = courseColors[ci % courseColors.length];
-                          return (
-                            <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
-                              <td className="px-6 py-4">
-                                <div className="flex items-center gap-4">
-                                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm" style={{ background: `linear-gradient(135deg, ${color}30, ${color}10)` }}>
-                                    <BookOpen className="w-5 h-5" style={{ color }} />
-                                  </div>
-                                  <div>
-                                    <p className="font-bold text-white group-hover:text-indigo-300 transition-colors">{c.title}</p>
-                                    <p className="text-xs text-indigo-200/50 mt-1">{c.sections?.length || 0} chương</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className={`badge ${c.status === "published" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"} text-xs py-1 px-3`}>
-                                  {c.status === "published" ? "Đã Xuất bản" : "Bản Nháp"}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 font-semibold text-white">
-                                {c._count?.enrollments || 0} <span className="text-xs font-normal text-indigo-200/50 ml-1">người</span>
-                              </td>
-                              <td className="px-6 py-4 font-semibold text-emerald-400">
-                                {c.price > 0 ? `${c.price.toLocaleString()} ₫` : "Miễn phí"}
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Link href={`/teacher/courses/${c.id}`} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-indigo-300 transition-colors tooltip" data-tip="Chỉnh sửa">
-                                    <Edit className="w-4 h-4" />
-                                  </Link>
-                                  <button onClick={() => window.open(`/courses/${c.id}`, '_blank')} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-cyan-300 transition-colors tooltip" data-tip="Xem trước">
-                                    <Eye className="w-4 h-4" />
+                        {myCourses.map((c: any) => (
+                          <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="px-8 py-6">
+                              <p className="text-sm font-bold text-[#F8FAFC]">{c.title}</p>
+                              <p className="text-[10px] font-bold tracking-wider text-[#94A3B8] mt-1">{c.sections?.length || 0} CHƯƠNG</p>
+                            </td>
+                            <td className="px-8 py-6">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-[#F8B486] bg-[#F8B486]/10 px-3 py-1 rounded">
+                                {c.status === "published" ? "XUẤT BẢN" : "NHÁP"}
+                              </span>
+                            </td>
+                            <td className="px-8 py-6">
+                              <p className="text-sm font-bold text-[#F8FAFC]">{c._count?.enrollments || 0}</p>
+                            </td>
+                            <td className="px-8 py-6">
+                              <p className="text-sm font-bold text-[#F8B486]">
+                                {c.price > 0 ? `${c.price.toLocaleString()} Đ` : "MIỄN PHÍ"}
+                              </p>
+                            </td>
+                            <td className="px-8 py-6 text-right space-x-4">
+                              <Link href={`/teacher/courses/${c.id}`} className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] hover:text-[#F8FAFC]">
+                                SỬA
+                              </Link>
+                              <button onClick={() => window.open(`/courses/${c.id}`, '_blank')} className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] hover:text-[#F8FAFC]">
+                                XEM
+                              </button>
+                              {c.status === "draft" && (
+                                <>
+                                  <button onClick={() => submitForReview(c.id)} className="text-[10px] font-bold uppercase tracking-wider text-[#F8B486] hover:text-[#FFCCAA]">
+                                    GỬI DUYỆT
                                   </button>
-                                  {c.status === "draft" && (
-                                    <>
-                                      <button onClick={() => submitForReview(c.id)} className="p-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors tooltip" data-tip="Gửi duyệt lên Admin">
-                                        <Send className="w-4 h-4" />
-                                      </button>
-                                      <button onClick={() => deleteCourse(c.id)} className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors tooltip" data-tip="Xóa bản nháp">
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                                  <button onClick={() => deleteCourse(c.id)} className="text-[10px] font-bold uppercase tracking-wider text-red-400 hover:text-red-300">
+                                    XÓA
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -578,9 +549,9 @@ export default function TeacherPage() {
             {tab === "analytics" && (
               <div className="space-y-6">
                 <div className="grid lg:grid-cols-2 gap-6">
-                  <div className="bg-card border border-border rounded-lg p-6">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-emerald-400" /> Biểu đồ doanh thu 6 tháng qua
+                  <div className="bg-[#121E36] border border-white/5 rounded-xl p-8">
+                    <h3 className="font-bold text-base uppercase tracking-wider text-[#F8FAFC] mb-8">
+                      DOANH THU 6 THÁNG QUA
                     </h3>
                     {stats?.monthlyData && stats.monthlyData.length > 0 ? (
                       <div className="h-72 w-full">
@@ -589,26 +560,26 @@ export default function TeacherPage() {
                             <defs>
                               <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#F8B486" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#F8B486" stopOpacity={0}/>
+                                <stop offset="95%" stopColor="#051025" stopOpacity={0}/>
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/1000}k`} />
+                            <XAxis dataKey="month" stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/1000}K`} />
                             <RechartsTooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ fontSize: '12px', opacity: 0.8 }} />
-                            <Line type="monotone" name="Doanh thu" dataKey="revenue" stroke="#F8B486" strokeWidth={3} dot={{ r: 4, fill: "#F8B486", strokeWidth: 2, stroke: "#0f172a" }} activeDot={{ r: 6 }} />
+                            <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            <Line type="monotone" name="Doanh thu" dataKey="revenue" stroke="#F8B486" strokeWidth={3} dot={{ r: 4, fill: "#F8B486", strokeWidth: 0 }} activeDot={{ r: 6 }} />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div className="h-72 flex items-center justify-center text-sm text-indigo-200/50">Không có dữ liệu đủ để vẽ biểu đồ</div>
+                      <div className="h-72 flex items-center justify-center text-[10px] font-bold tracking-widest text-[#94A3B8] uppercase">KHÔNG CÓ DỮ LIỆU</div>
                     )}
                   </div>
 
-                  <div className="bg-card border border-border rounded-lg p-6">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                      <Users className="w-5 h-5 text-cyan-400" /> Biểu đồ học sinh mới
+                  <div className="bg-[#121E36] border border-white/5 rounded-xl p-8">
+                    <h3 className="font-bold text-base uppercase tracking-wider text-[#F8FAFC] mb-8">
+                      HỌC SINH MỚI
                     </h3>
                     {stats?.monthlyData && stats.monthlyData.length > 0 ? (
                       <div className="h-72 w-full">
@@ -616,21 +587,21 @@ export default function TeacherPage() {
                           <BarChart data={stats.monthlyData}>
                             <defs>
                               <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#94A3B8" stopOpacity={0.8}/>
-                                <stop offset="100%" stopColor="#94A3B8" stopOpacity={0.2}/>
+                                <stop offset="0%" stopColor="#F8FAFC" stopOpacity={0.8}/>
+                                <stop offset="100%" stopColor="#F8FAFC" stopOpacity={0.1}/>
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                            <XAxis dataKey="month" stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ fontSize: '12px', opacity: 0.8 }} />
-                            <Bar dataKey="enrollments" name="Học sinh mới" fill="url(#colorStudents)" radius={[4, 4, 0, 0]} barSize={30} />
+                            <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            <Bar dataKey="enrollments" name="Học sinh mới" fill="url(#colorStudents)" radius={[2, 2, 0, 0]} barSize={20} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div className="h-72 flex items-center justify-center text-sm text-indigo-200/50">Không có dữ liệu đủ để vẽ biểu đồ</div>
+                      <div className="h-72 flex items-center justify-center text-[10px] font-bold tracking-widest text-[#94A3B8] uppercase">KHÔNG CÓ DỮ LIỆU</div>
                     )}
                   </div>
                 </div>
@@ -638,70 +609,61 @@ export default function TeacherPage() {
             )}
 
             {tab === "students" && (
-              <div className="bg-card border border-border rounded-lg overflow-hidden">
-                <div className="p-6 border-b border-border bg-muted/50">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Users className="w-5 h-5 text-indigo-400" /> Xác nhận thanh toán & Duyệt học sinh
-                  </h3>
-                  <p className="text-sm text-indigo-200/60 mt-2">
-                    Đối với khóa <strong>miễn phí</strong>: Ấn Duyệt để cho phép học sinh vào học.
-                    Khóa <strong>trả phí</strong>: Hệ thống sẽ tự xác nhận khi nhận được thanh toán qua webhook.
+              <div className="bg-[#121E36] border border-white/5 rounded-xl overflow-hidden">
+                <div className="p-8 border-b border-white/5">
+                  <h3 className="font-bold text-lg uppercase tracking-wider text-[#F8FAFC]">XÁC NHẬN & DUYỆT HỌC SINH</h3>
+                  <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest mt-2">
+                    TRẢ PHÍ: DUYỆT TỰ ĐỘNG QUA WEBHOOK — MIỄN PHÍ: DUYỆT THỦ CÔNG BÊN DƯỚI
                   </p>
                 </div>
                 
                 {pendingLoading ? (
                   <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                    <div className="text-[#F8B486] font-bold text-sm animate-pulse uppercase">ĐANG TẢI...</div>
                   </div>
                 ) : pendingStudents.length === 0 ? (
-                  <div className="text-center py-20">
-                    <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-emerald-500 opacity-80" />
-                    <h3 className="text-lg font-bold text-white mb-2">Không có yêu cầu duyệt nào</h3>
-                    <p className="text-sm text-indigo-200/60">Tất cả học sinh đã được xử lý hoặc chưa có đăng ký mới.</p>
+                  <div className="text-center py-24">
+                    <div className="text-sm font-bold uppercase tracking-wider text-[#F8FAFC]">KHÔNG CÓ YÊU CẦU DUYỆT NÀO</div>
                   </div>
                 ) : (
                   <div className="divide-y divide-white/5">
                     {pendingStudents.map((s: any) => (
-                      <div key={s.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-lg"
-                            style={{ background: "linear-gradient(135deg, #FFCCAA, #94A3B8)" }}>
+                      <div key={s.id} className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-white/[0.02] transition-colors">
+                        <div className="flex items-center gap-6">
+                          <div className="w-12 h-12 bg-[#051025] flex items-center justify-center text-lg font-bold text-[#F8B486] border border-white/5">
                             {(s.user?.firstName || s.user?.username || "?").charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-base font-bold text-white">{s.user?.firstName ? `${s.user.firstName} ${s.user.lastName || ""}`.trim() : s.user?.username || "Học sinh"}</p>
-                            <p className="text-sm text-indigo-200/70 mt-0.5">
-                              {s.user?.email || "Chưa cập nhật email"} • <span className="font-semibold text-indigo-300">Khóa: {s.courseTitle}</span>
-                            </p>
-                            <p className="text-xs text-indigo-200/40 mt-1">
-                              Yêu cầu từ: {s.createdAt ? new Date(s.createdAt).toLocaleString("vi-VN") : "Không rõ"}
+                            <p className="text-sm font-bold text-[#F8FAFC]">{s.user?.firstName ? `${s.user.firstName} ${s.user.lastName || ""}`.trim() : s.user?.username || "HỌC SINH"}</p>
+                            <p className="text-[10px] font-bold tracking-wider text-[#94A3B8] mt-1">
+                              {s.user?.email || "CHƯA CÓ EMAIL"} <span className="mx-2">•</span> <span className="text-[#F8FAFC]">{s.courseTitle}</span>
                             </p>
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-3 md:ml-auto">
+                        <div className="flex items-center gap-4">
                           {s.coursePrice > 0 ? (
                             <>
-                              <span className="badge bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 text-xs">
-                                💰 Khóa trả phí — {s.coursePrice.toLocaleString()} ₫
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] px-3 py-1 rounded border border-white/10">
+                                TRẢ PHÍ: {s.coursePrice.toLocaleString()} Đ
                               </span>
-                              <span className="badge bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-3 py-1 text-xs">
-                                🔄 Chờ webhook xác nhận
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-[#F8B486] px-3 py-1 rounded bg-[#F8B486]/10">
+                                CHỜ WEBHOOK
                               </span>
-                              <button onClick={() => rejectStudent(s.id)} className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-red-400 transition-colors tooltip" data-tip="Từ chối">
-                                <X className="w-5 h-5" />
+                              <button onClick={() => rejectStudent(s.id)} className="text-[10px] font-bold uppercase tracking-widest text-red-400 hover:text-red-300">
+                                HỦY
                               </button>
                             </>
                           ) : (
                             <>
-                              <span className="badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 text-xs">
-                                🆓 Khóa miễn phí
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-[#F8FAFC] px-3 py-1 rounded border border-white/10">
+                                MIỄN PHÍ
                               </span>
-                              <button onClick={() => approveStudent(s.id)} className="btn-primary py-2 px-4 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 !bg-gradient-to-r !from-emerald-500 !to-teal-500 border-none">
-                                <CheckCircle2 className="w-4 h-4" /> Duyệt vào lớp
+                              <button onClick={() => approveStudent(s.id)} className="bg-[#F8B486] text-[#051025] px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-[#FFCCAA]">
+                                DUYỆT NGAY
                               </button>
-                              <button onClick={() => rejectStudent(s.id)} className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-red-400 transition-colors tooltip" data-tip="Từ chối">
-                                <X className="w-5 h-5" />
+                              <button onClick={() => rejectStudent(s.id)} className="text-[10px] font-bold uppercase tracking-widest text-red-400 hover:text-red-300">
+                                TỪ CHỐI
                               </button>
                             </>
                           )}
@@ -715,55 +677,46 @@ export default function TeacherPage() {
 
             {tab === "wallet" && (
               <div className="space-y-6">
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-3 gap-6">
                   {[
-                    { label: "Số dư có thể rút", value: money(wallet?.balance), color: "#F8B486", icon: DollarSign },
-                    { label: "Đang chờ rút", value: money(wallet?.pendingBalance), color: "#FFCCAA", icon: CreditCard },
-                    { label: "Tổng đã kiếm", value: money(wallet?.totalEarned), color: "#94A3B8", icon: TrendingUp },
-                  ].map(({ label, value, color, icon: Icon }) => (
-                    <div key={label} className="bg-card border border-border rounded-lg p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded flex items-center justify-center" style={{ background: `${color}18` }}>
-                          <Icon className="w-6 h-6" style={{ color }} />
-                        </div>
-                        {walletLoading && <Loader2 className="w-4 h-4 animate-spin text-indigo-300" />}
+                    { label: "SỐ DƯ CÓ THỂ RÚT", value: money(wallet?.balance) },
+                    { label: "ĐANG CHỜ DUYỆT RÚT", value: money(wallet?.pendingBalance) },
+                    { label: "TỔNG ĐÃ KIẾM", value: money(wallet?.totalEarned) },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="bg-[#121E36] border border-white/5 rounded-xl p-8 hover:border-white/10 transition-colors">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">{label}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-3xl font-extrabold text-[#F8B486]">{value}</p>
+                        {walletLoading && <div className="text-[10px] font-bold text-[#F8B486] animate-pulse">ĐANG TẢI</div>}
                       </div>
-                      <p className="text-2xl font-extrabold text-white">{value}</p>
-                      <p className="text-sm mt-1 text-indigo-200/60">{label}</p>
                     </div>
                   ))}
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 bg-card border border-border rounded-lg overflow-hidden">
-                    <div className="p-6 border-b border-border bg-muted/50 flex items-center justify-between gap-4">
+                  <div className="lg:col-span-2 bg-[#121E36] border border-white/5 rounded-xl overflow-hidden">
+                    <div className="p-8 border-b border-white/5 flex items-center justify-between">
                       <div>
-                        <h3 className="font-bold text-lg flex items-center gap-2">
-                          <DollarSign className="w-5 h-5 text-emerald-400" /> Lịch sử ví
-                        </h3>
-                        <p className="text-sm text-indigo-200/60 mt-1">Doanh thu được cộng sau khi thanh toán được xác nhận.</p>
+                        <h3 className="font-bold text-lg uppercase tracking-wider text-[#F8FAFC]">LỊCH SỬ VÍ</h3>
                       </div>
-                      <button onClick={fetchWallet} className="btn-secondary text-xs" disabled={walletLoading}>
-                        {walletLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                        Làm mới
+                      <button onClick={fetchWallet} disabled={walletLoading} className="text-[10px] font-bold uppercase tracking-widest text-[#F8B486] hover:text-[#FFCCAA]">
+                        {walletLoading ? "ĐANG TẢI..." : "LÀM MỚI"}
                       </button>
                     </div>
 
                     {!wallet?.transactions?.length ? (
-                      <div className="text-center py-16">
-                        <CreditCard className="w-14 h-14 mx-auto mb-4 opacity-30 text-indigo-300" />
-                        <h3 className="text-lg font-bold text-white mb-2">Chưa có giao dịch ví</h3>
-                        <p className="text-sm text-indigo-200/60">Khi có đơn hàng được xác nhận, phần doanh thu giáo viên sẽ xuất hiện ở đây.</p>
+                      <div className="text-center py-24">
+                        <div className="text-sm font-bold uppercase tracking-wider text-[#F8FAFC]">CHƯA CÓ GIAO DỊCH NÀO</div>
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                          <thead className="bg-white/5 text-xs uppercase font-bold text-indigo-200/70 border-b border-white/10">
+                        <table className="w-full text-left">
+                          <thead className="bg-[#051025]">
                             <tr>
-                              <th className="px-6 py-4">Loại</th>
-                              <th className="px-6 py-4">Mô tả</th>
-                              <th className="px-6 py-4">Ngày</th>
-                              <th className="px-6 py-4 text-right">Số tiền</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">LOẠI</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">MÔ TẢ</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">NGÀY GIAO DỊCH</th>
+                              <th className="px-8 py-5 text-right text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">SỐ TIỀN</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-white/5">
@@ -771,14 +724,18 @@ export default function TeacherPage() {
                               const positive = tx.type === "EARNING" || tx.type === "WITHDRAWAL_REJECTED";
                               return (
                                 <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
-                                  <td className="px-6 py-4">
-                                    <span className={`badge text-[10px] ${positive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}>
+                                  <td className="px-8 py-6">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#F8FAFC]">
                                       {tx.type}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-4 text-indigo-100/80">{tx.description || tx.referenceId || "Giao dịch ví"}</td>
-                                  <td className="px-6 py-4 text-indigo-200/50">{tx.createdAt ? new Date(tx.createdAt).toLocaleString("vi-VN") : "-"}</td>
-                                  <td className={`px-6 py-4 text-right font-bold ${positive ? "text-emerald-400" : "text-amber-400"}`}>
+                                  <td className="px-8 py-6 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                                    {tx.description || tx.referenceId || "GIAO DỊCH"}
+                                  </td>
+                                  <td className="px-8 py-6 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                                    {tx.createdAt ? new Date(tx.createdAt).toLocaleString("vi-VN") : "-"}
+                                  </td>
+                                  <td className={`px-8 py-6 text-right font-extrabold ${positive ? "text-[#F8B486]" : "text-[#F8FAFC]"}`}>
                                     {positive ? "+" : "-"}{money(tx.amount)}
                                   </td>
                                 </tr>
@@ -791,46 +748,37 @@ export default function TeacherPage() {
                   </div>
 
                   <div className="space-y-6">
-                    <div className="glass-strong rounded-2xl p-6 border border-white/5">
-                      <h3 className="font-bold text-lg text-white flex items-center gap-2 mb-2">
-                        <CreditCard className="w-5 h-5 text-indigo-400" /> Yêu cầu rút tiền
-                      </h3>
-                      <p className="text-sm text-indigo-200/60 mb-5">Admin sẽ kiểm tra và chuyển khoản ngoài hệ thống.</p>
+                    <div className="bg-[#121E36] rounded-xl p-8 border border-white/5">
+                      <h3 className="font-bold text-base uppercase tracking-wider text-[#F8FAFC] mb-6">YÊU CẦU RÚT TIỀN</h3>
                       <input
                         type="number"
                         min="0"
                         value={payoutAmount}
                         onChange={(e) => setPayoutAmount(e.target.value)}
-                        className="input-base bg-white/5 border-white/10 text-white !h-12 mb-3"
-                        placeholder="Số tiền muốn rút"
+                        className="w-full bg-[#051025] text-[#F8FAFC] p-4 rounded-lg border border-white/5 outline-none text-sm font-bold uppercase tracking-widest mb-4"
+                        placeholder="NHẬP SỐ TIỀN (VNĐ)"
                       />
-                      <button onClick={requestPayout} disabled={payoutLoading} className="btn-primary w-full justify-center py-3">
-                        {payoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                        Gửi yêu cầu rút
+                      <button onClick={requestPayout} disabled={payoutLoading} className="w-full bg-[#F8B486] text-[#051025] font-bold text-xs uppercase tracking-widest py-4 rounded-lg hover:bg-[#FFCCAA] transition-colors">
+                        {payoutLoading ? "ĐANG XỬ LÝ..." : "GỬI YÊU CẦU"}
                       </button>
 
                       {/* Payout History */}
                       {myPayouts.length > 0 && (
-                        <div className="mt-5 pt-5 border-t border-white/10">
-                          <h4 className="text-sm font-bold text-white mb-3">Lịch sử rút tiền</h4>
-                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                        <div className="mt-8 pt-6 border-t border-white/5">
+                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] mb-4">LỊCH SỬ RÚT TIỀN</h4>
+                          <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                             {myPayouts.map((p: any) => {
-                              const statusConfig: Record<string, { color: string; bg: string; border: string; icon: string; label: string }> = {
-                                PENDING: { color: "#FFCCAA", bg: "rgba(255,204,170,0.1)", border: "rgba(255,204,170,0.25)", icon: "⏳", label: "Chờ duyệt" },
-                                APPROVED: { color: "#F8B486", bg: "rgba(248,180,134,0.15)", border: "rgba(248,180,134,0.35)", icon: "✅", label: "Thành công" },
-                                REJECTED: { color: "#F8B486", bg: "rgba(248,180,134,0.1)", border: "rgba(248,180,134,0.25)", icon: "❌", label: "Từ chối" },
-                              };
-                              const cfg = statusConfig[p.status] || { color: "#6b7280", bg: "rgba(107,114,128,0.1)", border: "rgba(107,114,128,0.25)", icon: "•", label: p.status };
+                              const statusLabel = p.status === "PENDING" ? "CHỜ DUYỆT" : p.status === "APPROVED" ? "THÀNH CÔNG" : "TỪ CHỐI";
                               return (
-                                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                                <div key={p.id} className="p-4 rounded-lg bg-[#051025] border border-white/5 flex items-center justify-between">
                                   <div>
-                                    <p className="text-sm font-bold text-white">{Number(p.amount).toLocaleString()} ₫</p>
-                                    <p className="text-[10px] text-indigo-200/50">{new Date(p.createdAt).toLocaleDateString("vi-VN")}</p>
-                                    {p.bankTransferRef && <p className="text-[10px] font-mono text-indigo-200/40">Ref: {p.bankTransferRef}</p>}
-                                    {p.adminNote && <p className="text-[10px] text-indigo-200/40">{p.adminNote}</p>}
+                                    <p className="text-sm font-bold text-[#F8FAFC]">{Number(p.amount).toLocaleString()} Đ</p>
+                                    <p className="text-[9px] font-bold uppercase tracking-widest text-[#94A3B8] mt-1">
+                                      {new Date(p.createdAt).toLocaleDateString("vi-VN")}
+                                    </p>
                                   </div>
-                                  <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
-                                    {cfg.icon} {cfg.label}
+                                  <span className="text-[9px] font-bold uppercase tracking-widest text-[#F8B486]">
+                                    {statusLabel}
                                   </span>
                                 </div>
                               );
@@ -839,83 +787,56 @@ export default function TeacherPage() {
                         </div>
                       )}
                     </div>
-
-                    <div className="glass-strong rounded-2xl p-6 border border-white/5">
-                      <h3 className="font-bold text-lg text-white flex items-center gap-2 mb-2">
-                        <Building2 className="w-5 h-5 text-cyan-400" /> Tài khoản nhận tiền
-                      </h3>
-                      <p className="text-sm text-indigo-200/60 mb-5">Thông tin này dùng cho payout từ Admin sang giáo viên.</p>
-                      <div className="space-y-3">
-                        <input value={bankName} onChange={(e) => setBankName(e.target.value)} className="input-base bg-white/5 border-white/10 text-white !h-12" placeholder="Ngân hàng, ví dụ VCB" />
-                        <input value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} className="input-base bg-white/5 border-white/10 text-white !h-12" placeholder="Số tài khoản" />
-                        <input value={bankOwner} onChange={(e) => setBankOwner(e.target.value)} className="input-base bg-white/5 border-white/10 text-white !h-12" placeholder="Tên chủ tài khoản" />
-                        <button onClick={saveBankInfo} disabled={bankSaving} className="btn-secondary w-full justify-center py-3">
-                          {bankSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                          Lưu tài khoản
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {tab === "reviews" && (
-              <div className="glass-strong rounded-2xl p-12 text-center border border-white/5">
-                <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-30 text-indigo-300" />
-                <h3 className="text-lg font-bold text-white mb-2">Hỏi đáp & Đánh giá</h3>
-                <p className="text-sm text-indigo-200/60 max-w-md mx-auto">Khu vực này đang được nâng cấp. Sắp tới bạn có thể trả lời câu hỏi của học sinh trực tiếp tại đây.</p>
-              </div>
-            )}
-
             {tab === "settings" && (
-              <div className="glass-strong rounded-2xl p-8 border border-white/5 max-w-3xl mx-auto">
-                <h3 className="font-bold text-2xl mb-2 flex items-center gap-3 text-white">
-                  <CreditCard className="w-6 h-6 text-indigo-400" /> Cài đặt thanh toán (QR)
+              <div className="bg-[#121E36] rounded-xl p-10 border border-white/5 max-w-4xl mx-auto">
+                <h3 className="font-bold text-xl uppercase tracking-wider text-[#F8FAFC] mb-4">
+                  CÀI ĐẶT THANH TOÁN QR
                 </h3>
-                <p className="text-sm text-indigo-200/60 mb-8 pb-6 border-b border-white/10">
-                  Hệ thống sử dụng mã QR tự động từ thông tin ngân hàng của bạn. Khi học sinh đăng ký, mã QR sẽ tự động điền số tiền và nội dung chuyển khoản để bạn dễ dàng đối soát.
+                <p className="text-xs font-bold text-[#94A3B8] tracking-wider mb-10 pb-6 border-b border-white/5">
+                  HỆ THỐNG TỰ ĐỘNG TẠO MÃ QR TỪ THÔNG TIN NÀY ĐỂ HỌC SINH CHUYỂN KHOẢN.
                 </p>
                 
-                <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-8">
+                  <div className="grid md:grid-cols-2 gap-8">
                     <div>
-                      <label className="block text-sm font-bold text-white mb-2">Ngân hàng</label>
-                      <div className="relative">
-                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
-                        <select value={bankName} onChange={(e) => setBankName(e.target.value)} className="input-base pl-10 bg-white/5 border-white/10 text-white !h-12 focus:bg-white/10">
-                          <option value="" className="bg-[#0f172a]">Chọn ngân hàng của bạn</option>
-                          <option value="VCB" className="bg-[#0f172a]">Vietcombank (VCB)</option>
-                          <option value="TCB" className="bg-[#0f172a]">Techcombank (TCB)</option>
-                          <option value="MB" className="bg-[#0f172a]">MB Bank</option>
-                          <option value="ACB" className="bg-[#0f172a]">ACB</option>
-                          <option value="VPB" className="bg-[#0f172a]">VPBank</option>
-                          <option value="BIDV" className="bg-[#0f172a]">BIDV</option>
-                          <option value="VTB" className="bg-[#0f172a]">VietinBank</option>
-                        </select>
-                      </div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] mb-3">NGÂN HÀNG</label>
+                      <select value={bankName} onChange={(e) => setBankName(e.target.value)} className="w-full bg-[#051025] text-[#F8FAFC] p-4 rounded-lg border border-white/5 outline-none text-sm font-bold tracking-widest uppercase">
+                        <option value="">CHỌN NGÂN HÀNG</option>
+                        <option value="VCB">Vietcombank (VCB)</option>
+                        <option value="TCB">Techcombank (TCB)</option>
+                        <option value="MB">MB Bank</option>
+                        <option value="ACB">ACB</option>
+                        <option value="VPB">VPBank</option>
+                        <option value="BIDV">BIDV</option>
+                        <option value="VTB">VietinBank</option>
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-white mb-2">Số tài khoản</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] mb-3">SỐ TÀI KHOẢN</label>
                       <input
                         value={bankAccount} onChange={(e) => setBankAccount(e.target.value)}
-                        className="input-base bg-white/5 border-white/10 text-white !h-12 focus:bg-white/10" placeholder="VD: 190366666666"
+                        className="w-full bg-[#051025] text-[#F8FAFC] p-4 rounded-lg border border-white/5 outline-none text-sm font-bold tracking-widest" placeholder="VD: 190366666666"
                       />
                     </div>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-bold text-white mb-2">Tên chủ tài khoản (Viết in hoa không dấu)</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] mb-3">TÊN CHỦ TÀI KHOẢN (IN HOA KHÔNG DẤU)</label>
                     <input
                       value={bankOwner} onChange={(e) => setBankOwner(e.target.value)}
-                      className="input-base bg-white/5 border-white/10 text-white !h-12 focus:bg-white/10 font-bold tracking-wider" placeholder="VD: NGUYEN VAN MINH"
+                      className="w-full bg-[#051025] text-[#F8FAFC] p-4 rounded-lg border border-white/5 outline-none text-sm font-bold tracking-widest uppercase" placeholder="VD: NGUYEN VAN MINH"
                     />
                   </div>
 
                   {bankName && bankAccount && bankOwner && (
-                    <div className="mt-8 p-6 rounded-2xl border border-white/10 bg-indigo-950/30 flex flex-col items-center">
-                      <p className="text-sm font-bold text-white mb-4 text-center">Bản xem trước Mã QR hiển thị cho học sinh</p>
-                      <div className="w-48 h-48 bg-white rounded-2xl p-2 shadow-2xl shadow-indigo-500/20 relative">
+                    <div className="mt-8 p-8 rounded-xl border border-white/5 bg-[#051025] flex flex-col items-center">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#F8FAFC] mb-6">XEM TRƯỚC MÃ QR CỦA BẠN</p>
+                      <div className="w-48 h-48 bg-white p-3 rounded shadow-lg relative">
                         <Image
                           src={`https://img.vietqr.io/image/${bankName}-${bankAccount}-compact.png?accountName=${encodeURIComponent(bankOwner)}`}
                           alt="QR Code"
@@ -924,15 +845,15 @@ export default function TeacherPage() {
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       </div>
-                      <p className="text-xs font-semibold text-indigo-300 mt-4 text-center tracking-wide">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] mt-6">
                         {bankName} • {bankAccount} • {bankOwner}
                       </p>
                     </div>
                   )}
 
-                  <div className="pt-4 flex justify-end">
-                    <button onClick={saveBankInfo} disabled={bankSaving} className="btn-primary py-3 px-8 text-base shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50">
-                      {bankSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />} Cập nhật thông tin
+                  <div className="pt-6 flex justify-end">
+                    <button onClick={saveBankInfo} disabled={bankSaving} className="bg-[#F8B486] text-[#051025] px-8 py-4 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-[#FFCCAA] transition-colors">
+                      {bankSaving ? "ĐANG LƯU..." : "CẬP NHẬT THÔNG TIN"}
                     </button>
                   </div>
                 </div>
