@@ -120,17 +120,6 @@ export class ParentDashboardRepository {
     });
   }
 
-  /** Get child's certificates */
-  getChildCertificates(childId: string) {
-    return this.prisma.certificate.findMany({
-      where: { userId: childId },
-      include: {
-        course: { select: { id: true, title: true, thumbnail: true, status: true } },
-      },
-      orderBy: { issuedAt: 'desc' },
-    });
-  }
-
   /** Get activity counts */
   async getActivityCounts(childId: string) {
     const [quizAttemptsCount, submissionCount] = await Promise.all([

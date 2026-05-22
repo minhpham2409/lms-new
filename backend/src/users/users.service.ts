@@ -71,13 +71,12 @@ export class UsersService {
     // Gather activities from multiple real sources
     const activities: Array<{ text: string; time: Date; type: string }> = [];
 
-    const [recentVideos, recentQuizzes, recentSubmissions, recentEnrollments, recentCerts] =
+    const [recentVideos, recentQuizzes, recentSubmissions, recentEnrollments] =
       await Promise.all([
         this.dashboardRepository.getRecentCompletedVideos(userId),
         this.dashboardRepository.getRecentQuizAttempts(userId),
         this.dashboardRepository.getRecentSubmissions(userId),
         this.dashboardRepository.getRecentEnrollments(userId),
-        this.dashboardRepository.getRecentCertificates(userId),
       ]);
 
     for (const v of recentVideos) {
@@ -92,9 +91,6 @@ export class UsersService {
     }
     for (const e of recentEnrollments) {
       activities.push({ text: `Đăng ký khóa: ${e.course.title}`, time: e.createdAt, type: 'enrollment' });
-    }
-    for (const c of recentCerts) {
-      activities.push({ text: `Nhận chứng chỉ: ${c.course.title}`, time: c.createdAt, type: 'certificate' });
     }
 
     // Sort by time desc, take top 6

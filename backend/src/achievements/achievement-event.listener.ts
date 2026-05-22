@@ -6,7 +6,6 @@ import {
   LessonCompletedPayload,
   EnrollmentCreatedPayload,
   QuizSubmittedPayload,
-  CertificateGeneratedPayload,
   CommentCreatedPayload,
 } from '../shared/events';
 import { PrismaService } from '../prisma/prisma.service';
@@ -25,7 +24,6 @@ export class AchievementEventListener {
   @OnEvent(AppEvents.PROGRESS_UPDATED)
   @OnEvent(AppEvents.ENROLLMENT_CREATED)
   @OnEvent(AppEvents.QUIZ_SUBMITTED)
-  @OnEvent(AppEvents.CERTIFICATE_GENERATED)
   @OnEvent(AppEvents.COMMENT_CREATED)
   @OnEvent(AppEvents.STREAK_UPDATED)
   async onActivityEvent(
@@ -34,7 +32,6 @@ export class AchievementEventListener {
       | LessonCompletedPayload
       | EnrollmentCreatedPayload
       | QuizSubmittedPayload
-      | CertificateGeneratedPayload
       | CommentCreatedPayload
       | { userId: string },
   ) {
@@ -57,7 +54,6 @@ export class AchievementEventListener {
       streak,
       completedCourses,
       quizAttempts,
-      certificates,
       videosWatched,
       assignmentsSub,
       commentsCount,
@@ -66,7 +62,6 @@ export class AchievementEventListener {
       this.prisma.user.findUnique({ where: { id: userId }, select: { currentStreak: true } }),
       this.prisma.enrollment.count({ where: { userId, progress: { gte: 100 } } }),
       this.prisma.quizAttempt.count({ where: { studentId: userId } }),
-      this.prisma.certificate.count({ where: { userId } }),
       this.prisma.videoProgress.count({ where: { userId, completed: true } }),
       this.prisma.submission.count({ where: { studentId: userId } }),
       this.prisma.comment.count({ where: { userId } }),
@@ -87,7 +82,6 @@ export class AchievementEventListener {
       if (badge.category === 'streak') current = streak?.currentStreak || 0;
       else if (badge.category === 'course') current = completedCourses;
       else if (badge.category === 'quiz') current = quizAttempts;
-      else if (badge.category === 'certificate') current = certificates;
       else if (badge.category === 'video') current = videosWatched;
       else if (badge.category === 'assignment') current = assignmentsSub;
       else if (badge.category === 'social') current = commentsCount;

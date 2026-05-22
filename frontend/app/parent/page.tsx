@@ -1092,13 +1092,6 @@ export default function ParentPage() {
                         color: "#94A3B8",
                         sub: "bài tập",
                       },
-                      {
-                        label: "Chứng chỉ",
-                        value: childDashboard?.certificates?.length ?? 0,
-                        icon: Award,
-                        color: "#FFCCAA",
-                        sub: "đã nhận",
-                      },
                     ].map(({ label, value, icon: Icon, color, sub }) => (
                       <div key={label} className="bg-card border border-border p-4 shadow-sm text-center">
                         <div
@@ -1263,8 +1256,11 @@ export default function ParentPage() {
                             },
                             {
                               icon: "🏆",
-                              label: "Chứng chỉ",
-                              value: childDashboard?.certificates?.length ?? 0,
+                              label: "Khóa hoàn thành",
+                              value: (childDashboard?.enrollments || []).filter((e: any) => {
+                                const stats = e.stats;
+                                return stats && stats.totalLessons > 0 && stats.completedLessons >= stats.totalLessons;
+                              }).length,
                               color: "text-pink-500",
                             },
                           ].map(({ icon, label, value, color }) => (
@@ -1284,26 +1280,30 @@ export default function ParentPage() {
                         </div>
                       </div>
 
-                      {/* Certificates */}
+                      {/* Completed Courses */}
                       <div className="bg-card border border-border p-6 shadow-sm">
                         <h3 className="font-extrabold text-base mb-4 flex items-center gap-2">
                           <div className="p-1.5 rounded-lg bg-amber-500/10">
                             <Award className="w-5 h-5 text-amber-500" />
                           </div>{" "}
-                          Thành tựu & Chứng chỉ
+                          Thành tựu học tập
                         </h3>
-                        {(childDashboard?.certificates || []).length === 0 ? (
-                          <div className="text-center py-6">
-                            <p className="text-sm text-gray-500">
-                              Chưa có chứng chỉ nào
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {(childDashboard?.certificates || []).map(
-                              (cert: any) => (
+                        {(() => {
+                          const completed = (childDashboard?.enrollments || []).filter((e: any) => {
+                            const stats = e.stats;
+                            return stats && stats.totalLessons > 0 && stats.completedLessons >= stats.totalLessons;
+                          });
+                          return completed.length === 0 ? (
+                            <div className="text-center py-6">
+                              <p className="text-sm text-gray-500">
+                                Chưa hoàn thành khóa học nào
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {completed.map((e: any) => (
                                 <div
-                                  key={cert.id}
+                                  key={e.id}
                                   className="group relative flex items-center gap-4 p-4 rounded-2xl overflow-hidden"
                                   style={{
                                     background: "var(--card)",
@@ -1316,29 +1316,17 @@ export default function ParentPage() {
                                   </div>
                                   <div className="flex-1 min-w-0 relative z-10">
                                     <p className="font-bold text-sm truncate group-hover:text-amber-600 transition-colors">
-                                      {cert.course?.title || "Khóa học"}
+                                      {e.course?.title || "Khóa học"}
                                     </p>
                                     <p className="text-[11px] mt-0.5 text-gray-500">
-                                      Cấp ngày:{" "}
-                                      <span className="font-medium text-gray-700 dark:text-gray-300">
-                                        {cert.issuedAt
-                                          ? new Date(
-                                              cert.issuedAt,
-                                            ).toLocaleDateString("vi-VN")
-                                          : "—"}
-                                      </span>
+                                      🎉 Hoàn thành toàn bộ {e.stats?.totalLessons} bài học
                                     </p>
                                   </div>
-                                  <div className="text-right relative z-10">
-                                    <span className="inline-block px-2.5 py-1 text-[10px] font-mono font-bold bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                                      #{cert.code || cert.id?.substring(0, 6)}
-                                    </span>
-                                  </div>
                                 </div>
-                              ),
-                            )}
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

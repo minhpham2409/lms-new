@@ -9,7 +9,6 @@ const XP_VALUES = {
   checkInDay: 3,
   badgeEarned: 20,
   courseCompleted: 50,
-  certificateEarned: 30,
 };
 
 @Injectable()
@@ -34,7 +33,6 @@ export class MonthlyRaceService {
       assignmentsDone,
       badgesEarned,
       coursesCompleted,
-      certificatesEarned,
       watchTimeData,
       activityDates,
     ] = await Promise.all([
@@ -43,7 +41,6 @@ export class MonthlyRaceService {
       this.raceRepository.countSubmissions(userId, start, end),
       this.raceRepository.countBadgesEarned(userId, start, end),
       this.raceRepository.countCoursesCompleted(userId, start, end),
-      this.raceRepository.countCertificates(userId, start, end),
       this.raceRepository.aggregateWatchTime(userId, start, end),
       this.raceRepository.getActivityDates(userId, start, end),
     ]);
@@ -57,8 +54,7 @@ export class MonthlyRaceService {
       assignmentsDone * XP_VALUES.assignmentDone +
       checkInDays * XP_VALUES.checkInDay +
       badgesEarned * XP_VALUES.badgeEarned +
-      coursesCompleted * XP_VALUES.courseCompleted +
-      certificatesEarned * XP_VALUES.certificateEarned;
+      coursesCompleted * XP_VALUES.courseCompleted;
 
     return {
       userId,
@@ -71,7 +67,6 @@ export class MonthlyRaceService {
         checkInDays,
         badgesEarned,
         coursesCompleted,
-        certificatesEarned,
         watchMinutes,
       },
       rawXP: xp,

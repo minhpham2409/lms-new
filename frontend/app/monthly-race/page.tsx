@@ -20,7 +20,6 @@ interface MonthlyStats {
   checkInDays: number;
   badgesEarned: number;
   coursesCompleted: number;
-  certificatesEarned: number;
   watchMinutes: number;
 }
 
@@ -43,7 +42,6 @@ interface LeaderboardEntry {
   checkInDays: number;
   badgesEarned: number;
   coursesCompleted: number;
-  certificatesEarned: number;
   watchMinutes: number;
 }
 
@@ -156,7 +154,6 @@ export default function MonthlyRacePage() {
         { icon: Calendar, label: "Ngày check-in", value: stats.checkInDays, xp: stats.checkInDays * 3, color: "#FFCCAA" },
         { icon: Award, label: "Huy hiệu mới", value: stats.badgesEarned, xp: stats.badgesEarned * 20, color: "#ffd700" },
         { icon: Trophy, label: "Khóa hoàn thành", value: stats.coursesCompleted, xp: stats.coursesCompleted * 50, color: "#F8B486" },
-        { icon: Crown, label: "Chứng chỉ", value: stats.certificatesEarned, xp: stats.certificatesEarned * 30, color: "#a855f7" },
       ].map(item => (
         <div key={item.label} className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -331,7 +328,6 @@ export default function MonthlyRacePage() {
                     { act: "Check-in/ngày", xp: "+3" },
                     { act: "Đạt huy hiệu", xp: "+20" },
                     { act: "Hoàn thành khóa", xp: "+50" },
-                    { act: "Nhận chứng chỉ", xp: "+30" },
                   ].map(r => (
                     <div key={r.act} className="flex justify-between py-1.5 px-3 rounded-lg" style={{ background: "var(--muted)" }}>
                       <span style={{ color: "#6a6f73" }}>{r.act}</span>

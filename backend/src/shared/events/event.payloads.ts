@@ -54,7 +54,7 @@ export interface ProgressUpdatedPayload {
 export interface BadgeCheckRequestedPayload {
   userId: string;
   /** Optional: hint which category triggered the check */
-  triggerCategory?: 'streak' | 'course' | 'quiz' | 'certificate' | 'video' | 'assignment' | 'social' | 'enrollment';
+  triggerCategory?: 'streak' | 'course' | 'quiz' | 'video' | 'assignment' | 'social' | 'enrollment';
 }
 
 export interface BadgeEarnedPayload {
@@ -77,13 +77,7 @@ export interface UserRegisteredPayload {
   role: string;
 }
 
-export interface CertificateGeneratedPayload {
-  certificateId: string;
-  userId: string;
-  courseId: string;
-  courseTitle: string;
-  userName?: string;
-}
+
 
 export interface CommentCreatedPayload {
   commentId: string;

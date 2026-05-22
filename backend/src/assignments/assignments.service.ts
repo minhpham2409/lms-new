@@ -181,32 +181,8 @@ export class AssignmentsService {
       gradedAt: new Date(),
     });
 
-    await (this.prisma as any).auditLog.create({
-      data: {
-        actorId: authorId,
-        actorRole: 'teacher',
-        action: 'submission.grade',
-        entityType: 'Submission',
-        entityId: submissionId,
-        before: {
-          score: submission.score,
-          feedback: submission.feedback,
-          status: submission.status,
-          gradedAt: submission.gradedAt,
-        },
-        after: {
-          score: updated.score,
-          feedback: updated.feedback,
-          status: updated.status,
-          gradedAt: updated.gradedAt,
-        },
-        metadata: {
-          assignmentId: assignment.id,
-          courseId: assignment.lesson.section.courseId,
-          studentId: submission.studentId,
-        },
-      },
-    }).catch(() => undefined);
+    // AuditLog removed — grading history is tracked via submission record itself
+    // (score, feedback, status=graded, gradedAt are all persisted on the Submission)
 
     const fb = dto.feedback?.trim();
     const lessonId = assignment.lesson.id;

@@ -1,11 +1,11 @@
 # 1. Dependencies
-FROM node:20-alpine AS deps
+FROM node:20.18-alpine3.21 AS deps
 WORKDIR /app
 COPY package.json yarn.lock* package-lock.json* ./
 RUN npm ci || yarn install --frozen-lockfile
 
 # 2. Builder
-FROM node:20-alpine AS builder
+FROM node:20.18-alpine3.21 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -15,7 +15,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # 3. Runner
-FROM node:20-alpine AS runner
+FROM node:20.18-alpine3.21 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -34,8 +34,16 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Create temp directory for HLS processing
-RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 appuser
+
+# Create temp directory for HLS processing and ensure correct ownership
+RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files \
+    && chown -R appuser:nodejs tmp/hls uploads
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 4000
 

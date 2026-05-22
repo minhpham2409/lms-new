@@ -36,13 +36,11 @@ export class AchievementRepository {
     return this.prisma.badge.findMany({ orderBy: [{ category: 'asc' }, { requirement: 'asc' }] });
   }
 
-  /** Get all user stats needed for badge progress calculation */
   async getUserStats(userId: string) {
-    const [streak, completedCourses, quizAttempts, certificates, videosWatched, assignmentsSub, commentsCount, enrollments] = await Promise.all([
+    const [streak, completedCourses, quizAttempts, videosWatched, assignmentsSub, commentsCount, enrollments] = await Promise.all([
       this.prisma.user.findUnique({ where: { id: userId }, select: { currentStreak: true } }),
       this.prisma.enrollment.count({ where: { userId, progress: { gte: 100 } } }),
       this.prisma.quizAttempt.count({ where: { studentId: userId } }),
-      this.prisma.certificate.count({ where: { userId } }),
       this.prisma.videoProgress.count({ where: { userId, completed: true } }),
       this.prisma.submission.count({ where: { studentId: userId } }),
       this.prisma.comment.count({ where: { userId } }),
@@ -53,7 +51,6 @@ export class AchievementRepository {
       streak: streak?.currentStreak || 0,
       completedCourses,
       quizAttempts,
-      certificates,
       videosWatched,
       assignmentsSub,
       commentsCount,
@@ -111,11 +108,10 @@ export class AchievementRepository {
 
   /** Get public profile counts */
   async getPublicProfileCounts(userId: string) {
-    const [completedCourses, enrollments, certificates] = await Promise.all([
+    const [completedCourses, enrollments] = await Promise.all([
       this.prisma.enrollment.count({ where: { userId, progress: { gte: 100 } } }),
       this.prisma.enrollment.count({ where: { userId } }),
-      this.prisma.certificate.count({ where: { userId } }),
     ]);
-    return { completedCourses, enrollments, certificates };
+    return { completedCourses, enrollments };
   }
 }

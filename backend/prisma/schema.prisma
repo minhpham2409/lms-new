@@ -28,7 +28,6 @@ model User {
   bankAccount      String?
   bankOwner        String?
   cartItems        CartItem[]
-  certificates     Certificate[]
   comments         Comment[]       @relation("UserComments")
   coupons          Coupon[]        @relation("UserCoupons")
   courses          Course[]        @relation("AuthoredCourses")
@@ -128,7 +127,6 @@ model Course {
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt
   cartItems               CartItem[]
-  certificates            Certificate[]
   author                  User          @relation("AuthoredCourses", fields: [authorId], references: [id])
   enrollments             Enrollment[]
   orderItems              OrderItem[]
@@ -355,30 +353,26 @@ model Order {
 }
 
 model RefundRequest {
-  id          String              @id @default(uuid())
-  orderId     String
-  paymentId   String?
-  parentId    String
-  childId     String
-  amount      Decimal             @db.Decimal(10, 2)
-  bankName    String
-  bankAccount String
-  bankOwner   String
-  refundQrUrl String?
-  refundQrData String?
+  id                 String              @id @default(uuid())
+  orderId            String
+  parentId           String
+  amount             Decimal             @db.Decimal(10, 2)
+  bankName           String
+  bankAccount        String
+  bankOwner          String
+  note               String?
+  adminNote          String?
+  status             RefundRequestStatus @default(PENDING)
   processedByAdminId String?
-  processedAt DateTime?
-  bankTransferRef String?
-  note        String?
-  status      RefundRequestStatus @default(PENDING)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  order       Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  parent      User                @relation("ParentRefundRequests", fields: [parentId], references: [id], onDelete: Cascade)
+  processedAt        DateTime?
+  bankTransferRef    String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  parent             User                @relation("ParentRefundRequests", fields: [parentId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([parentId])
-  @@index([childId])
   @@index([status, createdAt])
 }
 
@@ -438,22 +432,7 @@ model PaymentTransaction {
   @@index([status])
 }
 
-model AuditLog {
-  id          String   @id @default(uuid())
-  actorId     String?
-  actorRole   String?
-  action      String
-  entityType  String
-  entityId    String
-  before      Json?
-  after       Json?
-  metadata    Json?
-  createdAt   DateTime @default(now())
 
-  @@index([entityType, entityId, createdAt])
-  @@index([actorId, createdAt])
-  @@index([action, createdAt])
-}
 
 model WebhookEvent {
   id          String             @id @default(uuid())
@@ -517,19 +496,7 @@ model Notification {
   @@index([userId, isRead, createdAt])
 }
 
-model Certificate {
-  id        String   @id @default(uuid())
-  userId    String
-  courseId  String
-  code      String   @unique
-  issuedAt  DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, courseId])
-}
 
 model ParentChild {
   id        String   @id @default(uuid())

@@ -297,29 +297,20 @@ export class PaymentsService {
     });
     if (existing) return existing;
 
-    const bankCode = dto.bankName.trim().toUpperCase();
-    const bankAccount = dto.bankAccount.trim();
-    const bankOwner = dto.bankOwner.trim().toUpperCase();
-    const refundInfo = `HOAN TIEN ${order.id.substring(0, 8).toUpperCase()}`;
-    const refundQrUrl = `https://img.vietqr.io/image/${bankCode}-${bankAccount}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(refundInfo)}&accountName=${encodeURIComponent(bankOwner)}`;
-    const refundQrData = `VIETQR_REFUND|${bankCode}|${bankAccount}|${amount}|${refundInfo}`;
-
+    // Simplified: parent provides banking info, admin transfers manually
     const refund = await (this.prisma as any).refundRequest.create({
       data: {
         orderId: order.id,
-        paymentId: payment.id,
         parentId,
-        childId: order.userId,
         amount,
-        bankName: bankCode,
-        bankAccount,
-        bankOwner,
-        refundQrUrl,
-        refundQrData,
+        bankName: dto.bankName.trim().toUpperCase(),
+        bankAccount: dto.bankAccount.trim(),
+        bankOwner: dto.bankOwner.trim().toUpperCase(),
         note: dto.note?.trim(),
       },
     });
 
+    // Notify all admins about the refund request
     const admins = await this.prisma.user.findMany({
       where: { role: 'admin' },
       select: { id: true },
@@ -330,15 +321,7 @@ export class PaymentsService {
         this.notificationRepository.create({
           userId: admin.id,
           title: 'Yêu cầu hoàn tiền chuyển khoản dư',
-          message: JSON.stringify({
-            refundRequestId: refund.id,
-            orderId: order.id,
-            amount,
-            bankName: refund.bankName,
-            bankAccount: refund.bankAccount,
-            bankOwner: refund.bankOwner,
-            refundQrUrl,
-          }),
+          message: `Đơn ${order.id.substring(0, 8)} — ${amount.toLocaleString('vi-VN')} ₫ — NH: ${refund.bankName} / ${refund.bankAccount} / ${refund.bankOwner}`,
           type: 'refund_request',
         }).catch((err) => {
           this.logger.warn(`Admin refund notification failed: ${err.message}`);

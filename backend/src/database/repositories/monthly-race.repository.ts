@@ -44,13 +44,6 @@ export class MonthlyRaceRepository {
     });
   }
 
-  /** Count certificates earned in a date range */
-  countCertificates(userId: string, start: Date, end: Date) {
-    return this.prisma.certificate.count({
-      where: { userId, createdAt: { gte: start, lt: end } },
-    });
-  }
-
   /** Aggregate watch time in a date range */
   aggregateWatchTime(userId: string, start: Date, end: Date) {
     return this.prisma.videoProgress.aggregate({

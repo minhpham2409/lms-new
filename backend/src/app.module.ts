@@ -28,7 +28,6 @@ import { CouponsModule } from './coupons/coupons.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CommentsModule } from './comments/comments.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { CertificatesModule } from './certificates/certificates.module';
 import { ParentsModule } from './parents/parents.module';
 import { UploadModule } from './upload/upload.module';
 import { AchievementsModule } from './achievements/achievements.module';
@@ -36,9 +35,9 @@ import { MonthlyRaceModule } from './monthly-race/monthly-race.module';
 import { StorageModule } from './storage/storage.module';
 import { QueueNames, QueueEventBridge } from './shared/queues';
 import { EmailProcessor } from './shared/queues/processors/email.processor';
-import { CertificateProcessor } from './shared/queues/processors/certificate.processor';
 import { MediaModule } from './media/media.module';
 import { WalletsModule } from './wallets/wallets.module';
+import { TaxReportsModule } from './tax-reports/tax-reports.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -73,7 +72,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     }),
     BullModule.registerQueue(
       { name: QueueNames.EMAIL },
-      { name: QueueNames.CERTIFICATE },
       { name: QueueNames.NOTIFICATION },
       { name: QueueNames.VIDEO },
       { name: QueueNames.WALLET },
@@ -149,13 +147,13 @@ import { ScheduleModule } from '@nestjs/schedule';
     ReviewsModule,
     CommentsModule,
     NotificationsModule,
-    CertificatesModule,
     ParentsModule,
     UploadModule,
     AchievementsModule,
     MonthlyRaceModule,
     MediaModule,
     WalletsModule,
+    TaxReportsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -167,7 +165,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     // ─── Bull Queue Processors ─────────────────────────────────────────────
     // Registered globally so they process jobs from any module.
     EmailProcessor,
-    CertificateProcessor,
     // ─── Event → Queue Bridge ──────────────────────────────────────────────
     // Listens to domain events and dispatches heavy jobs into Bull queues.
     QueueEventBridge,

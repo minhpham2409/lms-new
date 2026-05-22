@@ -6,7 +6,6 @@ import { AppEvents } from '../../shared/events';
 import {
   PaymentCompletedPayload,
   EnrollmentApprovedPayload,
-  CertificateGeneratedPayload,
 } from '../../shared/events';
 import { QueueNames, JobNames } from '../../shared/queues';
 
@@ -14,7 +13,7 @@ import { QueueNames, JobNames } from '../../shared/queues';
  * Bridges Domain Events → Bull Background Queues.
  *
  * Listens to lightweight in-process events and dispatches heavy
- * async jobs (email, PDF, etc.) into Redis queues.
+ * async jobs (email, etc.) into Redis queues.
  * This keeps the API response fast while heavy work happens in the background.
  */
 @Injectable()
@@ -23,7 +22,6 @@ export class QueueEventBridge {
 
   constructor(
     @InjectQueue(QueueNames.EMAIL) private readonly emailQueue: Queue,
-    @InjectQueue(QueueNames.CERTIFICATE) private readonly certificateQueue: Queue,
   ) {}
 
   /**
@@ -73,31 +71,6 @@ export class QueueEventBridge {
         userId: payload.userId,
         courseTitle: payload.courseTitle,
         email: '', // Will be resolved by the processor from userId
-      },
-      {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 2000 },
-        removeOnComplete: true,
-      },
-    );
-  }
-
-  /**
-   * After certificate generation, push a PDF rendering job.
-   */
-  @OnEvent(AppEvents.CERTIFICATE_GENERATED)
-  async onCertificateGenerated(payload: CertificateGeneratedPayload) {
-    this.logger.log(
-      `[Event→Queue] CERTIFICATE_GENERATED → pushing PDF render job for certificate ${payload.certificateId}`,
-    );
-
-    await this.certificateQueue.add(
-      JobNames.RENDER_CERTIFICATE_PDF,
-      {
-        certificateId: payload.certificateId,
-        userId: payload.userId,
-        courseTitle: payload.courseTitle,
-        userName: payload.userName,
       },
       {
         attempts: 3,

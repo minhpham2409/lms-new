@@ -71,16 +71,6 @@ export class StudentDashboardRepository {
     });
   }
 
-  /** Recent certificates */
-  getRecentCertificates(userId: string, take = 2) {
-    return this.prisma.certificate.findMany({
-      where: { userId },
-      include: { course: { select: { title: true } } },
-      orderBy: { createdAt: 'desc' },
-      take,
-    });
-  }
-
   /** Find active streak coupon */
   findActiveStreakCoupon(userId: string) {
     return this.prisma.coupon.findFirst({

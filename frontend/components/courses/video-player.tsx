@@ -13,7 +13,6 @@ import {
   CheckCircle,
   PlayCircle,
   ArrowLeft,
-  Download,
   Clock,
   ChevronDown,
   ChevronRight,
@@ -353,15 +352,6 @@ export default function VideoPlayer({ courseId, lessonId }: VideoPlayerProps) {
                         className="flex-1"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" /> Mark Complete
-                      </Button>
-                    )}
-                    {allDone && (
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push(`/courses/${courseId}/certificate`)}
-                        className="flex-1"
-                      >
-                        <Download className="h-4 w-4 mr-2" /> Get Certificate
                       </Button>
                     )}
                   </div>

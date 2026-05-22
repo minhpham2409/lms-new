@@ -21,7 +21,6 @@ import { QueueNames } from '../shared/queues';
     AuthModule,
     BullModule.registerQueue(
       { name: QueueNames.EMAIL },
-      { name: QueueNames.CERTIFICATE },
       { name: QueueNames.NOTIFICATION },
       { name: QueueNames.VIDEO },
       { name: QueueNames.WALLET },

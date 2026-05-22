@@ -79,10 +79,9 @@ export class ParentsService {
     const enrollments = await this.dashboardRepository.getChildEnrollmentsDetailed(childId);
     const courseIds = enrollments.map(e => e.courseId);
 
-    const [sections, vpRows, certificates, activity] = await Promise.all([
+    const [sections, vpRows, activity] = await Promise.all([
       this.dashboardRepository.getSectionLessonCounts(courseIds),
       this.dashboardRepository.getCompletedVideoLessons(childId, courseIds),
-      this.dashboardRepository.getChildCertificates(childId),
       this.dashboardRepository.getActivityCounts(childId),
     ]);
 
@@ -123,7 +122,6 @@ export class ParentsService {
         updatedAt: link.updatedAt,
       },
       enrollments: enrollmentRows,
-      certificates,
       activity: {
         quizAttempts: activity.quizAttemptsCount,
         assignmentSubmissions: activity.submissionCount,

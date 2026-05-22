@@ -10,8 +10,6 @@ export const QueueNames = {
   /** Email sending queue (invoice emails, welcome emails, password resets) */
   EMAIL: 'email-queue',
 
-  /** Certificate PDF rendering queue */
-  CERTIFICATE: 'certificate-queue',
 
   /** Notification delivery queue (batched, non-critical) */
   NOTIFICATION: 'notification-queue',
@@ -35,8 +33,6 @@ export const JobNames = {
   SEND_PASSWORD_RESET: 'send-password-reset',
   SEND_ENROLLMENT_CONFIRMATION: 'send-enrollment-confirmation',
 
-  // Certificate queue jobs
-  RENDER_CERTIFICATE_PDF: 'render-certificate-pdf',
 
   // Notification queue jobs
   SEND_BULK_NOTIFICATION: 'send-bulk-notification',

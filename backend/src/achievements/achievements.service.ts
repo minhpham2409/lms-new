@@ -24,12 +24,6 @@ const BADGE_DEFINITIONS = [
   { code: 'quiz_10',    name: 'Bách chiến bách thắng', icon: '💎', category: 'quiz', tier: 'gold',     requirement: 10,  description: 'Hoàn thành 10 bài quiz' },
   { code: 'quiz_20',    name: 'Thần đồng',             icon: '🧩', category: 'quiz', tier: 'platinum', requirement: 20,  description: 'Hoàn thành 20 bài quiz' },
 
-  // Certificate badges
-  { code: 'cert_1',     name: 'Tốt nghiệp',           icon: '📜', category: 'certificate', tier: 'bronze',  requirement: 1,  description: 'Nhận chứng chỉ đầu tiên' },
-  { code: 'cert_3',     name: 'Sưu tầm chứng chỉ',    icon: '🏛️', category: 'certificate', tier: 'silver',  requirement: 3,  description: 'Nhận 3 chứng chỉ' },
-  { code: 'cert_5',     name: 'Nhà sưu tập',           icon: '🗂️', category: 'certificate', tier: 'gold',    requirement: 5,  description: 'Nhận 5 chứng chỉ' },
-  { code: 'cert_10',    name: 'Kho chứng chỉ',         icon: '🏆', category: 'certificate', tier: 'platinum',requirement: 10, description: 'Nhận 10 chứng chỉ' },
-  { code: 'cert_20',    name: 'Huyền thoại chứng chỉ', icon: '👑', category: 'certificate', tier: 'diamond', requirement: 20, description: 'Nhận 20 chứng chỉ' },
 
   // Video watching badges
   { code: 'video_5',    name: 'Mắt sáng',             icon: '👀', category: 'video', tier: 'bronze',   requirement: 5,   description: 'Xem 5 video bài giảng' },
@@ -99,7 +93,6 @@ export class AchievementsService {
       if (badge.category === 'streak') current = stats.streak;
       else if (badge.category === 'course') current = stats.completedCourses;
       else if (badge.category === 'quiz') current = stats.quizAttempts;
-      else if (badge.category === 'certificate') current = stats.certificates;
       else if (badge.category === 'video') current = stats.videosWatched;
       else if (badge.category === 'assignment') current = stats.assignmentsSub;
       else if (badge.category === 'social') current = stats.commentsCount;
@@ -136,7 +129,6 @@ export class AchievementsService {
       if (badge.category === 'streak') current = stats.streak;
       else if (badge.category === 'course') current = stats.completedCourses;
       else if (badge.category === 'quiz') current = stats.quizAttempts;
-      else if (badge.category === 'certificate') current = stats.certificates;
       else if (badge.category === 'video') current = stats.videosWatched;
       else if (badge.category === 'assignment') current = stats.assignmentsSub;
       else if (badge.category === 'social') current = stats.commentsCount;

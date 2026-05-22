@@ -49,10 +49,6 @@ export const AppEvents = {
   /** Emitted when a user's streak is updated. */
   STREAK_UPDATED: 'streak.updated',
 
-  // ─── Certificate Events ──────────────────────────────────────────────────
-  /** Emitted when a certificate is generated. */
-  CERTIFICATE_GENERATED: 'certificate.generated',
-
   // ─── Comment Events ──────────────────────────────────────────────────────
   /** Emitted when a comment is posted on a lesson. */
   COMMENT_CREATED: 'comment.created',

@@ -1,0 +1,76 @@
+# =============================================================================
+# Loki Configuration
+# =============================================================================
+# Loki is a horizontally-scalable, highly-available log aggregation system.
+# This is a basic single-instance configuration suitable for small deployments.
+# Logs are stored on the local filesystem.
+# =============================================================================
+
+# Enable authentication (set to false for single-tenant mode)
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+# -------------------------------------------------------------------
+# Ingester: handles writing log data to long-term storage
+# -------------------------------------------------------------------
+ingester:
+  lifecycler:
+    address: 127.0.0.1
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    final_sleep: 0s
+  # How long chunks of logs are kept in memory before being flushed
+  chunk_idle_period: 5m
+  chunk_retain_period: 30s
+
+# -------------------------------------------------------------------
+# Schema Config: defines how data is stored and indexed
+# Uses boltdb-shipper for index and filesystem for chunks
+# -------------------------------------------------------------------
+schema_config:
+  configs:
+    - from: 2020-01-01
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+# -------------------------------------------------------------------
+# Storage Config: where to store log chunks and indexes
+# -------------------------------------------------------------------
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /loki/boltdb-shipper-active
+    cache_location: /loki/boltdb-shipper-cache
+    shared_store: filesystem
+  filesystem:
+    directory: /loki/chunks
+
+# -------------------------------------------------------------------
+# Compactor: handles compaction of index files for performance
+# -------------------------------------------------------------------
+compactor:
+  working_directory: /loki/compactor
+  shared_store: filesystem
+
+# -------------------------------------------------------------------
+# Limits Config: controls ingestion and query limits
+# -------------------------------------------------------------------
+limits_config:
+  # Reject old samples older than 168h (7 days)
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+# -------------------------------------------------------------------
+# Table Manager: manages lifecycle of index and chunk tables
+# Retention is disabled by default; enable if you want auto-deletion
+# -------------------------------------------------------------------
+table_manager:
+  retention_deletes_enabled: false
+  retention_period: 0s

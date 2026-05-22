@@ -300,18 +300,8 @@ export class AdminRepository {
         },
       });
 
-      await (tx as any).auditLog.create({
-        data: {
-          actorId: adminId,
-          actorRole: 'admin',
-          action: 'refund.mark_paid',
-          entityType: 'RefundRequest',
-          entityId: id,
-          before,
-          after: refund,
-          metadata: { bankTransferRef },
-        },
-      });
+      // AuditLog removed — using structured logging instead
+      // Traceability is maintained via the refund record itself
 
       return { refund, before, alreadyPaid: false };
     });

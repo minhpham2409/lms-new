@@ -188,7 +188,7 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
                   <li>Gain hands-on experience with practical exercises</li>
                   <li>Build real-world projects for your portfolio</li>
                   <li>Learn at your own pace with on-demand video lectures</li>
-                  <li>Receive a certificate upon completion</li>
+                  <li>Track your progress with detailed analytics</li>
                 </ul>
               </div>
             </TabsContent>
@@ -341,7 +341,7 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
                     </div>
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>Certificate</span>
+                      <span>Quizzes</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       <Users className="h-4 w-4" />
@@ -354,7 +354,7 @@ export default function CourseDetailContent({ course, reviews = [] }: Props) {
                       'Full lifetime access',
                       'Access on any device',
                       'Project files & resources',
-                      'Certificate of completion',
+                      'Community discussion',
                     ].map((f) => (
                       <div key={f} className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />

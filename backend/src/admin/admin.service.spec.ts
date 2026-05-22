@@ -105,7 +105,6 @@ describe('AdminService', () => {
       passwordService as any,
       cache as any,
       mockQueue as any,  // emailQueue
-      mockQueue as any,  // certificateQueue
       mockQueue as any,  // notificationQueue
       mockQueue as any,  // videoQueue
       mockQueue as any,  // walletQueue

@@ -40,7 +40,6 @@ export class AdminService implements OnApplicationBootstrap {
     private readonly passwordService: PasswordService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     @InjectQueue(QueueNames.EMAIL) private readonly emailQueue: Queue,
-    @InjectQueue(QueueNames.CERTIFICATE) private readonly certificateQueue: Queue,
     @InjectQueue(QueueNames.NOTIFICATION) private readonly notificationQueue: Queue,
     @InjectQueue(QueueNames.VIDEO) private readonly videoQueue: Queue,
     @InjectQueue(QueueNames.WALLET) private readonly walletQueue: Queue,
@@ -418,7 +417,6 @@ export class AdminService implements OnApplicationBootstrap {
   private getQueueMap(): Record<string, Queue> {
     return {
       [QueueNames.EMAIL]: this.emailQueue,
-      [QueueNames.CERTIFICATE]: this.certificateQueue,
       [QueueNames.NOTIFICATION]: this.notificationQueue,
       [QueueNames.VIDEO]: this.videoQueue,
       [QueueNames.WALLET]: this.walletQueue,

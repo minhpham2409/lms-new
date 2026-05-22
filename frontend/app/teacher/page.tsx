@@ -318,6 +318,9 @@ export default function TeacherPage() {
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
+              <Link href="/teacher/tax-reports" className="bg-[#121E36] text-[#F8FAFC] border border-white/5 px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/5 transition-colors">
+                📊 BÁO CÁO THUẾ
+              </Link>
               <Link href="/teacher/grades" className="bg-[#121E36] text-[#F8FAFC] border border-white/5 px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/5 transition-colors relative">
                 CHẤM BÀI TẬP
                 {pendingSubmissionCount > 0 && (

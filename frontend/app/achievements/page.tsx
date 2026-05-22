@@ -42,7 +42,7 @@ interface UserProfile {
   streak: number;
   joinedAt: string;
   profileTier: string;
-  stats: { badgeCount: number; completedCourses: number; enrollments: number; certificates: number };
+  stats: { badgeCount: number; completedCourses: number; enrollments: number };
   badges: { code: string; name: string; icon: string; tier: string; category: string; description: string; earnedAt: string }[];
 }
 
@@ -68,7 +68,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   streak: "🔥 Chuỗi học tập",
   course: "📚 Hoàn thành khóa học",
   quiz: "🧠 Bài kiểm tra",
-  certificate: "📜 Chứng chỉ",
   video: "👀 Video bài giảng",
   assignment: "✍️ Bài tập",
   social: "💬 Giao lưu",
@@ -195,7 +194,7 @@ export default function AchievementsPage() {
                 { label: "Huy hiệu đã đạt", value: `${stats.earned}/${stats.total}`, icon: <Award className="w-6 h-6" />, color: "text-violet-500", bg: "bg-violet-500/10", border: "border-violet-500/20" },
                 { label: "Chuỗi ngày học", value: stats.streak, icon: <Flame className="w-6 h-6" />, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20" },
                 { label: "Khóa hoàn thành", value: stats.completedCourses, icon: <Target className="w-6 h-6" />, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-                { label: "Chứng chỉ", value: stats.certificates, icon: <Medal className="w-6 h-6" />, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+                { label: "Đăng ký học", value: stats.enrollments, icon: <Medal className="w-6 h-6" />, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
               ].map((stat, idx) => (
                 <div key={idx} className="bg-card/95 backdrop-blur-xl rounded-[2rem] p-6 border border-border shadow-xl hover:-translate-y-2 transition-transform duration-300">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${stat.bg} ${stat.color} border ${stat.border}`}>
@@ -528,7 +527,7 @@ export default function AchievementsPage() {
                         { label: "Huy hiệu", value: userProfile.stats.badgeCount, icon: <Award className="w-4 h-4" />, color: "text-violet-500", bg: "bg-violet-500/10" },
                         { label: "Chuỗi ngày", value: `${userProfile.streak}`, icon: <Flame className="w-4 h-4" />, color: "text-orange-500", bg: "bg-orange-500/10" },
                         { label: "Khóa học", value: userProfile.stats.completedCourses, icon: <Target className="w-4 h-4" />, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                        { label: "Chứng chỉ", value: userProfile.stats.certificates, icon: <Medal className="w-4 h-4" />, color: "text-amber-500", bg: "bg-amber-500/10" },
+                        { label: "Đăng ký", value: userProfile.stats.enrollments, icon: <Medal className="w-4 h-4" />, color: "text-amber-500", bg: "bg-amber-500/10" },
                       ].map(s => (
                         <div key={s.label} className="text-center p-4 rounded-2xl bg-muted/50 border border-border">
                           <div className={`w-8 h-8 rounded-lg mx-auto flex items-center justify-center mb-2 ${s.bg} ${s.color}`}>
