@@ -42,7 +42,6 @@ export class CourseRepository extends BaseRepository<Course> {
             lessons: {
               orderBy: { order: 'asc' },
               include: {
-                materials: true,
                 assignments: {
                   include: {
                     submissions: { select: { id: true, status: true } },
@@ -76,7 +75,7 @@ export class CourseRepository extends BaseRepository<Course> {
           include: {
             lessons: {
               orderBy: { order: 'asc' },
-              include: { materials: true, assignments: true },
+              include: { assignments: true },
             },
             _count: { select: { lessons: true } },
           },

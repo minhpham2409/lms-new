@@ -8,7 +8,6 @@ import {
   Delete,
   UseGuards,
   Query,
-  Request,
 } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { CreateMaterialDto, UpdateMaterialDto } from './dto';
@@ -49,7 +48,7 @@ export class MaterialsController {
   }
 
   /**
-   * GET /materials/:id — requires JWT + enrollment.
+   * GET /materials/:id?lessonId=... — requires JWT + enrollment.
    */
   @Get(':id')
   @UseGuards(JwtAuthGuard)
@@ -58,9 +57,10 @@ export class MaterialsController {
   @ApiResponse({ status: 200, description: 'Material retrieved' })
   findOne(
     @Param('id') id: string,
+    @Query('lessonId') lessonId: string,
     @GetUser() user: { id: string; role: string },
   ) {
-    return this.materialsService.findOne(id, user);
+    return this.materialsService.findOne(id, user, lessonId);
   }
 
   @Patch(':id')
@@ -83,7 +83,11 @@ export class MaterialsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete material' })
   @ApiResponse({ status: 200, description: 'Material deleted' })
-  remove(@Param('id') id: string, @GetUser() user: { id: string; role: string }) {
-    return this.materialsService.remove(id, user);
+  remove(
+    @Param('id') id: string,
+    @Query('lessonId') lessonId: string,
+    @GetUser() user: { id: string; role: string },
+  ) {
+    return this.materialsService.remove(id, lessonId, user);
   }
 }

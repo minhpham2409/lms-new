@@ -145,25 +145,25 @@ export class MediaController {
   private async verifyMaterialAccess(user: { sub: string; role: string }, fullKey: string) {
     this.rejectUnsafeKey(fullKey);
 
-    const material = await this.prisma.material.findFirst({
-      where: { fileUrl: { contains: fullKey } },
+    // Materials are now embedded JSON in Lesson.materials column
+    // Scan lessons with materials to find the one containing this file
+    const allLessons = await this.prisma.lesson.findMany({
+      where: { materials: { not: null } },
       select: {
-        id: true,
-        lesson: {
-          select: {
-            section: {
-              select: {
-                course: {
-                  select: { id: true, authorId: true },
-                },
-              },
-            },
-          },
-        },
+        materials: true,
+        section: { select: { course: { select: { id: true, authorId: true } } } },
       },
     });
 
-    const course = material?.lesson?.section?.course;
+    let course: { id: string; authorId: string } | null = null;
+    for (const l of allLessons) {
+      const mats = Array.isArray(l.materials) ? l.materials : [];
+      if ((mats as any[]).some(m => m.fileUrl && (m.fileUrl as string).includes(fullKey))) {
+        course = l.section?.course ?? null;
+        break;
+      }
+    }
+
     if (!course) {
       throw new UnauthorizedException('Media access denied.');
     }

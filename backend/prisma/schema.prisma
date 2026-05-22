@@ -160,13 +160,13 @@ model Lesson {
   duration      Int?
   order         Int
   sectionId     String
+  materials     Json?           // [{title, description?, fileUrl, fileType, fileSize}]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   assignments   Assignment[]
   comments      Comment[]
   mediaAsset    MediaAsset?     @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
   section       Section         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  materials     Material[]
   videoProgress VideoProgress[]
 
   @@unique([sectionId, order])
@@ -199,20 +199,6 @@ model MediaAsset {
   @@index([jobId])
 }
 
-model Material {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  fileUrl     String
-  fileType    String
-  fileSize    Int
-  lessonId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@index([lessonId])
-}
 
 model Enrollment {
   id        String           @id @default(uuid())
