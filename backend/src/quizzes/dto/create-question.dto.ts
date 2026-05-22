@@ -12,6 +12,11 @@ export class CreateQuestionDto {
   @IsString()
   content: string;
 
+  @ApiPropertyOptional({ description: 'URL of the question image' })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
   @ApiProperty({ description: 'JSON array of options [{id, text}]' })
   @IsArray()
   options: { id: string; text: string }[];

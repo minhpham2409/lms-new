@@ -99,6 +99,7 @@ export class QuizzesService {
     return this.quizRepository.createQuestion({
       quizId: dto.quizId,
       content: dto.content,
+      imageUrl: dto.imageUrl,
       options: JSON.stringify(dto.options),
       answer: dto.answer,
       score: dto.score ?? 1,

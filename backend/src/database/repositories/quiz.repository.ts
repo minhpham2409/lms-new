@@ -63,6 +63,7 @@ export class QuizRepository extends BaseRepository<Quiz> {
   createQuestion(data: {
     quizId: string;
     content: string;
+    imageUrl?: string;
     options: string;
     answer: string;
     score: number;
@@ -74,6 +75,7 @@ export class QuizRepository extends BaseRepository<Quiz> {
   createManyQuestions(data: {
     quizId: string;
     content: string;
+    imageUrl?: string;
     options: string;
     answer: string;
     score?: number;
