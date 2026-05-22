@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Param, Post, UseGuards, UseInterceptors,
+  Controller, Get, Param, Post, Body, UseGuards, UseInterceptors,
   UploadedFile, BadRequestException, NotFoundException, Query, InternalServerErrorException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -387,6 +387,178 @@ export class UploadController {
       };
     } finally {
       if (uploadedToObjectStorage) cleanupUploadedFile(file.path);
+    }
+  }
+
+  // ─── Chunked Upload Endpoints ──────────────────────────────────────────────
+
+  @Post('initiate')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Initiate a chunked video upload session' })
+  initiateUpload(
+    @Body() body: { fileName: string; fileSize: number; totalChunks: number },
+  ) {
+    if (!body.fileName || !body.fileSize || !body.totalChunks) {
+      throw new BadRequestException('fileName, fileSize, and totalChunks are required');
+    }
+    const uploadId = randomUUID();
+    const chunksDir = join(process.cwd(), 'tmp', 'uploads', uploadId);
+    mkdirSync(chunksDir, { recursive: true });
+
+    return {
+      uploadId,
+      fileName: body.fileName,
+      fileSize: body.fileSize,
+      totalChunks: body.totalChunks,
+    };
+  }
+
+  @Post('chunk')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Upload a single chunk of a multipart video upload' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          // Write directly to the upload's chunk directory
+          const uploadId = (_req as any).query?.uploadId || (_req as any).body?.uploadId;
+          if (!uploadId) return cb(new BadRequestException('uploadId is required'), '');
+          const dir = join(process.cwd(), 'tmp', 'uploads', uploadId);
+          if (!existsSync(dir)) return cb(new BadRequestException('Invalid uploadId'), '');
+          cb(null, dir);
+        },
+        filename: (_req, _file, cb) => {
+          const chunkIndex = (_req as any).query?.chunkIndex ?? (_req as any).body?.chunkIndex;
+          if (chunkIndex === undefined || chunkIndex === null) {
+            return cb(new BadRequestException('chunkIndex is required'), '');
+          }
+          cb(null, `chunk_${chunkIndex}`);
+        },
+      }),
+      limits: { fileSize: 25 * 1024 * 1024 }, // 25MB per chunk
+    }),
+  )
+  uploadChunk(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('uploadId') uploadId: string,
+    @Query('chunkIndex') chunkIndex: string,
+  ) {
+    if (!file) throw new BadRequestException('No chunk uploaded');
+    return {
+      uploadId,
+      chunkIndex: Number(chunkIndex),
+      size: file.size,
+      status: 'received',
+    };
+  }
+
+  @Post('complete')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Complete a chunked upload – merges chunks and queues HLS conversion' })
+  async completeUpload(
+    @Body() body: { uploadId: string; totalChunks: number; fileName: string },
+    @GetUser() user: { id: string },
+  ) {
+    const { uploadId, totalChunks, fileName } = body;
+    if (!uploadId || !totalChunks || !fileName) {
+      throw new BadRequestException('uploadId, totalChunks, and fileName are required');
+    }
+
+    const chunksDir = join(process.cwd(), 'tmp', 'uploads', uploadId);
+    if (!existsSync(chunksDir)) {
+      throw new NotFoundException('Upload session not found or expired');
+    }
+
+    // Verify all chunks are present
+    const { readdirSync, createWriteStream, rmSync } = require('fs');
+    const files = readdirSync(chunksDir) as string[];
+    const chunkFiles = files.filter((f: string) => f.startsWith('chunk_'));
+    if (chunkFiles.length !== totalChunks) {
+      throw new BadRequestException(
+        `Expected ${totalChunks} chunks, found ${chunkFiles.length}`,
+      );
+    }
+
+    // Merge chunks into a single file
+    const ext = extname(fileName).toLowerCase() || '.mp4';
+    const mergedFilename = `${randomUUID()}${ext}`;
+    const mergedPath = join(process.cwd(), 'uploads', 'videos', mergedFilename);
+    ensureDir(join(process.cwd(), 'uploads', 'videos'));
+
+    const writeStream = createWriteStream(mergedPath);
+    for (let i = 0; i < totalChunks; i++) {
+      const chunkPath = join(chunksDir, `chunk_${i}`);
+      if (!existsSync(chunkPath)) {
+        writeStream.close();
+        throw new BadRequestException(`Missing chunk_${i}`);
+      }
+      const chunkData = require('fs').readFileSync(chunkPath);
+      writeStream.write(chunkData);
+    }
+    writeStream.end();
+
+    // Wait for write to finish
+    await new Promise<void>((resolve, reject) => {
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+
+    // Cleanup chunk directory
+    rmSync(chunksDir, { recursive: true, force: true });
+
+    // Get merged file size
+    const { statSync } = require('fs');
+    const mergedStat = statSync(mergedPath);
+
+    // Create MediaAsset and queue HLS conversion
+    try {
+      const mediaAsset = await (this.prisma as any).mediaAsset.create({
+        data: {
+          ownerId: user.id,
+          type: 'VIDEO',
+          status: 'PROCESSING',
+          originalName: fileName,
+          mimeType: 'video/mp4',
+          size: mergedStat.size,
+        },
+      });
+
+      const job = await this.videoQueue.add(
+        JobNames.CONVERT_VIDEO_HLS,
+        {
+          filePath: mergedPath,
+          originalName: fileName,
+          filename: mergedFilename,
+          size: mergedStat.size,
+          mimetype: 'video/mp4',
+          mediaAssetId: mediaAsset.id,
+        },
+        {
+          attempts: 1,
+          removeOnComplete: false,
+          removeOnFail: false,
+          timeout: 30 * 60 * 1000,
+        },
+      );
+
+      return {
+        jobId: String(job.id),
+        mediaAssetId: mediaAsset.id,
+        status: 'processing',
+        format: 'hls-processing',
+        filename: mergedFilename,
+        originalName: fileName,
+        size: mergedStat.size,
+      };
+    } catch (error) {
+      cleanupUploadedFile(mergedPath);
+      throw new InternalServerErrorException(
+        `Failed to queue HLS conversion: ${(error as Error).message}`,
+      );
     }
   }
 }

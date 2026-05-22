@@ -73,9 +73,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     image: lms-backend:latest
-    container_name: lms-backend
-    ports:
-      - "4000:4000"
+    # No container_name — allows replicas to run with unique names
+    expose:
+      - "4000"
+    deploy:
+      replicas: 2
     environment:
       - DATABASE_URL=postgresql://lms:lms_password@postgres:5432/lms_db?schema=public
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
@@ -133,8 +135,8 @@ services:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
     image: lms-frontend:latest
     container_name: lms-frontend
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
       - NEXTAUTH_URL=http://localhost:3000
@@ -149,6 +151,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    container_name: lms-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pgdata:

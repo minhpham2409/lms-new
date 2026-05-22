@@ -1,11 +1,11 @@
 # 1. Dependencies
-FROM node:20-alpine AS deps
+FROM node:20.18-alpine3.21 AS deps
 WORKDIR /app
 COPY package.json yarn.lock* package-lock.json* ./
 RUN npm ci || yarn install --frozen-lockfile
 
 # 2. Builder
-FROM node:20-alpine AS builder
+FROM node:20.18-alpine3.21 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -15,12 +15,16 @@ RUN npx prisma generate
 RUN npm run build
 
 # 3. Runner
-FROM node:20-alpine AS runner
+FROM node:20.18-alpine3.21 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
 # Install ffmpeg for HLS video conversion
 RUN apk add --no-cache ffmpeg
+
+# Create non-root user (matches frontend/Dockerfile pattern with nextjs user)
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 appuser
 
 # Copy package files and install only production dependencies
 COPY package.json yarn.lock* package-lock.json* ./
@@ -34,8 +38,11 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Create temp directory for HLS processing
-RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files
+# Create temp directory for HLS processing and set ownership
+RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files \
+    && chown -R appuser:nodejs tmp uploads
+
+USER appuser
 
 EXPOSE 4000
 

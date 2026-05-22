@@ -86,20 +86,25 @@ async function bootstrap() {
   // ─── Global Exception Filter ────────────────────────────────────────────────
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  const config = new DocumentBuilder()
-    .setTitle('LMS API')
-    .setDescription('API for LMS E-Learning Platform')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  // ─── Swagger (disabled in production) ────────────────────────────────────────
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('LMS API')
+      .setDescription('API for LMS E-Learning Platform')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  // Swagger at /api/docs — matches README
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    // Swagger at /api/docs — matches README
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  }
 }
 bootstrap();
