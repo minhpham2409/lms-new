@@ -6,8 +6,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { QuizRepository, AssignmentRepository, EnrollmentRepository } from '../database/repositories';
-import { CreateQuizDto, CreateQuestionDto, SubmitQuizDto } from './dto';
+import { CreateQuizDto, CreateQuestionDto, CreateBulkQuestionsDto, SubmitQuizDto } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class QuizzesService {
@@ -103,6 +104,36 @@ export class QuizzesService {
       score: dto.score ?? 1,
       order,
     });
+  }
+
+  async addBulkQuestions(dto: CreateBulkQuestionsDto, authorId: string) {
+    const quiz = await this.quizRepository.findById(dto.quizId);
+    if (!quiz) throw new NotFoundException('Quiz not found');
+
+    const assignment = await this.getAssignmentOwner(quiz.assignmentId);
+    if (assignment.lesson.section.course.authorId !== authorId) {
+      throw new ForbiddenException('You can only add questions to your own quizzes');
+    }
+
+    const startOrder = await this.quizRepository.getNextQuestionOrder(dto.quizId);
+
+    const questionsToInsert = dto.questions.map((q, index) => {
+      // Map AI returned format to DB format
+      const mappedOptions = q.options.map(opt => ({ id: randomUUID(), text: opt }));
+      const correctOption = mappedOptions.find(opt => opt.text === q.answer) || mappedOptions[0];
+
+      return {
+        quizId: dto.quizId,
+        content: q.content,
+        options: JSON.stringify(mappedOptions),
+        answer: correctOption.id,
+        score: 1,
+        order: startOrder + index,
+      };
+    });
+
+    await this.quizRepository.createManyQuestions(questionsToInsert);
+    return { count: questionsToInsert.length };
   }
 
   async submit(id: string, dto: SubmitQuizDto, studentId: string) {

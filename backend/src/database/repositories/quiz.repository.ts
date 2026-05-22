@@ -70,4 +70,15 @@ export class QuizRepository extends BaseRepository<Quiz> {
   }) {
     return this.prisma.question.create({ data });
   }
+
+  createManyQuestions(data: {
+    quizId: string;
+    content: string;
+    options: string;
+    answer: string;
+    score?: number;
+    order: number;
+  }[]) {
+    return this.prisma.question.createMany({ data });
+  }
 }

@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { QuizzesService } from './quizzes.service';
-import { CreateQuestionDto } from './dto';
+import { CreateQuestionDto, CreateBulkQuestionsDto } from './dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -20,5 +20,15 @@ export class QuestionsController {
   @ApiResponse({ status: 201, description: 'Question added' })
   create(@Body() dto: CreateQuestionDto, @GetUser() user: any) {
     return this.quizzesService.addQuestion(dto, user.id);
+  }
+
+  @Post('bulk')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add multiple questions to quiz' })
+  @ApiResponse({ status: 201, description: 'Questions added' })
+  createBulk(@Body() dto: CreateBulkQuestionsDto, @GetUser() user: any) {
+    return this.quizzesService.addBulkQuestions(dto, user.id);
   }
 }

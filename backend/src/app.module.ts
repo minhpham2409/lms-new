@@ -38,6 +38,7 @@ import { EmailProcessor } from './shared/queues/processors/email.processor';
 import { MediaModule } from './media/media.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { TaxReportsModule } from './tax-reports/tax-reports.module';
+import { AiModule } from './ai/ai.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -154,6 +155,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     MediaModule,
     WalletsModule,
     TaxReportsModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [
