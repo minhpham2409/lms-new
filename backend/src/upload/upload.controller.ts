@@ -43,7 +43,10 @@ function cleanupUploadedFile(path?: string) {
  * We cannot use NestJS DI inside multer's static config,
  * so these replicate the minimal logic from UploadService.
  */
-const UPLOAD_BASE = join(process.cwd(), 'uploads');
+// Multer writes the incoming stream before controller code runs. Keep those
+// temporary files outside /app/uploads so Docker volume ownership cannot block
+// teacher uploads. HLS/S3 handlers clean these files after processing.
+const UPLOAD_BASE = process.env.UPLOAD_TMP_DIR || join('/tmp', 'lms-uploads');
 
 function ensureDir(dir: string): string {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });

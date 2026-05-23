@@ -6,13 +6,14 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
-import { ArrowLeft, ArrowRight, BookOpen, Layers, Play, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Layers, Play, CheckCircle2, Loader2, FileQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { StepIndicator } from "@/components/courses/step-indicator";
 import { Step1BasicInfo } from "./step-1";
 import { Step2Sections } from "./step-2";
 import { Step3Lessons } from "./step-3";
 import { Step4Review } from "./step-4";
+import { Step4Quizzes } from "./step-4-quizzes";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
@@ -20,6 +21,7 @@ const steps = [
   { label: "Thông tin cơ bản", icon: BookOpen },
   { label: "Thêm chương", icon: Layers },
   { label: "Bài giảng & Nội dung", icon: Play },
+  { label: "Tạo quiz", icon: FileQuestion },
   { label: "Xem lại & Lưu", icon: CheckCircle2 },
 ];
 
@@ -43,7 +45,7 @@ export default function CourseWizardPage() {
 
   const handleNext = () => {
     if (currentStep === 0 && !title.trim()) { toast.error("Vui lòng nhập tên khóa học"); return; }
-    if (currentStep < 3) setCurrentStep(curr => curr + 1);
+    if (currentStep < 4) setCurrentStep(curr => curr + 1);
   };
 
   const handlePrev = () => {
@@ -153,6 +155,62 @@ export default function CourseWizardPage() {
               }),
             });
           }
+
+          // 6. Create quiz only after teacher has reviewed/generated questions
+          if (les.quiz?.questions?.length) {
+            const quizQuestions = les.quiz.questions.filter((q: any) =>
+              (q.content?.trim() || q.imageUrl) &&
+              Array.isArray(q.options) &&
+              q.options.length === 4 &&
+              q.options.every((option: string) => option.trim()) &&
+              q.answer,
+            );
+
+            if (quizQuestions.length > 0) {
+              const quizAssignmentRes = await fetch(`${API}/assignments`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                  title: les.quiz.title?.trim() || `Quiz: ${les.title}`,
+                  description: "Hoàn thành quiz với kết quả tối thiểu 80% để mở bài học tiếp theo.",
+                  type: "quiz",
+                  maxScore: quizQuestions.length,
+                  minScore: Math.ceil(quizQuestions.length * 0.8),
+                  lessonId: savedLesson.id,
+                }),
+              });
+              if (quizAssignmentRes.ok) {
+                const quizAssignment = await quizAssignmentRes.json();
+                const quizRes = await fetch(`${API}/quizzes`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({
+                    assignmentId: quizAssignment.id,
+                    timeLimit: les.quiz.timeLimit ? Number(les.quiz.timeLimit) : undefined,
+                  }),
+                });
+                if (quizRes.ok) {
+                  const quiz = await quizRes.json();
+                  const quizId = quiz.id || quiz.quiz?.id;
+                  const cleanQuestions = quizQuestions.map((q: any) => ({
+                    content: q.content?.trim() || "",
+                    ...(q.imageUrl ? { imageUrl: q.imageUrl } : {}),
+                    options: q.options.map((option: string) => option.trim()),
+                    answer: q.answer,
+                  }));
+                  const questionsRes = await fetch(`${API}/questions/bulk`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ quizId, questions: cleanQuestions }),
+                  });
+                  if (!questionsRes.ok) {
+                    const err = await questionsRes.json().catch(() => ({}));
+                    throw new Error(err.message || `Không lưu được câu hỏi quiz cho bài "${les.title}"`);
+                  }
+                }
+              }
+            }
+          }
         }
         if (lessonErrors > 0) toast.warning(`${lessonErrors} bài học không lưu được`);
       }
@@ -203,7 +261,8 @@ export default function CourseWizardPage() {
             )}
             {currentStep === 1 && <Step2Sections sections={sections} setSections={setSections} />}
             {currentStep === 2 && <Step3Lessons sections={sections} setSections={setSections} token={token} />}
-            {currentStep === 3 && (
+            {currentStep === 3 && <Step4Quizzes sections={sections} setSections={setSections} token={token} />}
+            {currentStep === 4 && (
               <Step4Review title={title} description={description} category={category} level={level} price={price} sections={sections} />
             )}
           </div>
@@ -214,7 +273,7 @@ export default function CourseWizardPage() {
               <ArrowLeft className="w-4 h-4 mr-2" /> Quay lại
             </button>
             
-            {currentStep < 3 ? (
+            {currentStep < 4 ? (
               <button onClick={handleNext} className="btn-primary px-8">
                 Tiếp tục <ArrowRight className="w-4 h-4 ml-2" />
               </button>

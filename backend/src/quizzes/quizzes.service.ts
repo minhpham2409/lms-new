@@ -10,6 +10,8 @@ import { CreateQuizDto, CreateQuestionDto, CreateBulkQuestionsDto, SubmitQuizDto
 import { NotificationsService } from '../notifications/notifications.service';
 import { randomUUID } from 'crypto';
 
+const QUIZ_PASS_THRESHOLD = 80;
+
 @Injectable()
 export class QuizzesService {
   constructor(
@@ -126,6 +128,7 @@ export class QuizzesService {
       return {
         quizId: dto.quizId,
         content: q.content,
+        imageUrl: q.imageUrl,
         options: JSON.stringify(mappedOptions),
         answer: correctOption.id,
         score: 1,
@@ -135,6 +138,46 @@ export class QuizzesService {
 
     await this.quizRepository.createManyQuestions(questionsToInsert);
     return { count: questionsToInsert.length };
+  }
+
+  async updateQuestion(
+    questionId: string,
+    dto: Omit<CreateQuestionDto, 'quizId'>,
+    authorId: string,
+  ) {
+    const question = await this.quizRepository.findQuestionById(questionId);
+    if (!question) throw new NotFoundException('Question not found');
+
+    const quiz = await this.quizRepository.findById(question.quizId);
+    if (!quiz) throw new NotFoundException('Quiz not found');
+
+    const assignment = await this.getAssignmentOwner(quiz.assignmentId);
+    if (assignment.lesson.section.course.authorId !== authorId) {
+      throw new ForbiddenException('You can only edit questions in your own quizzes');
+    }
+
+    return this.quizRepository.updateQuestion(questionId, {
+      content: dto.content,
+      imageUrl: dto.imageUrl,
+      options: JSON.stringify(dto.options),
+      answer: dto.answer,
+      score: dto.score ?? question.score,
+    });
+  }
+
+  async removeQuestion(questionId: string, authorId: string) {
+    const question = await this.quizRepository.findQuestionById(questionId);
+    if (!question) throw new NotFoundException('Question not found');
+
+    const quiz = await this.quizRepository.findById(question.quizId);
+    if (!quiz) throw new NotFoundException('Quiz not found');
+
+    const assignment = await this.getAssignmentOwner(quiz.assignmentId);
+    if (assignment.lesson.section.course.authorId !== authorId) {
+      throw new ForbiddenException('You can only delete questions in your own quizzes');
+    }
+
+    return this.quizRepository.deleteQuestion(questionId);
   }
 
   async submit(id: string, dto: SubmitQuizDto, studentId: string) {
@@ -148,7 +191,12 @@ export class QuizzesService {
     );
 
     const existing = await this.quizRepository.getAttempt(id, studentId);
-    if (existing) throw new ConflictException('You have already submitted this quiz');
+    if (existing) {
+      const existingPercentage = existing.maxScore > 0 ? (existing.score / existing.maxScore) * 100 : 0;
+      if (existingPercentage >= QUIZ_PASS_THRESHOLD) {
+        throw new ConflictException('You have already passed this quiz');
+      }
+    }
 
     let score = 0;
     const maxScore = quiz.questions.reduce((sum, q) => sum + q.score, 0);
@@ -160,13 +208,19 @@ export class QuizzesService {
       }
     }
 
-    const attempt = await this.quizRepository.createAttempt({
-      quizId: id,
-      studentId,
-      answers: JSON.stringify(dto.answers),
-      score,
-      maxScore,
-    });
+    const attempt = existing
+      ? await this.quizRepository.updateAttempt(existing.id, {
+          answers: JSON.stringify(dto.answers),
+          score,
+          maxScore,
+        })
+      : await this.quizRepository.createAttempt({
+          quizId: id,
+          studentId,
+          answers: JSON.stringify(dto.answers),
+          score,
+          maxScore,
+        });
 
     this.notificationsService.notifyUser(studentId, {
       title: 'Quiz submitted',

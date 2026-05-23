@@ -147,7 +147,7 @@ export class MediaController {
 
     // Materials are now embedded JSON in Lesson.materials column
     // Scan lessons with materials to find the one containing this file
-    const allLessons = await this.prisma.lesson.findMany({
+    const allLessons = await (this.prisma as any).lesson.findMany({
       where: { materials: { not: null } },
       select: {
         materials: true,

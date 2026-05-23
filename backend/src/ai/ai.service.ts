@@ -14,7 +14,7 @@ export class AiService {
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
       // Use flash for speed and cost-effectiveness
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     }
   }
 
@@ -61,17 +61,25 @@ export class AiService {
 
     const prompt = `You are an expert Vietnamese educator specializing in creating high-quality exam questions.
 
-Based on the following text/document content, generate exactly ${count} multiple-choice questions in Vietnamese.
+Your task is to identify the MAIN SUBJECT MATTER, concepts, facts, processes, rules, examples, or learning objectives from the document content, then generate exactly ${count} multiple-choice questions in Vietnamese that test understanding of that subject matter.
 
 ${difficultyInstruction}
 
 RULES:
 - Each question MUST have exactly 4 options.
 - The "answer" field MUST exactly match one of the options (character-for-character).
-- Questions should cover different aspects of the content.
+- Questions MUST be about the educational content/topic of the document, not about the document as a file.
+- Questions must be written as standalone learning questions about the topic itself. Do NOT mention "tài liệu", "văn bản", "bài viết", "đoạn trích", "nội dung trên", or "theo tài liệu" in any question or option.
+- Questions should cover different important ideas from the content.
 - All questions and options must be in Vietnamese.
 - Make questions clear, unambiguous, and educationally valuable.
-- Avoid trivially obvious or trick questions.
+- Avoid trivially obvious, administrative, or trick questions.
+- DO NOT ask about page numbers, total number of pages, first/last page, file format, document structure, headers, footers, indexes, table of contents, copyright text, timestamps, author names, or where something appears in the document.
+- Ignore page labels, slide numbers, line numbers, repeated headers/footers, navigation text, and extraction artifacts.
+- If the provided text contains mostly metadata or page numbers, use any meaningful topic text that remains; if there is not enough meaningful content, generate fewer high-quality topic questions instead of inventing page-number questions.
+- Good question pattern: ask what a concept means, why something happens, which statement is correct, how to apply an idea, or what conclusion follows from the content.
+- Bad question pattern: "Theo tài liệu, ...?", "Trong văn bản, ...?", "Tài liệu nói gì về ...?", "Trang đầu tiên là trang số mấy?", "Văn bản có bao nhiêu trang?", "Trang cuối cùng là trang số mấy?".
+- Rewrite metadata-dependent questions into direct topic questions. For example, instead of "Theo tài liệu, trách nhiệm của Team Leader là gì?", ask "Trách nhiệm chính của Team Leader trong báo cáo điểm danh là gì?".
 
 Text Content:
 """

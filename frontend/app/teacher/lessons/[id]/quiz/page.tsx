@@ -24,6 +24,7 @@ export default function LessonQuizEditor() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [assignmentId, setAssignmentId] = useState<string | null>(null);
   const [quizId, setQuizId] = useState<string | null>(null);
   const [quizTitle, setQuizTitle] = useState("");
   const [timeLimit, setTimeLimit] = useState<number | "">("");
@@ -46,10 +47,13 @@ export default function LessonQuizEditor() {
       const res = await fetch(`${API}/lessons/${lessonId}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const lesson = await res.json();
-      const assignment = lesson.assignments?.[0];
+      const assignment = lesson.assignments?.find((a: any) => a.type === "quiz");
+      if (assignment) {
+        setAssignmentId(assignment.id);
+        setQuizTitle(assignment.title);
+      }
       if (assignment?.quiz) {
         setQuizId(assignment.quiz.id);
-        setQuizTitle(assignment.title);
         setTimeLimit(assignment.quiz.timeLimit || "");
         const qRes = await fetch(`${API}/quizzes/${assignment.quiz.id}`, { headers: { Authorization: `Bearer ${token}` } });
         if (qRes.ok) {
@@ -62,7 +66,7 @@ export default function LessonQuizEditor() {
             }));
           }
         }
-      } else { setQuizTitle("Bài tập cho bài học"); }
+      } else if (!assignment) { setQuizTitle("Bài tập cho bài học"); }
     } catch { toast.error("Lỗi tải dữ liệu"); } finally { setLoading(false); }
   }
 
@@ -71,23 +75,63 @@ export default function LessonQuizEditor() {
     if (questions.length === 0) return toast.error("Vui lòng thêm ít nhất 1 câu hỏi");
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      if (!q.id && (!q.content.trim() && !q.imageUrl)) return toast.error(`Câu ${i + 1}: Cần có nội dung hoặc hình ảnh`);
-      if (!q.id && q.options.some(o => !o.trim())) return toast.error(`Câu ${i + 1}: Điền đầy đủ đáp án`);
-      if (!q.id && !q.answer) return toast.error(`Câu ${i + 1}: Chọn đáp án đúng`);
+      if (!q.content.trim() && !q.imageUrl) return toast.error(`Câu ${i + 1}: Cần có nội dung hoặc hình ảnh`);
+      if (q.options.some(o => !o.trim())) return toast.error(`Câu ${i + 1}: Điền đầy đủ đáp án`);
+      if (!q.answer) return toast.error(`Câu ${i + 1}: Chọn đáp án đúng`);
     }
     setSaving(true);
     try {
       let cid = quizId;
+      let aid = assignmentId;
       if (!cid) {
-        const cRes = await fetch(`${API}/quizzes`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ lessonId, title: quizTitle, description: "", timeLimit: timeLimit ? Number(timeLimit) : undefined }) });
+        if (!aid) {
+          const aRes = await fetch(`${API}/assignments`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ lessonId, title: quizTitle, description: "", type: "quiz", maxScore: questions.length, minScore: 0 }) });
+          if (!aRes.ok) {
+            const d = await aRes.json().catch(() => ({}));
+            throw new Error(d.message || "Lỗi tạo bài tập");
+          }
+          const aData = await aRes.json();
+          aid = aData.id;
+          setAssignmentId(aid);
+        }
+        const cRes = await fetch(`${API}/quizzes`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ assignmentId: aid, timeLimit: timeLimit ? Number(timeLimit) : undefined }) });
         if (!cRes.ok) throw new Error("Lỗi tạo quiz");
         const cData = await cRes.json();
         cid = cData.quiz?.id || cData.id;
         setQuizId(cid);
       }
+      const makeOptions = (q: Question) => {
+        const options = q.options.map(text => ({ id: crypto.randomUUID(), text }));
+        const correct = options.find(option => option.text === q.answer) || options[0];
+        return { options, answer: correct.id };
+      };
+
+      const existingQ = questions.filter(q => q.id);
+      for (const q of existingQ) {
+        const mapped = makeOptions(q);
+        const res = await fetch(`${API}/questions/${q.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            content: q.content,
+            imageUrl: q.imageUrl,
+            options: mapped.options,
+            answer: mapped.answer,
+            score: 1,
+          }),
+        });
+        if (!res.ok) throw new Error("Lỗi cập nhật câu hỏi");
+      }
+
       const newQ = questions.filter(q => !q.id);
       if (newQ.length > 0) {
-        const bRes = await fetch(`${API}/questions/bulk`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ quizId: cid, questions: newQ }) });
+        const cleanQuestions = newQ.map(q => ({
+          content: q.content,
+          ...(q.imageUrl ? { imageUrl: q.imageUrl } : {}),
+          options: q.options,
+          answer: q.answer,
+        }));
+        const bRes = await fetch(`${API}/questions/bulk`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ quizId: cid, questions: cleanQuestions }) });
         if (!bRes.ok) throw new Error("Lỗi lưu câu hỏi");
       }
       toast.success("Đã lưu bài tập thành công!");
@@ -139,6 +183,26 @@ export default function LessonQuizEditor() {
 
   function updateQ(i: number, field: keyof Question, val: any) { const nq = [...questions]; (nq[i] as any)[field] = val; setQuestions(nq); }
 
+  async function removeQuestion(qi: number) {
+    const question = questions[qi];
+    if (!question.id) {
+      setQuestions(questions.filter((_, i) => i !== qi));
+      return;
+    }
+    if (!confirm("Xóa câu hỏi này?")) return;
+    try {
+      const res = await fetch(`${API}/questions/${question.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Không xóa được câu hỏi");
+      setQuestions(questions.filter((_, i) => i !== qi));
+      toast.success("Đã xóa câu hỏi");
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi xóa câu hỏi");
+    }
+  }
+
   if (authLoading || loading) return <div className="min-h-screen flex items-center justify-center bg-[var(--background)]"><Loader2 className="w-8 h-8 animate-spin text-[#5624d0]" /></div>;
 
   return (
@@ -172,34 +236,30 @@ export default function LessonQuizEditor() {
               {q.difficulty && <span className="absolute top-3 right-20 text-xs font-bold px-2 py-0.5 rounded" style={{ color: DIFF_COLORS[q.difficulty] || "#6a6f73", background: (DIFF_COLORS[q.difficulty] || "#6a6f73") + "18" }}>{DIFF_LABELS[q.difficulty as Difficulty] || q.difficulty}</span>}
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold">Câu {qi + 1}</h3>
-                {!q.id && <button onClick={() => setQuestions(questions.filter((_, i) => i !== qi))} className="text-red-500 hover:bg-red-500/10 p-1 rounded"><Trash2 className="w-4 h-4" /></button>}
+                <button onClick={() => removeQuestion(qi)} className="text-red-500 hover:bg-red-500/10 p-1 rounded"><Trash2 className="w-4 h-4" /></button>
               </div>
 
               {/* Image upload area */}
-              {!q.id && (
-                <div className="mb-3">
-                  {q.imageUrl ? (
-                    <div className="relative inline-block">
-                      <img src={q.imageUrl} alt="Question" className="max-h-48 rounded-xl border border-[var(--border)]" />
-                      <button onClick={() => updateQ(qi, "imageUrl", "")} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"><X className="w-3 h-3" /></button>
-                    </div>
-                  ) : (
-                    <label className="flex items-center gap-2 text-sm text-[#6a6f73] cursor-pointer hover:text-[#a435f0] transition-colors">
-                      <ImagePlus className="w-4 h-4" /> Thêm hình ảnh câu hỏi
-                      <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(qi, e.target.files[0]); }} />
-                    </label>
-                  )}
-                </div>
-              )}
-              {q.id && q.imageUrl && <img src={q.imageUrl} alt="Question" className="max-h-48 rounded-xl border border-[var(--border)] mb-3" />}
-
-              <textarea value={q.content} onChange={e => updateQ(qi, "content", e.target.value)} disabled={!!q.id} className="input-base w-full mb-3 min-h-[70px]" placeholder="Nhập câu hỏi (hoặc để trống nếu dùng ảnh)..." />
+              <div className="mb-3">
+                {q.imageUrl ? (
+                  <div className="relative inline-block">
+                    <img src={q.imageUrl} alt="Question" className="max-h-48 rounded-xl border border-[var(--border)]" />
+                    <button onClick={() => updateQ(qi, "imageUrl", "")} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"><X className="w-3 h-3" /></button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 text-sm text-[#6a6f73] cursor-pointer hover:text-[#a435f0] transition-colors">
+                    <ImagePlus className="w-4 h-4" /> Thêm hình ảnh câu hỏi
+                    <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(qi, e.target.files[0]); }} />
+                  </label>
+                )}
+              </div>
+              <textarea value={q.content} onChange={e => updateQ(qi, "content", e.target.value)} className="input-base w-full mb-3 min-h-[70px]" placeholder="Nhập câu hỏi (hoặc để trống nếu dùng ảnh)..." />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {q.options.map((opt, oi) => (
                   <div key={oi} className="flex items-center gap-2">
-                    <input type="radio" name={`a-${qi}`} checked={q.answer === opt && opt !== ""} disabled={!!q.id} onChange={() => { if (opt) updateQ(qi, "answer", opt); }} className="w-4 h-4 accent-[#a435f0]" />
-                    <input value={opt} disabled={!!q.id} onChange={e => { const nq = [...questions]; const old = nq[qi].options[oi]; nq[qi].options[oi] = e.target.value; if (nq[qi].answer === old) nq[qi].answer = e.target.value; setQuestions(nq); }} className="input-base w-full py-2 text-sm" placeholder={`Đáp án ${String.fromCharCode(65 + oi)}`} />
+                    <input type="radio" name={`a-${qi}`} checked={q.answer === opt && opt !== ""} onChange={() => { if (opt) updateQ(qi, "answer", opt); }} className="w-4 h-4 accent-[#a435f0]" />
+                    <input value={opt} onChange={e => { const nq = [...questions]; const old = nq[qi].options[oi]; nq[qi].options[oi] = e.target.value; if (nq[qi].answer === old) nq[qi].answer = e.target.value; setQuestions(nq); }} className="input-base w-full py-2 text-sm" placeholder={`Đáp án ${String.fromCharCode(65 + oi)}`} />
                   </div>
                 ))}
               </div>
@@ -256,7 +316,7 @@ export default function LessonQuizEditor() {
             {/* Content area */}
             {aiMode === "file" ? (
               <div className="border-2 border-dashed border-[#d1d5db] rounded-xl p-8 text-center mb-4 hover:border-[#a435f0] transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={e => { if (e.target.files?.[0]) setAiFile(e.target.files[0]); }} />
+                <input ref={fileInputRef} type="file" accept=".pdf,.docx,.pptx,.xlsx,.txt,.csv" className="hidden" onChange={e => { if (e.target.files?.[0]) setAiFile(e.target.files[0]); }} />
                 {aiFile ? (
                   <div className="flex items-center justify-center gap-3">
                     <span className="text-2xl">📄</span>
@@ -270,7 +330,7 @@ export default function LessonQuizEditor() {
                   <>
                     <Upload className="w-10 h-10 mx-auto mb-2 text-[#a435f0]" />
                     <p className="font-bold text-sm">Kéo thả hoặc nhấp để chọn file</p>
-                    <p className="text-xs text-[#6a6f73] mt-1">Hỗ trợ: PDF, DOCX, TXT (tối đa 10MB)</p>
+                    <p className="text-xs text-[#6a6f73] mt-1">Hỗ trợ: PDF, DOCX, PPTX, XLSX, TXT, CSV (tối đa 10MB)</p>
                   </>
                 )}
               </div>

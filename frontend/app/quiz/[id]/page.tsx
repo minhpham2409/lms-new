@@ -97,17 +97,17 @@ export default function QuizPage() {
             /* ─── Result View ─── */
             <div className="card-base text-center py-12">
               <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4"
-                style={{ background: result.percentage >= 50 ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)" }}>
-                {result.percentage >= 50
+                style={{ background: result.percentage >= 80 ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)" }}>
+                {result.percentage >= 80
                   ? <CheckCircle2 className="w-10 h-10" style={{ color: "#10b981" }} />
                   : <XCircle className="w-10 h-10" style={{ color: "#ef4444" }} />}
               </div>
-              <h1 className="text-2xl font-extrabold mb-2">{result.percentage >= 50 ? "Đạt! 🎉" : "Chưa đạt"}</h1>
-              <p className="text-4xl font-extrabold mb-1" style={{ color: result.percentage >= 50 ? "#10b981" : "#ef4444" }}>
+              <h1 className="text-2xl font-extrabold mb-2">{result.percentage >= 80 ? "Đạt!" : "Chưa đạt"}</h1>
+              <p className="text-4xl font-extrabold mb-1" style={{ color: result.percentage >= 80 ? "#10b981" : "#ef4444" }}>
                 {Math.round(result.percentage)}%
               </p>
               <p className="text-sm mb-6" style={{ color: "#6a6f73" }}>
-                Đúng: {result.score}/{result.maxScore} điểm
+                Đúng: {result.score}/{result.maxScore} điểm. Yêu cầu tối thiểu 80%.
               </p>
 
               {/* Review answers */}
@@ -145,6 +145,9 @@ export default function QuizPage() {
               )}
 
               <div className="flex gap-3 justify-center mt-6">
+                {result.percentage < 80 && (
+                  <button onClick={() => { setResult(null); setAnswers({}); }} className="btn-secondary text-sm">Làm lại</button>
+                )}
                 <button onClick={() => router.back()} className="btn-primary text-sm">Quay lại bài học</button>
               </div>
             </div>

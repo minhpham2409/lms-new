@@ -39,8 +39,8 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 appuser
 
 # Create temp directory for HLS processing and ensure correct ownership
-RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files \
-    && chown -R appuser:nodejs tmp/hls uploads
+RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files /tmp/lms-uploads/videos /tmp/lms-uploads/images /tmp/lms-uploads/files \
+    && chown -R appuser:nodejs tmp/hls uploads /tmp/lms-uploads
 
 # Switch to non-root user
 USER appuser

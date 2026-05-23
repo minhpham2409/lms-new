@@ -44,6 +44,14 @@ export class QuizRepository extends BaseRepository<Quiz> {
     return this.prisma.quizAttempt.create({ data });
   }
 
+  updateAttempt(id: string, data: {
+    answers: string;
+    score: number;
+    maxScore: number;
+  }) {
+    return this.prisma.quizAttempt.update({ where: { id }, data });
+  }
+
   findAttemptsByQuizId(quizId: string) {
     return this.prisma.quizAttempt.findMany({
       where: { quizId },
@@ -82,5 +90,23 @@ export class QuizRepository extends BaseRepository<Quiz> {
     order: number;
   }[]) {
     return this.prisma.question.createMany({ data });
+  }
+
+  findQuestionById(id: string) {
+    return this.prisma.question.findUnique({ where: { id } });
+  }
+
+  updateQuestion(id: string, data: {
+    content: string;
+    imageUrl?: string;
+    options: string;
+    answer: string;
+    score: number;
+  }) {
+    return this.prisma.question.update({ where: { id }, data });
+  }
+
+  deleteQuestion(id: string) {
+    return this.prisma.question.delete({ where: { id } });
   }
 }

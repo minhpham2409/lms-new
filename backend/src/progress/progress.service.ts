@@ -9,8 +9,8 @@ import {
 } from '../shared/events';
 import { UpdateVideoProgressDto } from './dto/update-video-progress.dto';
 
-/** Minimum watched percentage to auto-mark lesson as completed. */
-const COMPLETION_THRESHOLD = 90;
+/** Minimum quiz percentage required before a lesson can be completed. */
+const QUIZ_PASS_THRESHOLD = 80;
 
 @Injectable()
 export class ProgressService {
@@ -110,9 +110,8 @@ export class ProgressService {
   }
 
   /**
-   * Update video progress for a lesson.
-   * Server decides completion — client's `completed` flag is overridden
-   * by server-side threshold check (watchedPercentage >= 90%).
+   * Legacy endpoint used as lesson-completion storage. Video watch time is no
+   * longer a requirement; completion is gated by submissions and quiz score.
    */
   async updateVideoProgress(userId: string, dto: UpdateVideoProgressDto) {
     const lesson = await this.progressRepo.findLessonWithDetails(dto.lessonId);
@@ -124,13 +123,10 @@ export class ProgressService {
     const enrollment = await this.progressRepo.findActiveEnrollment(userId, courseId);
     if (!enrollment) throw new NotFoundException('Active enrollment not found for this course');
 
-    // ── Server-side completion decision ──────────────────────────────────
-    // Clamp percentage to [0, 100] (DTO already validates, but be safe)
     const pct = Math.min(100, Math.max(0, dto.watchedPercentage ?? 0));
     const watchTime = Math.max(0, dto.watchTime ?? 0);
-
-    // Server decides: completed only if watched >= COMPLETION_THRESHOLD%
-    const serverCompleted = pct >= COMPLETION_THRESHOLD;
+    const completion = await this.getLessonCompletionRequirements(userId, dto.lessonId);
+    const serverCompleted = pct >= 100 && completion.assignmentsCompleted && completion.quizzesPassed;
 
     const result = await this.progressRepo.upsertVideoProgressMonotonic({
       userId,
@@ -174,27 +170,50 @@ export class ProgressService {
 
   /**
    * Check if a lesson can be marked as completed.
-   * Video must be watched to threshold, and assignments (if any) must be graded.
+   * Students must submit every essay assignment and score at least 80% on every quiz.
    */
   async canCompleteLesson(userId: string, lessonId: string) {
+    const completion = await this.getLessonCompletionRequirements(userId, lessonId);
+
+    return {
+      canComplete: completion.assignmentsCompleted && completion.quizzesPassed,
+      videoCompleted: true,
+      assignmentsCompleted: completion.assignmentsCompleted,
+      quizzesPassed: completion.quizzesPassed,
+      quizPassThreshold: QUIZ_PASS_THRESHOLD,
+    };
+  }
+
+  private async getLessonCompletionRequirements(userId: string, lessonId: string) {
     const lesson = await this.progressRepo.findLessonWithAssignments(lessonId);
     if (!lesson) throw new NotFoundException('Lesson not found');
 
-    const videoProgress = await this.progressRepo.findVideoProgress(userId, lessonId);
-    const videoCompleted = videoProgress?.completed ?? false;
-
     let assignmentsCompleted = true;
+    let quizzesPassed = true;
+
     if (lesson.assignments && lesson.assignments.length > 0) {
-      // For assignments: submission must exist (even if pending)
       for (const assignment of lesson.assignments) {
-        const submission = await this.progressRepo.findSubmissionForAssignment(userId, assignment.id);
-        if (!submission) {
-          assignmentsCompleted = false;
-          break;
+        if (assignment.type === 'quiz') {
+          if (!assignment.quiz?.id) {
+            quizzesPassed = false;
+            continue;
+          }
+          const attempt = await this.progressRepo.findQuizAttempt(userId, assignment.quiz.id);
+          const percentage = attempt?.maxScore
+            ? (attempt.score / attempt.maxScore) * 100
+            : 0;
+          if (!attempt || percentage < QUIZ_PASS_THRESHOLD) {
+            quizzesPassed = false;
+          }
+        } else {
+          const submission = await this.progressRepo.findSubmissionForAssignment(userId, assignment.id);
+          if (!submission) {
+            assignmentsCompleted = false;
+          }
         }
       }
     }
 
-    return { canComplete: videoCompleted && assignmentsCompleted, videoCompleted, assignmentsCompleted };
+    return { assignmentsCompleted, quizzesPassed };
   }
 }

@@ -28,7 +28,7 @@ export class MaterialsService {
   }
 
   /** Parse the JSON materials column into a typed array. */
-  private parseMaterials(lesson: { materials?: any }): MaterialItem[] {
+  private parseMaterials(lesson: any): MaterialItem[] {
     if (!lesson.materials) return [];
     if (Array.isArray(lesson.materials)) return lesson.materials;
     try { return JSON.parse(lesson.materials); } catch { return []; }

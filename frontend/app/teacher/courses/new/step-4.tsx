@@ -1,7 +1,8 @@
-import { CheckCircle2, Play, FileText, Image as ImageIcon } from "lucide-react";
+import { CheckCircle2, Play, FileText, Image as ImageIcon, FileQuestion } from "lucide-react";
 
 export function Step4Review({ title, category, level, price, sections }: any) {
   const totalLessons = sections.reduce((acc: number, sec: any) => acc + sec.lessons.length, 0);
+  const totalQuizzes = sections.reduce((acc: number, sec: any) => acc + sec.lessons.filter((les: any) => les.quiz?.questions?.length).length, 0);
 
   return (
     <div className="card-base animate-scale-in">
@@ -25,6 +26,7 @@ export function Step4Review({ title, category, level, price, sections }: any) {
           <div className="space-y-3 p-4 rounded-xl" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
             <p><strong>Tổng số chương:</strong> <span className="font-bold text-[#94A3B8]">{sections.length}</span></p>
             <p><strong>Tổng số bài giảng:</strong> <span className="font-bold text-[#FFCCAA]">{totalLessons}</span></p>
+            <p><strong>Tổng số quiz:</strong> <span className="font-bold text-[#a435f0]">{totalQuizzes}</span></p>
           </div>
         </div>
       </div>
@@ -49,6 +51,7 @@ export function Step4Review({ title, category, level, price, sections }: any) {
                           {les.videoUrl ? <span className="badge badge-success text-[10px]"><Play className="w-2.5 h-2.5 inline mr-1"/>Có video</span> : <span className="badge badge-warning text-[10px]">Thiếu video</span>}
                           {les.documentUrl && <span className="badge text-[10px]" style={{ background: "rgba(59,130,246,0.1)", color: "#3b82f6" }}><FileText className="w-2.5 h-2.5 inline mr-1"/>Có tài liệu</span>}
                           {les.assignmentImageUrl && <span className="badge text-[10px]" style={{ background: "rgba(248,180,134,0.1)", color: "#F8B486" }}><ImageIcon className="w-2.5 h-2.5 inline mr-1"/>Có ảnh bài tập</span>}
+                          {les.quiz?.questions?.length > 0 && <span className="badge text-[10px]" style={{ background: "rgba(164,53,240,0.1)", color: "#a435f0" }}><FileQuestion className="w-2.5 h-2.5 inline mr-1"/>{les.quiz.questions.length} câu quiz</span>}
                         </div>
                       </div>
                     ))

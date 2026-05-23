@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 
 const footerLinks = {
-  platform: { title: "Nền tảng", links: [{ label: "Khóa học", href: "/courses" }, { label: "Giáo viên", href: "/teachers" }, { label: "Blog", href: "/blog" }] },
+  platform: { title: "Nền tảng", links: [{ label: "Khóa học", href: "/courses" }, { label: "Giáo viên", href: "/teachers" }, { label: "Giới thiệu", href: "/about" }] },
   support: { title: "Hỗ trợ", links: [{ label: "Trợ giúp", href: "/help" }, { label: "Liên hệ", href: "/contact" }, { label: "Điều khoản", href: "/terms" }] },
-  roles: { title: "Dành cho", links: [{ label: "Học sinh", href: "/for/students" }, { label: "Giáo viên", href: "/for/teachers" }, { label: "Phụ huynh", href: "/for/parents" }] },
+  roles: { title: "Dành cho", links: [{ label: "Học sinh", href: "/courses" }, { label: "Giáo viên", href: "/teachers" }, { label: "Phụ huynh", href: "/parent" }] },
 };
 
 export function Footer() {

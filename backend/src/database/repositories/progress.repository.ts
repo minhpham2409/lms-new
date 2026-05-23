@@ -44,7 +44,7 @@ export class ProgressRepository {
             course: { select: { id: true, title: true } },
           },
         },
-        assignments: { select: { id: true } },
+        assignments: { select: { id: true, type: true } },
       },
     });
   }
@@ -52,7 +52,15 @@ export class ProgressRepository {
   findLessonWithAssignments(lessonId: string) {
     return this.prisma.lesson.findUnique({
       where: { id: lessonId },
-      include: { assignments: { select: { id: true } } },
+      include: {
+        assignments: {
+          select: {
+            id: true,
+            type: true,
+            quiz: { select: { id: true } },
+          },
+        },
+      },
     });
   }
 
@@ -160,6 +168,13 @@ export class ProgressRepository {
     return this.prisma.submission.findFirst({
       where: { studentId: userId, assignmentId },
       select: { id: true, status: true, score: true },
+    });
+  }
+
+  findQuizAttempt(userId: string, quizId: string) {
+    return this.prisma.quizAttempt.findUnique({
+      where: { quizId_studentId: { quizId, studentId: userId } },
+      select: { id: true, score: true, maxScore: true },
     });
   }
 

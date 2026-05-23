@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play, ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Clock,
   MessageCircle, Send, List, X, Loader2, Image as ImageIcon,
-  FileText, PenTool, Maximize2, Minimize2, Download, PlayCircle
+  FileText, PenTool, Maximize2, Minimize2, Download, PlayCircle, FileQuestion, XCircle, Award
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -86,6 +86,143 @@ function AssignmentSubmit({ assignmentId, token, API, BASE_URL, onSuccess }: {
           <Send className="w-3 h-3" /> Nộp bài cho giáo viên
         </button>
       )}
+    </div>
+  );
+}
+
+function InlineQuiz({ quizId, token, onPassed }: { quizId: string; token: string | null; onPassed?: () => void }) {
+  const [quiz, setQuiz] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!token || !quizId) return;
+    let active = true;
+    async function loadQuiz() {
+      setLoading(true);
+      try {
+        const quizRes = await fetch(`${API}/quizzes/${quizId}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!active) return;
+        if (quizRes.ok) {
+          const raw = await quizRes.json();
+          const data = raw?.data || raw;
+          const quizQuestions = Array.isArray(data?.questions) ? data.questions : [];
+          setQuiz(data);
+          setQuestions(quizQuestions.map((question: any) => {
+            let options: any[] = [];
+            try {
+              const raw = typeof question.options === "string" ? JSON.parse(question.options) : question.options;
+              options = Array.isArray(raw)
+                ? raw.map((option: any) => typeof option === "string" ? { id: option, text: option } : option)
+                : [];
+            } catch {}
+            return { ...question, options };
+          }));
+        }
+
+        const resultRes = await fetch(`${API}/quizzes/${quizId}/result`, { headers: { Authorization: `Bearer ${token}` } });
+        if (resultRes.ok) {
+          const raw = await resultRes.json();
+          const data = raw?.data || raw;
+          setResult(data);
+          if (Number(data.percentage || 0) >= 80) onPassed?.();
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    loadQuiz();
+    return () => { active = false; };
+  }, [quizId, token, onPassed]);
+
+  async function submitQuiz() {
+    const formattedAnswers = Object.entries(answers).map(([questionId, answerId]) => ({ questionId, answerId }));
+    if (formattedAnswers.length !== questions.length) {
+      toast.error("Vui lòng trả lời đầy đủ các câu hỏi");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API}/quizzes/${quizId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ answers: formattedAnswers }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Lỗi nộp quiz");
+      }
+      const data = await res.json();
+      const normalized = { ...data, percentage: data.maxScore > 0 ? (data.score / data.maxScore) * 100 : 0 };
+      setResult(normalized);
+      if (normalized.percentage >= 80) onPassed?.();
+      toast.success(`Đã nộp quiz: ${Math.round(normalized.percentage)}%`);
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi kết nối");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) return <div className="flex items-center gap-2 text-sm text-foreground-muted"><Loader2 className="w-4 h-4 animate-spin" /> Đang tải quiz...</div>;
+
+  if (questions.length === 0) {
+    return (
+      <div className="p-5 border border-yellow-500/30 rounded-lg bg-yellow-500/10 text-yellow-200">
+        <p className="font-bold">Quiz chưa có câu hỏi</p>
+        <p className="text-sm mt-1">Giáo viên cần mở trang quản lý quiz của bài học này và lưu lại câu hỏi. Sau khi lưu, tải lại trang học sinh.</p>
+      </div>
+    );
+  }
+
+  if (result) {
+    const passed = Number(result.percentage || 0) >= 80;
+    return (
+      <div className="p-5 border border-border rounded-lg bg-card">
+        <div className="flex items-center gap-3 mb-4">
+          {passed ? <CheckCircle2 className="w-8 h-8 text-green-500" /> : <XCircle className="w-8 h-8 text-red-500" />}
+          <div>
+            <p className="font-bold">{passed ? "Quiz đã đạt yêu cầu" : "Quiz chưa đạt yêu cầu"}</p>
+            <p className="text-sm text-foreground-muted">Kết quả: {Math.round(result.percentage || 0)}% ({result.score}/{result.maxScore} điểm). Yêu cầu tối thiểu 80%.</p>
+          </div>
+        </div>
+        {!passed && (
+          <button type="button" onClick={() => { setResult(null); setAnswers({}); }} className="btn-primary">
+            Làm lại quiz
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="p-5 border border-border rounded-lg bg-card">
+        <h3 className="font-bold">{quiz?.assignment?.title || "Quiz bài học"}</h3>
+        <p className="text-sm text-foreground-muted mt-1">Cần đạt tối thiểu 80% để chuyển sang bài học tiếp theo.</p>
+      </div>
+      {questions.map((question, index) => (
+        <div key={question.id} className="p-5 border border-border rounded-lg bg-card">
+          <p className="font-semibold mb-3">Câu {index + 1}: {question.content}</p>
+          {question.imageUrl && <img src={question.imageUrl.startsWith("http") ? question.imageUrl : `${BASE_URL}${question.imageUrl}`} alt={`Câu ${index + 1}`} className="max-h-56 rounded border border-border mb-3" />}
+          <div className="space-y-2">
+            {question.options.map((option: any) => {
+              const selected = answers[question.id] === option.id;
+              return (
+                <button key={option.id} type="button" onClick={() => setAnswers({ ...answers, [question.id]: option.id })} className="w-full text-left px-4 py-3 rounded border transition-colors" style={{ borderColor: selected ? "#a435f0" : "var(--border)", background: selected ? "rgba(164,53,240,0.1)" : "var(--muted)" }}>
+                  {option.text}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={submitQuiz} disabled={submitting} className="btn-primary">
+        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />} Nộp quiz
+      </button>
     </div>
   );
 }
@@ -187,19 +324,6 @@ export default function LessonPage() {
     if (pct > watchedPctRef.current) {
       watchedPctRef.current = pct;
       setWatchedPercentage(pct);
-    }
-    if (pct >= 90 && !videoWatchedRef.current) {
-      videoWatchedRef.current = true;
-      setVideoWatched(true);
-    }
-    if (tokenRef.current && pct >= lastSentPercent.current + 10) {
-      lastSentPercent.current = pct;
-      if (pct >= 90) completionProgressSavedRef.current = true;
-      persistVideoProgress(Math.floor(player.getCurrentTime()), pct, pct >= 90);
-    } else if (tokenRef.current && pct >= 90 && !completionProgressSavedRef.current) {
-      completionProgressSavedRef.current = true;
-      lastSentPercent.current = Math.max(lastSentPercent.current, pct);
-      persistVideoProgress(Math.floor(player.getCurrentTime()), pct, true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
@@ -344,9 +468,8 @@ export default function LessonPage() {
     canCompleteRequestRef.current = true;
     try {
       const { data } = await api.get(`/progress/lesson/${lessonId}/can-complete`);
-      const videoCompleted = Boolean(data.videoCompleted) || watchedPctRef.current >= 90;
-      videoWatchedRef.current = videoCompleted;
-      setVideoWatched(videoCompleted);
+      videoWatchedRef.current = true;
+      setVideoWatched(true);
       setCanComplete(data.canComplete);
     } catch {} finally {
       canCompleteRequestRef.current = false;
@@ -393,8 +516,9 @@ export default function LessonPage() {
   async function markComplete() {
     if (!token) { toast.error("Cần đăng nhập"); return; }
     if (!canComplete) {
-      if (!videoWatched) toast.error(`⚠️ Bạn cần xem ít nhất 90% video! (Hiện tại: ${watchedPercentage}%)`);
-      else if (hasAssignment) toast.error("⚠️ Bạn cần nộp bài tập trước khi hoàn thành bài học!");
+      if (hasEssayAssignment && !assignmentSubmitted) toast.error("Bạn cần nộp đầy đủ bài tập trước khi chuyển bài.");
+      else if (hasQuizAssignment) toast.error("Bạn cần làm quiz đạt tối thiểu 80% trước khi chuyển bài.");
+      else toast.error("Bài học chưa đủ điều kiện hoàn thành.");
       return;
     }
     try {
@@ -434,8 +558,11 @@ export default function LessonPage() {
   const courseProgressPct = allLessons.length ? Math.round((completedLessons / allLessons.length) * 100) : 0;
   const initials = (user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?").toUpperCase();
 
-  const hasAssignment = assignments.length > 0;
-  const assignmentSubmitted = assignments.length > 0 && assignments.every(a => a.submissions?.some((s: any) => s.studentId === user?.id));
+  const essayAssignments = assignments.filter((assignment: any) => assignment.type !== "quiz");
+  const quizAssignments = assignments.filter((assignment: any) => assignment.type === "quiz" && assignment.quiz?.id);
+  const hasEssayAssignment = essayAssignments.length > 0;
+  const hasQuizAssignment = quizAssignments.length > 0;
+  const assignmentSubmitted = essayAssignments.length > 0 && essayAssignments.every((a: any) => a.submissions?.some((s: any) => s.studentId === user?.id));
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -534,51 +661,12 @@ export default function LessonPage() {
                         const video = e.target as HTMLVideoElement;
                         if (!video.duration) return;
                         const pct = Math.round((video.currentTime / video.duration) * 100);
-                        const seconds = Math.floor(video.currentTime);
                         if (pct > watchedPctRef.current) {
                           watchedPctRef.current = pct;
                           setWatchedPercentage(pct);
                         }
-                        if (pct >= 90 && !videoWatchedRef.current) {
-                          videoWatchedRef.current = true;
-                          setVideoWatched(true);
-                        }
-                        if (tokenRef.current && pct >= lastSentPercent.current + 10) {
-                          lastSentPercent.current = pct;
-                          if (pct >= 90) completionProgressSavedRef.current = true;
-                          persistVideoProgress(seconds, pct, pct >= 90);
-                        } else if (tokenRef.current && pct >= 90 && !completionProgressSavedRef.current) {
-                          completionProgressSavedRef.current = true;
-                          lastSentPercent.current = Math.max(lastSentPercent.current, pct);
-                          persistVideoProgress(seconds, pct, true);
-                        }
-                        setLessonProgress((prev) => ({
-                          ...prev,
-                          [lessonId as string]: {
-                            completed: prev[lessonId as string]?.completed || pct >= 90,
-                            watchTime: Math.max(prev[lessonId as string]?.watchTime ?? 0, seconds),
-                            watchedPercentage: Math.max(prev[lessonId as string]?.watchedPercentage ?? 0, pct),
-                          },
-                        }));
                       }}
                     />
-                  </div>
-                  <div className="border-t border-white/10 bg-[#111113] px-4 py-3">
-                    <div className="flex items-center justify-between text-xs font-bold text-white/80 mb-2">
-                      <span>Tiến độ xem bài</span>
-                      <span>{watchedPercentage}% / yêu cầu 90%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#a435f0] transition-[width] duration-300"
-                        style={{ width: `${Math.min(watchedPercentage, 100)}%` }}
-                      />
-                    </div>
-                    {!videoWatched && (
-                      <p className="mt-2 text-xs text-white/55">
-                        Xem tối thiểu 90% video để được hoàn thành bài học.
-                      </p>
-                    )}
                   </div>
                 </div>
               );
@@ -642,7 +730,10 @@ export default function LessonPage() {
                   <FileText className="w-4 h-4" /> Tài liệu {materials.length > 0 && `(${materials.length})`}
                 </TabsTrigger>
                 <TabsTrigger value="assignments" className="bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none rounded-none px-0 py-3 text-sm font-bold gap-2">
-                  <PenTool className="w-4 h-4" /> Bài tập {assignments.length > 0 && `(${assignments.length})`}
+                  <PenTool className="w-4 h-4" /> Bài tập {essayAssignments.length > 0 && `(${essayAssignments.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="quiz" className="bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none rounded-none px-0 py-3 text-sm font-bold gap-2">
+                  <FileQuestion className="w-4 h-4" /> Quiz {quizAssignments.length > 0 && `(${quizAssignments.length})`}
                 </TabsTrigger>
                 <TabsTrigger value="discussion" className="bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none rounded-none px-0 py-3 text-sm font-bold gap-2">
                   <MessageCircle className="w-4 h-4" /> Hỏi đáp theo bài ({comments.length})
@@ -683,9 +774,9 @@ export default function LessonPage() {
 
               {/* ASSIGNMENTS */}
               <TabsContent value="assignments" className="mt-8">
-                {assignments.length > 0 ? (
+                {essayAssignments.length > 0 ? (
                   <div className="space-y-6">
-                    {assignments.map((a: any) => (
+                    {essayAssignments.map((a: any) => (
                       <div key={a.id} className="p-6 border border-border rounded-lg bg-card">
                         <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
                            <h3 className="font-bold">{a.title}</h3>
@@ -704,10 +795,6 @@ export default function LessonPage() {
                           const mySub = a.submissions?.find((s: any) => s.studentId === user?.id);
                           const isGraded = mySub?.status === "graded";
                           const isSubmitted = !!mySub;
-
-                          if (a.type === "quiz" && a.quizId) {
-                            return <Link href={`/quiz/${a.quizId}`} className="bg-primary text-white px-6 py-2 rounded font-bold text-sm inline-block hover:bg-primary/90">Làm bài trắc nghiệm</Link>;
-                          }
 
                           return (
                             <div className="space-y-4">
@@ -746,6 +833,18 @@ export default function LessonPage() {
                   </div>
                 ) : (
                   <p className="text-foreground-muted">Bài học này chưa có bài tập.</p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="quiz" className="mt-8">
+                {quizAssignments.length > 0 ? (
+                  <div className="space-y-6">
+                    {quizAssignments.map((assignment: any) => (
+                      <InlineQuiz key={assignment.id} quizId={assignment.quiz.id} token={token} onPassed={() => { checkCanComplete(); fetchAssignmentsApi(); }} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-foreground-muted">Bài học này chưa có quiz.</p>
                 )}
               </TabsContent>
 
@@ -833,10 +932,14 @@ export default function LessonPage() {
                 )}
               </button>
 
-              {nextLesson ? (
+              {nextLesson && canComplete ? (
                 <Link href={`/courses/${id}/lessons/${nextLesson.id}`} className="px-6 py-3 border border-border font-bold rounded hover:bg-muted transition-colors flex items-center gap-2 w-full sm:w-auto justify-center">
                   Bài tiếp <ChevronRight className="w-4 h-4" />
                 </Link>
+              ) : nextLesson ? (
+                <button disabled className="px-6 py-3 border border-border font-bold rounded bg-muted text-foreground-muted flex items-center gap-2 w-full sm:w-auto justify-center cursor-not-allowed">
+                  Bài tiếp <ChevronRight className="w-4 h-4" />
+                </button>
               ) : <div className="hidden sm:block w-32" />}
             </div>
           </div>
@@ -868,7 +971,7 @@ export default function LessonPage() {
                                <p className={`text-sm ${isCurrent ? 'font-bold' : ''}`}>{li + 1}. {l.title}</p>
                                <p className="text-xs text-foreground-muted mt-1 flex items-center gap-1">
                                  <Clock className="w-3 h-3"/>
-                                 {l.duration ? `${l.duration} phút` : progress?.watchedPercentage ? `${Math.round(progress.watchedPercentage)}% đã xem` : "Chưa học"}
+                                 {progress?.completed ? "Đã hoàn thành" : l.duration ? `${l.duration} phút` : "Chưa hoàn thành"}
                                </p>
                             </div>
                          </Link>
