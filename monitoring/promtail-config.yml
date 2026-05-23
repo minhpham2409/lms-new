@@ -1,69 +1,31 @@
-# =============================================================================
-# Promtail Configuration
-# =============================================================================
-# Promtail is a log collector agent that ships logs to Loki.
-# This config collects logs from all Docker containers by reading
-# container log files from the Docker host filesystem.
-# =============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# Promtail Configuration — Docker Container Log Collector
+# Automatically discovers and ships logs from all Docker containers to Loki.
+# ─────────────────────────────────────────────────────────────────────────────
 
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
 
-# -------------------------------------------------------------------
-# Positions file tracks which log entries have already been shipped.
-# This ensures Promtail resumes from the correct position after restart.
-# -------------------------------------------------------------------
 positions:
+  # Track read positions so Promtail resumes correctly after restarts
   filename: /tmp/positions.yaml
 
-# -------------------------------------------------------------------
-# Clients: where to send the collected logs
-# Loki is the target log aggregation system
-# -------------------------------------------------------------------
 clients:
   - url: http://loki:3100/loki/api/v1/push
 
-# -------------------------------------------------------------------
-# Scrape Configs: define how to discover and collect logs
-# -------------------------------------------------------------------
 scrape_configs:
-  # -----------------------------------------------------------
-  # Docker container logs
-  # Reads logs from /var/lib/docker/containers/<id>/<id>-json.log
-  # -----------------------------------------------------------
   - job_name: docker
     static_configs:
       - targets:
           - localhost
         labels:
           job: docker
-          __path__: /var/lib/docker/containers/**/*-json.log
-
-    # Pipeline stages to parse Docker JSON log format and extract metadata
+          __path__: /var/lib/docker/containers/*/*-json.log
     pipeline_stages:
-      # Parse the JSON log line from Docker
-      - json:
-          expressions:
-            stream: stream
-            log: log
-            time: time
-
-      # Extract container name from the file path
+      # Parse Docker JSON log format
+      - docker: {}
+      # Extract container name from the path for labeling
       - regex:
           source: filename
           expression: '/var/lib/docker/containers/(?P<container_id>[^/]+)/.*'
-
-      # Set labels for filtering in Grafana
-      - labels:
-          stream:
-          container_id:
-
-      # Use the log field as the actual log line
-      - output:
-          source: log
-
-      # Use the original timestamp from Docker
-      - timestamp:
-          source: time
-          format: RFC3339Nano

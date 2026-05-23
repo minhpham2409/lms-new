@@ -22,6 +22,10 @@ ENV NODE_ENV=production
 # Install ffmpeg for HLS video conversion
 RUN apk add --no-cache ffmpeg
 
+# Create non-root user (matches frontend/Dockerfile pattern with nextjs user)
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 appuser
+
 # Copy package files and install only production dependencies
 COPY package.json yarn.lock* package-lock.json* ./
 RUN npm ci --omit=dev || yarn install --production --frozen-lockfile
@@ -34,15 +38,9 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 appuser
-
 # Create temp directory for HLS processing and ensure correct ownership
 RUN mkdir -p tmp/hls uploads/videos uploads/images uploads/files /tmp/lms-uploads/videos /tmp/lms-uploads/images /tmp/lms-uploads/files \
-    && chown -R appuser:nodejs tmp/hls uploads /tmp/lms-uploads
-
-# Switch to non-root user
+    && chown -R appuser:nodejs tmp uploads /tmp/lms-uploads
 USER appuser
 
 EXPOSE 4000
