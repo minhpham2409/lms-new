@@ -142,6 +142,7 @@ export default function LessonQuizEditor() {
   async function handleAiGenerate() {
     if (aiMode === "text" && !aiText.trim()) return toast.error("Vui lòng dán nội dung tài liệu");
     if (aiMode === "file" && !aiFile) return toast.error("Vui lòng chọn file tài liệu");
+    if (!token) return toast.error("Chưa đăng nhập");
     setAiLoading(true);
     try {
       let res: Response;
@@ -159,7 +160,7 @@ export default function LessonQuizEditor() {
       if (Array.isArray(generated)) {
         const mapped = generated.map(g => ({ content: g.question, options: g.options, answer: g.answer, difficulty: g.difficulty }));
         setQuestions(prev => [...prev, ...mapped]);
-        toast.success(`✨ AI đã sinh ${generated.length} câu hỏi`);
+        toast.success(`AI đã sinh ${generated.length} câu hỏi`);
         setShowAiModal(false);
         setAiText("");
         setAiFile(null);
@@ -258,7 +259,7 @@ export default function LessonQuizEditor() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {q.options.map((opt, oi) => (
                   <div key={oi} className="flex items-center gap-2">
-                    <input type="radio" name={`a-${qi}`} checked={q.answer === opt && opt !== ""} onChange={() => { if (opt) updateQ(qi, "answer", opt); }} className="w-4 h-4 accent-[#a435f0]" />
+                    <input type="radio" name={`a-${qi}`} checked={q.answer === opt && opt !== ""} onChange={() => { if (opt) updateQ(qi, "answer", opt); }} className="h-6 w-6 shrink-0 cursor-pointer accent-[#a435f0]" />
                     <input value={opt} onChange={e => { const nq = [...questions]; const old = nq[qi].options[oi]; nq[qi].options[oi] = e.target.value; if (nq[qi].answer === old) nq[qi].answer = e.target.value; setQuestions(nq); }} className="input-base w-full py-2 text-sm" placeholder={`Đáp án ${String.fromCharCode(65 + oi)}`} />
                   </div>
                 ))}
@@ -287,27 +288,44 @@ export default function LessonQuizEditor() {
       {/* AI Modal */}
       {showAiModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[var(--background)] w-full max-w-2xl rounded-2xl p-6 shadow-2xl border border-[var(--border)]">
+          <div className="relative bg-[var(--background)] w-full max-w-2xl rounded-2xl p-6 shadow-2xl border border-[var(--border)] overflow-hidden">
+            {aiLoading && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--background)]/95 px-6 text-center backdrop-blur-sm">
+                <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#a435f0]/10">
+                  <Loader2 className="h-9 w-9 animate-spin text-[#a435f0]" />
+                </div>
+                <h3 className="text-lg font-extrabold">AI đang tạo câu hỏi</h3>
+                <p className="mt-2 max-w-md text-sm text-[#6a6f73]">
+                  Hệ thống đang đọc nội dung, phân tích ý chính và sinh {aiCount} câu hỏi. Quá trình này có thể mất một lúc với tài liệu dài.
+                </p>
+                <div className="mt-6 grid w-full max-w-md gap-2">
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--muted)]">
+                    <div className="h-full w-1/2 animate-pulse rounded-full bg-[#a435f0]" />
+                  </div>
+                  <p className="text-xs font-semibold text-[#6a6f73]">Vui lòng giữ nguyên màn hình này...</p>
+                </div>
+              </div>
+            )}
             <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1"><Wand2 className="w-5 h-5 text-[#a435f0]" /> Trợ lý AI Sinh Câu Hỏi</h2>
             <p className="text-sm text-[#6a6f73] mb-4">Upload file tài liệu hoặc dán nội dung bài giảng để AI sinh câu hỏi tự động.</p>
 
             {/* Mode tabs */}
             <div className="flex gap-2 mb-4">
-              <button onClick={() => setAiMode("file")} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${aiMode === "file" ? "bg-[#a435f0] text-white" : "bg-[var(--muted)] text-[#6a6f73]"}`}><Upload className="w-4 h-4 inline mr-1" /> Upload File</button>
-              <button onClick={() => setAiMode("text")} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${aiMode === "text" ? "bg-[#a435f0] text-white" : "bg-[var(--muted)] text-[#6a6f73]"}`}>📝 Dán Văn Bản</button>
+              <button disabled={aiLoading} onClick={() => setAiMode("file")} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-60 ${aiMode === "file" ? "bg-[#a435f0] text-white" : "bg-[var(--muted)] text-[#6a6f73]"}`}><Upload className="w-4 h-4 inline mr-1" /> Upload File</button>
+              <button disabled={aiLoading} onClick={() => setAiMode("text")} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-60 ${aiMode === "text" ? "bg-[#a435f0] text-white" : "bg-[var(--muted)] text-[#6a6f73]"}`}>Dán Văn Bản</button>
             </div>
 
             {/* Settings row */}
             <div className="flex gap-4 mb-4">
               <div className="flex-1">
                 <label className="text-xs font-bold block mb-1">Số lượng câu hỏi</label>
-                <input type="number" min={1} max={30} value={aiCount} onChange={e => setAiCount(Math.min(30, Math.max(1, Number(e.target.value))))} className="input-base w-full" />
+                <input disabled={aiLoading} type="number" min={1} max={30} value={aiCount} onChange={e => setAiCount(Math.min(30, Math.max(1, Number(e.target.value))))} className="input-base w-full disabled:opacity-60" />
               </div>
               <div className="flex-1">
                 <label className="text-xs font-bold block mb-1">Mức độ khó</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {(["easy", "medium", "hard", "mixed"] as Difficulty[]).map(d => (
-                    <button key={d} onClick={() => setAiDifficulty(d)} className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all" style={{ background: aiDifficulty === d ? DIFF_COLORS[d] + "20" : "var(--muted)", color: aiDifficulty === d ? DIFF_COLORS[d] : "#6a6f73", border: `1.5px solid ${aiDifficulty === d ? DIFF_COLORS[d] : "transparent"}` }}>{DIFF_LABELS[d]}</button>
+                    <button key={d} disabled={aiLoading} onClick={() => setAiDifficulty(d)} className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-60" style={{ background: aiDifficulty === d ? DIFF_COLORS[d] + "20" : "var(--muted)", color: aiDifficulty === d ? DIFF_COLORS[d] : "#6a6f73", border: `1.5px solid ${aiDifficulty === d ? DIFF_COLORS[d] : "transparent"}` }}>{DIFF_LABELS[d]}</button>
                   ))}
                 </div>
               </div>
@@ -315,8 +333,8 @@ export default function LessonQuizEditor() {
 
             {/* Content area */}
             {aiMode === "file" ? (
-              <div className="border-2 border-dashed border-[#d1d5db] rounded-xl p-8 text-center mb-4 hover:border-[#a435f0] transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <input ref={fileInputRef} type="file" accept=".pdf,.docx,.pptx,.xlsx,.txt,.csv" className="hidden" onChange={e => { if (e.target.files?.[0]) setAiFile(e.target.files[0]); }} />
+              <div className="border-2 border-dashed border-[#d1d5db] rounded-xl p-8 text-center mb-4 hover:border-[#a435f0] transition-colors cursor-pointer" onClick={() => { if (!aiLoading) fileInputRef.current?.click(); }}>
+                <input ref={fileInputRef} disabled={aiLoading} type="file" accept=".pdf,.docx,.pptx,.xlsx,.txt,.csv" className="hidden" onChange={e => { if (e.target.files?.[0]) setAiFile(e.target.files[0]); }} />
                 {aiFile ? (
                   <div className="flex items-center justify-center gap-3">
                     <span className="text-2xl">📄</span>
@@ -324,7 +342,7 @@ export default function LessonQuizEditor() {
                       <p className="font-bold text-sm">{aiFile.name}</p>
                       <p className="text-xs text-[#6a6f73]">{(aiFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
-                    <button onClick={e => { e.stopPropagation(); setAiFile(null); }} className="text-red-500 hover:bg-red-500/10 p-1 rounded"><X className="w-4 h-4" /></button>
+                    <button disabled={aiLoading} onClick={e => { e.stopPropagation(); setAiFile(null); }} className="text-red-500 hover:bg-red-500/10 p-1 rounded disabled:opacity-60"><X className="w-4 h-4" /></button>
                   </div>
                 ) : (
                   <>
@@ -335,11 +353,11 @@ export default function LessonQuizEditor() {
                 )}
               </div>
             ) : (
-              <textarea value={aiText} onChange={e => setAiText(e.target.value)} className="input-base w-full min-h-[200px] resize-none mb-4" placeholder="Dán nội dung tài liệu bài giảng tại đây..." />
+              <textarea disabled={aiLoading} value={aiText} onChange={e => setAiText(e.target.value)} className="input-base w-full min-h-[200px] resize-none mb-4 disabled:opacity-60" placeholder="Dán nội dung tài liệu bài giảng tại đây..." />
             )}
 
             <div className="flex justify-end gap-3">
-              <button onClick={() => { setShowAiModal(false); setAiFile(null); setAiText(""); }} className="btn-ghost">Đóng</button>
+              <button disabled={aiLoading} onClick={() => { setShowAiModal(false); setAiFile(null); setAiText(""); }} className="btn-ghost disabled:opacity-60">Đóng</button>
               <button onClick={handleAiGenerate} disabled={aiLoading || (aiMode === "text" ? !aiText.trim() : !aiFile)} className="btn-primary bg-gradient-to-r from-[#a435f0] to-[#5624d0] disabled:opacity-50">
                 {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 {aiLoading ? "AI đang phân tích..." : `Sinh ${aiCount} câu hỏi`}
