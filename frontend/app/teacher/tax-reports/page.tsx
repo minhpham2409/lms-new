@@ -101,7 +101,7 @@ export default function TaxReportsPage() {
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <button onClick={() => router.push("/teacher")} className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] hover:text-[#F8FAFC] transition-colors">← QUAY LẠI</button>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#F8B486] bg-[#F8B486]/10 px-3 py-1 rounded">BÁO CÁO DOANH THU</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#F8B486] bg-[#F8B486]/10 px-3 py-1 rounded">BÁO CÁO THỰC NHẬN</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
                 {isMonthly
@@ -156,7 +156,7 @@ export default function TaxReportsPage() {
           ) : courses.length === 0 ? (
             <div className="text-center py-32">
               <div className="text-5xl mb-6 opacity-30">📊</div>
-              <h3 className="text-base font-bold uppercase text-[#F8FAFC] mb-2">CHƯA CÓ DOANH THU</h3>
+              <h3 className="text-base font-bold uppercase text-[#F8FAFC] mb-2">CHƯA CÓ THỰC NHẬN</h3>
               <p className="text-[10px] font-bold tracking-widest text-[#94A3B8] uppercase">Kỳ này chưa ghi nhận giao dịch nào</p>
             </div>
           ) : (
@@ -164,9 +164,9 @@ export default function TaxReportsPage() {
               {/* Summary Cards */}
               {isMonthly ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                  <Card label="KHÓA HỌC CÓ DOANH THU" value={String(courses.length)} sub="KHÓA" accent />
+                  <Card label="KHÓA HỌC CÓ THỰC NHẬN" value={String(courses.length)} sub="KHÓA" accent />
                   <Card label="TỔNG HỌC SINH" value={String(report.totalStudents)} sub="HỌC SINH MUA" />
-                  <Card label="TỔNG DOANH THU" value={money(report.totalRevenue)} sub="VNĐ" accent />
+                  <Card label="TỔNG THỰC NHẬN" value={money(report.totalRevenue)} sub="VNĐ" accent />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -176,14 +176,14 @@ export default function TaxReportsPage() {
                       sub={`${report.monthlyStudentTotals?.[String(m)]||0} HS`} />
                   ))}
                   <Card label="TỔNG QUÝ" value={money(report.grandTotal)} sub={`${report.grandTotalStudents} HS`} accent />
-                  <Card label="SỐ KHÓA" value={String(courses.length)} sub="CÓ DOANH THU" />
+                  <Card label="SỐ KHÓA" value={String(courses.length)} sub="CÓ THỰC NHẬN" />
                 </div>
               )}
 
               {/* ── Revenue Table ── */}
               <div className="bg-[#121E36] border border-white/5 rounded-xl overflow-hidden">
                 <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                  <h3 className="font-bold text-base uppercase tracking-wider">CHI TIẾT DOANH THU THEO KHÓA HỌC</h3>
+                  <h3 className="font-bold text-base uppercase tracking-wider">CHI TIẾT THỰC NHẬN THEO KHÓA HỌC</h3>
                   <p className="text-[10px] font-bold tracking-widest text-[#94A3B8]">{courses.length} KHÓA</p>
                 </div>
                 <div className="overflow-x-auto">
@@ -196,7 +196,7 @@ export default function TaxReportsPage() {
                           <TH>KHÓA HỌC</TH>
                           <TH right>ĐƠN GIÁ</TH>
                           <TH right>SỐ HỌC SINH</TH>
-                          <TH right accent>DOANH THU</TH>
+                          <TH right accent>THỰC NHẬN</TH>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -239,14 +239,14 @@ export default function TaxReportsPage() {
                             </th>
                           ))}
                           <TH right>TỔNG HS</TH>
-                          <TH right accent>TỔNG DT</TH>
+                          <TH right accent>TỔNG TN</TH>
                         </tr>
                         <tr className="bg-[#051025]/70">
                           <th colSpan={3} />
                           {months.map((m: number) => (
                             <React.Fragment key={m}>
                               <th className="px-3 py-2 text-center text-[9px] font-bold tracking-widest text-[#94A3B8]/60 border-l border-white/5">HS</th>
-                              <th className="px-3 py-2 text-center text-[9px] font-bold tracking-widest text-[#94A3B8]/60">DT</th>
+                              <th className="px-3 py-2 text-center text-[9px] font-bold tracking-widest text-[#94A3B8]/60">TN</th>
                             </React.Fragment>
                           ))}
                           <th colSpan={2} />
@@ -328,7 +328,7 @@ export default function TaxReportsPage() {
                       <TH>HỌ VÀ TÊN</TH>
                       <TH>EMAIL</TH>
                       <TH>NGÀY MUA</TH>
-                      <TH right accent>SỐ TIỀN</TH>
+                      <TH right accent>THỰC NHẬN</TH>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">

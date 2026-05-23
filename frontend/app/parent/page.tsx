@@ -116,10 +116,99 @@ export default function ParentPage() {
   const pageOpenedAtRef = useRef(Date.now());
   const shownPaidOrderIdsRef = useRef<Set<string>>(new Set());
   const shownPaymentIssueIdsRef = useRef<Set<string>>(new Set());
+  const shownPaymentIssueKeysRef = useRef<Set<string>>(new Set());
   const shownPaymentNotificationIdsRef = useRef<Set<string>>(new Set());
+  const activePaymentIssueKeyRef = useRef<string | null>(null);
 
   const isOrderPaid = (order: any) =>
     order?.status === "paid" || order?.payment?.status === "completed";
+
+  const paymentIssueSeenStorageKey = `parent_payment_issue_seen:${user?.id || "anonymous"}`;
+
+  function buildPaymentIssueKey(order: any, fallbackId?: string) {
+    const issue = order?.paymentIssue || {};
+    const payload = issue.payload || {};
+    const payment = order?.payment || {};
+    const paidAmount = Number(
+      payload.paidAmount ??
+        payload.transferAmount ??
+        payload.amount ??
+        payment.paidAmount ??
+        0,
+    );
+    const expectedAmount = Number(
+      payload.expectedAmount ??
+        payment.amount ??
+        order?.finalPrice ??
+        order?.totalPrice ??
+        0,
+    );
+    const remainingAmount = Number(
+      order?.remainingAmount ??
+        payment.remainingAmount ??
+        payload.remainingAmount ??
+        0,
+    );
+    const overpaidAmount = Number(
+      order?.overpaidAmount ??
+        payment.overpaidAmount ??
+        payload.overpaidAmount ??
+        0,
+    );
+    const txnRef = payment.txnRef || issue.txnRef || payload.txnRef || "";
+
+    return [
+      order?.id || fallbackId || "unknown-order",
+      txnRef,
+      paidAmount,
+      expectedAmount,
+      remainingAmount,
+      overpaidAmount,
+    ].join("|");
+  }
+
+  function getStoredPaymentIssueKeys() {
+    if (typeof window === "undefined") return new Set<string>();
+    try {
+      const raw = window.sessionStorage.getItem(paymentIssueSeenStorageKey);
+      const list = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(list) ? list : []);
+    } catch {
+      return new Set<string>();
+    }
+  }
+
+  function hasShownPaymentIssue(key: string) {
+    if (!key) return true;
+    if (activePaymentIssueKeyRef.current === key) return true;
+    if (shownPaymentIssueKeysRef.current.has(key)) return true;
+    const stored = getStoredPaymentIssueKeys();
+    if (stored.has(key)) {
+      shownPaymentIssueKeysRef.current.add(key);
+      return true;
+    }
+    return false;
+  }
+
+  function markPaymentIssueShown(key: string) {
+    if (!key) return;
+    shownPaymentIssueKeysRef.current.add(key);
+    activePaymentIssueKeyRef.current = key;
+    if (typeof window === "undefined") return;
+    try {
+      const stored = getStoredPaymentIssueKeys();
+      stored.add(key);
+      window.sessionStorage.setItem(
+        paymentIssueSeenStorageKey,
+        JSON.stringify(Array.from(stored).slice(-80)),
+      );
+    } catch {}
+  }
+
+  function closePaymentIssuePopup() {
+    activePaymentIssueKeyRef.current = null;
+    setPaymentIssuePopup(null);
+  }
 
   useEffect(() => {
     if (authLoading) return;
@@ -161,7 +250,11 @@ export default function ParentPage() {
           const issueOrder = Array.isArray(orders)
             ? orders.find((order: any) => {
                 const issue = order.paymentIssue;
-                if (!issue || shownPaymentIssueIdsRef.current.has(issue.id)) {
+                if (
+                  !issue ||
+                  shownPaymentIssueIdsRef.current.has(issue.id) ||
+                  hasShownPaymentIssue(buildPaymentIssueKey(order, issue.id))
+                ) {
                   return false;
                 }
 
@@ -174,6 +267,8 @@ export default function ParentPage() {
 
           if (issueOrder && !cancelled) {
             shownPaymentIssueIdsRef.current.add(issueOrder.paymentIssue.id);
+            const issueKey = buildPaymentIssueKey(issueOrder, issueOrder.paymentIssue.id);
+            markPaymentIssueShown(issueKey);
             const childName = kid.child?.firstName || kid.child?.username || "Con";
             setQrPopup((current) =>
               current?.id === issueOrder.id ? null : current,
@@ -270,8 +365,7 @@ export default function ParentPage() {
           setPaymentSuccessPopup(order);
           toast.success("Thanh toán thành công! Khóa học đã được kích hoạt.");
         } else {
-          shownPaymentIssueIdsRef.current.add(notification.id);
-          setPaymentIssuePopup({
+          const issueOrder = {
             ...order,
             paymentIssue: {
               id: notification.id,
@@ -287,7 +381,13 @@ export default function ParentPage() {
             },
             remainingAmount: payload.remainingAmount || null,
             overpaidAmount: payload.overpaidAmount || null,
-          });
+          };
+          const issueKey = buildPaymentIssueKey(issueOrder, notification.id);
+          if (hasShownPaymentIssue(issueKey)) return;
+
+          shownPaymentIssueIdsRef.current.add(notification.id);
+          markPaymentIssueShown(issueKey);
+          setPaymentIssuePopup(issueOrder);
           if (payload.remainingAmount) {
             toast.warning(`Chuyển thiếu ${Number(payload.remainingAmount).toLocaleString("vi-VN")} ₫. Mã QR mới đã được tạo.`);
           } else if (payload.overpaidAmount) {
@@ -547,7 +647,7 @@ export default function ParentPage() {
       if (!res.ok) throw new Error("refund_failed");
 
       toast.success("Đã gửi yêu cầu hoàn tiền cho giáo viên");
-      setPaymentIssuePopup(null);
+      closePaymentIssuePopup();
       setRefundForm({ bankName: "", bankAccount: "", bankOwner: "" });
       fetchAll();
     } catch {
@@ -717,14 +817,14 @@ export default function ParentPage() {
         <div
           className="fixed inset-0 z-[110] flex items-center justify-center p-4 backdrop-blur-sm"
           style={{ background: "rgba(0,0,0,0.7)" }}
-          onClick={() => setPaymentIssuePopup(null)}
+          onClick={closePaymentIssuePopup}
         >
           <div
             className="bg-card border border-border shadow-lg max-w-md w-full text-center relative p-8 animate-scale-in overflow-y-auto max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => setPaymentIssuePopup(null)}
+              onClick={closePaymentIssuePopup}
               className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition-opacity"
               aria-label="Đóng"
             >
@@ -824,7 +924,7 @@ export default function ParentPage() {
             ) : (
               <button
                 onClick={() => {
-                  setPaymentIssuePopup(null);
+                  closePaymentIssuePopup();
                   fetchAll();
                   if (selectedChild) selectChild(selectedChild);
                 }}

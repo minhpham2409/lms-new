@@ -43,8 +43,90 @@ export default function CourseWizardPage() {
   // Step 2 & 3 State
   const [sections, setSections] = useState<any[]>([]);
 
+  const validateBasicInfo = () => {
+    const missing: string[] = [];
+    if (!title.trim()) missing.push("tên khóa học");
+    if (!description.trim()) missing.push("mô tả chi tiết");
+    if (!category.trim()) missing.push("danh mục");
+    if (!level.trim()) missing.push("cấp độ");
+    if (Number.isNaN(Number(price)) || Number(price) < 0) missing.push("giá tiền hợp lệ");
+    if (missing.length > 0) {
+      toast.error(`Vui lòng nhập ${missing.join(", ")} trước khi tiếp tục.`);
+      return false;
+    }
+    return true;
+  };
+
+  const validateSections = () => {
+    if (sections.length === 0) {
+      toast.error("Vui lòng thêm ít nhất 1 chương.");
+      return false;
+    }
+    const missingIndex = sections.findIndex((section) => !section.title?.trim());
+    if (missingIndex >= 0) {
+      toast.error(`Vui lòng nhập tên cho chương ${missingIndex + 1}.`);
+      return false;
+    }
+    return true;
+  };
+
+  const validateLessons = () => {
+    if (!validateSections()) return false;
+    for (let si = 0; si < sections.length; si += 1) {
+      const section = sections[si];
+      if (!section.lessons?.length) {
+        toast.error(`Chương "${section.title}" cần có ít nhất 1 bài học.`);
+        return false;
+      }
+      for (let li = 0; li < section.lessons.length; li += 1) {
+        const lesson = section.lessons[li];
+        if (!lesson.title?.trim()) {
+          toast.error(`Vui lòng nhập tên bài ${li + 1} trong chương "${section.title}".`);
+          return false;
+        }
+        if (!lesson.videoUrl && !lesson.documentUrl && !lesson.assignmentImageUrl) {
+          toast.error(`Bài "${lesson.title}" cần có video, tài liệu hoặc ảnh bài tập.`);
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  const validateQuizzes = () => {
+    for (const section of sections) {
+      for (const lesson of section.lessons || []) {
+        if (!lesson.quiz) continue;
+        const questions = lesson.quiz.questions || [];
+        if (!lesson.quiz.title?.trim()) {
+          toast.error(`Vui lòng nhập tên quiz cho bài "${lesson.title}".`);
+          return false;
+        }
+        if (questions.length === 0) {
+          toast.error(`Quiz của bài "${lesson.title}" cần có ít nhất 1 câu hỏi hoặc hãy bỏ quiz.`);
+          return false;
+        }
+        const invalidIndex = questions.findIndex((q: any) =>
+          !q.content?.trim() ||
+          !Array.isArray(q.options) ||
+          q.options.length !== 4 ||
+          q.options.some((option: string) => !option.trim()) ||
+          !q.answer,
+        );
+        if (invalidIndex >= 0) {
+          toast.error(`Câu ${invalidIndex + 1} trong quiz bài "${lesson.title}" chưa đầy đủ nội dung, đáp án hoặc lựa chọn đúng.`);
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
   const handleNext = () => {
-    if (currentStep === 0 && !title.trim()) { toast.error("Vui lòng nhập tên khóa học"); return; }
+    if (currentStep === 0 && !validateBasicInfo()) return;
+    if (currentStep === 1 && !validateSections()) return;
+    if (currentStep === 2 && !validateLessons()) return;
+    if (currentStep === 3 && !validateQuizzes()) return;
     if (currentStep < 4) setCurrentStep(curr => curr + 1);
   };
 
@@ -53,7 +135,7 @@ export default function CourseWizardPage() {
   };
 
   const handleSave = async (publish: boolean) => {
-    if (!title.trim()) { toast.error("Thiếu tên khóa học"); return; }
+    if (!validateBasicInfo() || !validateLessons() || !validateQuizzes()) return;
     if (!token) { toast.error("Chưa đăng nhập"); return; }
     // Validate sections and lessons before creating course
     for (let si = 0; si < sections.length; si++) {

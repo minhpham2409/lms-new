@@ -112,7 +112,7 @@ export function StudentAppShell({ children }: { children: React.ReactNode }) {
               <span className="hidden max-w-[120px] truncate text-sm text-gray-600 md:inline">
                 {user?.firstName ?? user?.username ?? user?.email}
               </span>
-              <Button variant="outline" size="sm" onClick={() => { logout(); router.push('/'); }}>
+              <Button variant="outline" size="sm" onClick={async () => { await logout(); router.push('/'); }}>
                 Sign out
               </Button>
             </>

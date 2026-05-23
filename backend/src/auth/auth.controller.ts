@@ -27,13 +27,23 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
+const isHttpsFrontend = (process.env.FRONTEND_URL || '').startsWith('https://');
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: process.env.NODE_ENV === 'production' && isHttpsFrontend,
   sameSite: 'lax' as const,
-  path: '/api/v1',
+  path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
+const LEGACY_REFRESH_COOKIE_PATHS = ['/api/v1'];
+
+function clearRefreshCookieVariants(res: Response) {
+  const { maxAge: _maxAge, ...clearOptions } = REFRESH_COOKIE_OPTIONS;
+  res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
+  for (const path of LEGACY_REFRESH_COOKIE_PATHS) {
+    res.clearCookie(REFRESH_COOKIE_NAME, { ...clearOptions, path });
+  }
+}
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -61,6 +71,9 @@ export class AuthController {
   async login(@Request() req: any, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(req.user);
 
+    // Remove stale cookies from previous path settings before writing one canonical cookie.
+    clearRefreshCookieVariants(res);
+
     // Set refresh token as HttpOnly cookie
     res.cookie(REFRESH_COOKIE_NAME, result.refresh_token, REFRESH_COOKIE_OPTIONS);
 
@@ -86,6 +99,9 @@ export class AuthController {
 
     const result = await this.authService.refreshToken(refreshToken);
 
+    // Remove stale cookies from previous path settings before rotating the canonical cookie.
+    clearRefreshCookieVariants(res);
+
     // Rotate cookie
     res.cookie(REFRESH_COOKIE_NAME, result.refresh_token, REFRESH_COOKIE_OPTIONS);
 
@@ -94,23 +110,19 @@ export class AuthController {
     return responsePayload;
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('logout')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(
-    @GetUser() user: any,
     @Req() req: ExpressRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies && req.cookies[REFRESH_COOKIE_NAME];
 
-    const result = await this.authService.logout(user.id, refreshToken);
+    const result = await this.authService.logout(undefined, refreshToken);
 
-    // Clear cookie with matching path/domain
-    const { maxAge, ...clearOptions } = REFRESH_COOKIE_OPTIONS;
-    res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
+    // Clear cookie with matching path/domain, including old local-dev path variants.
+    clearRefreshCookieVariants(res);
 
     return result;
   }

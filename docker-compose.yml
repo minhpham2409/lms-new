@@ -74,10 +74,8 @@ services:
       dockerfile: Dockerfile
     image: lms-backend:latest
     # No container_name — allows replicas to run with unique names
-    expose:
-      - "4000"
-    deploy:
-      replicas: 2
+    ports:
+      - "4000:4000"
     environment:
       - DATABASE_URL=postgresql://lms:lms_password@postgres:5432/lms_db?schema=public
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
@@ -137,8 +135,8 @@ services:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
     image: lms-frontend:latest
     container_name: lms-frontend
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
       - NEXTAUTH_URL=http://localhost:3000

@@ -129,43 +129,13 @@ export class CoursesService {
     const [courses, enrollments, reviews, revenue, recentEnrollments, receivedPayments] =
       await this.courseRepository.getTeacherStatsData(authorId);
 
-    // ── Revenue: use a single source of truth with clear priority ────────
-    // Priority: wallet EARNING transactions > received bank payments > order items
-    let totalRevenue = 0;
-    let revenueSource: 'wallet' | 'payments' | 'orders' = 'orders';
-    let walletEarnings: any[] = [];
-
-    try {
-      const wallet = await this.walletRepository.findWithTransactions(authorId);
-      if (wallet) {
-        walletEarnings = wallet.transactions.filter(
-          (t: any) => t.type === 'EARNING',
-        );
-        if (walletEarnings.length > 0) {
-          totalRevenue = walletEarnings.reduce(
-            (sum: number, t: any) => sum + Number(t.amount),
-            0,
-          );
-          revenueSource = 'wallet';
-        }
-      }
-    } catch {}
-
-    // Fallback: received bank payments (after platform fee split)
-    if (revenueSource === 'orders' && (receivedPayments as any[]).length > 0) {
-      totalRevenue = (receivedPayments as any[]).reduce((sum, item) => {
-        const totalPrice = Number(item.order?.totalPrice || 0);
-        const paidAmount = Number(item.order?.payment?.paidAmount || 0);
-        const itemPrice = Number(item.price || 0);
-        return sum + (totalPrice > 0 ? paidAmount * (itemPrice / totalPrice) : 0);
-      }, 0);
-      revenueSource = 'payments';
-    }
-
-    // Final fallback: raw order item prices
-    if (revenueSource === 'orders') {
-      totalRevenue = revenue.reduce((sum, item) => sum + Number(item.price), 0);
-    }
+    const wallet = await this.walletRepository.findWithTransactions(authorId, 1000);
+    const earningTransactions = (wallet?.transactions || []).filter(
+      (transaction: any) => transaction.type === 'EARNING',
+    );
+    const teacherRevenue = Number(wallet?.totalEarned || 0);
+    const grossRevenue = revenue.reduce((sum, item) => sum + Number(item.price), 0);
+    const totalRevenue = teacherRevenue;
 
     const totalStudents = new Set(enrollments.map((e) => e.userId)).size;
     const avgRating = reviews.length
@@ -185,35 +155,13 @@ export class CoursesService {
       };
     }).reverse();
 
-    // Populate monthly chart using the same source as totalRevenue
-    if (revenueSource === 'wallet') {
-      walletEarnings.forEach((t: any) => {
-        if (!t.createdAt) return;
-        const d = new Date(t.createdAt);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const month = monthlyData.find(m => m.yearMonth === ym);
-        if (month) month.revenue += Number(t.amount);
-      });
-    } else if (revenueSource === 'payments') {
-      (receivedPayments as any[]).forEach((item: any) => {
-        if (!item.order?.createdAt) return;
-        const d = new Date(item.order.createdAt);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const month = monthlyData.find(m => m.yearMonth === ym);
-        const totalPrice = Number(item.order?.totalPrice || 0);
-        const paidAmount = Number(item.order?.payment?.paidAmount || 0);
-        const itemPrice = Number(item.price || 0);
-        if (month) month.revenue += totalPrice > 0 ? paidAmount * (itemPrice / totalPrice) : 0;
-      });
-    } else {
-      revenue.forEach(item => {
-        if (!item.order?.createdAt) return;
-        const d = new Date(item.order.createdAt);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const month = monthlyData.find(m => m.yearMonth === ym);
-        if (month) month.revenue += Number(item.price);
-      });
-    }
+    earningTransactions.forEach((transaction: any) => {
+      if (!transaction.createdAt) return;
+      const d = new Date(transaction.createdAt);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const month = monthlyData.find(m => m.yearMonth === ym);
+      if (month) month.revenue += Number(transaction.amount || 0);
+    });
 
     enrollments.forEach(item => {
       if (!item.createdAt) return;
@@ -223,16 +171,66 @@ export class CoursesService {
       if (month) month.enrollments += 1;
     });
 
+    const revenueByCourse = new Map<string, { revenue: number; paidStudents: number }>();
+    revenue.forEach((item: any) => {
+      const current = revenueByCourse.get(item.courseId) || { revenue: 0, paidStudents: 0 };
+      current.revenue += Number(item.price || 0);
+      current.paidStudents += 1;
+      revenueByCourse.set(item.courseId, current);
+    });
+
+    const teacherRevenueByCourse = new Map<string, number>();
+    earningTransactions.forEach((transaction: any) => {
+      const courseId = transaction.idempotencyKey?.split(':')?.[2];
+      if (!courseId) return;
+      teacherRevenueByCourse.set(
+        courseId,
+        (teacherRevenueByCourse.get(courseId) || 0) + Number(transaction.amount || 0),
+      );
+    });
+
+    const enrollmentsByCourse = new Map<string, any[]>();
+    enrollments.forEach((enrollment: any) => {
+      if (!enrollmentsByCourse.has(enrollment.courseId)) enrollmentsByCourse.set(enrollment.courseId, []);
+      enrollmentsByCourse.get(enrollment.courseId)!.push(enrollment);
+    });
+
+    const courseBreakdown = courses.map((course: any) => {
+      const courseEnrollments = enrollmentsByCourse.get(course.id) || [];
+      const uniqueStudents = Array.from(new Map(courseEnrollments.map((e: any) => [e.userId, e])).values());
+      return {
+        id: course.id,
+        title: course.title,
+        status: course.status,
+        price: Number(course.price || 0),
+        students: uniqueStudents.map((e: any) => ({
+          enrollmentId: e.id,
+          status: e.status,
+          enrolledAt: e.createdAt,
+          user: e.user,
+        })),
+        studentCount: uniqueStudents.length,
+        revenue: teacherRevenueByCourse.get(course.id) || 0,
+        teacherRevenue: teacherRevenueByCourse.get(course.id) || 0,
+        grossRevenue: revenueByCourse.get(course.id)?.revenue || 0,
+        paidStudents: revenueByCourse.get(course.id)?.paidStudents || 0,
+      };
+    });
+
     return {
       totalCourses: courses.length,
       publishedCourses,
       draftCourses,
       totalStudents,
       totalRevenue,
+      teacherRevenue,
+      grossRevenue,
       avgRating: Math.round(avgRating * 10) / 10,
       totalReviews: reviews.length,
       recentEnrollments,
       monthlyData,
+      courseBreakdown,
+      revenueSource: 'wallet_earnings',
     };
   }
 

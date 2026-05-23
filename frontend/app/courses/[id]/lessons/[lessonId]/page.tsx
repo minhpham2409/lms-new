@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import DOMPurify from "isomorphic-dompurify";
 import { Navbar } from "@/components/layout/navbar";
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play, ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Clock,
   MessageCircle, Send, List, X, Loader2, Image as ImageIcon,
-  FileText, PenTool, Maximize2, Minimize2, Download, PlayCircle, FileQuestion, XCircle, Award
+  FileText, PenTool, Maximize2, Minimize2, Download, PlayCircle, FileQuestion, XCircle, Award, Lock, LogIn
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -97,6 +97,18 @@ function InlineQuiz({ quizId, token, onPassed }: { quizId: string; token: string
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const onPassedRef = useRef(onPassed);
+  const passedNotifiedRef = useRef(false);
+
+  useEffect(() => {
+    onPassedRef.current = onPassed;
+  }, [onPassed]);
+
+  const notifyPassedOnce = useCallback(() => {
+    if (passedNotifiedRef.current) return;
+    passedNotifiedRef.current = true;
+    onPassedRef.current?.();
+  }, []);
 
   useEffect(() => {
     if (!token || !quizId) return;
@@ -128,7 +140,7 @@ function InlineQuiz({ quizId, token, onPassed }: { quizId: string; token: string
           const raw = await resultRes.json();
           const data = raw?.data || raw;
           setResult(data);
-          if (Number(data.percentage || 0) >= 80) onPassed?.();
+          if (Number(data.percentage || 0) >= 80) notifyPassedOnce();
         }
       } finally {
         if (active) setLoading(false);
@@ -136,7 +148,7 @@ function InlineQuiz({ quizId, token, onPassed }: { quizId: string; token: string
     }
     loadQuiz();
     return () => { active = false; };
-  }, [quizId, token, onPassed]);
+  }, [quizId, token, notifyPassedOnce]);
 
   async function submitQuiz() {
     const formattedAnswers = Object.entries(answers).map(([questionId, answerId]) => ({ questionId, answerId }));
@@ -158,7 +170,7 @@ function InlineQuiz({ quizId, token, onPassed }: { quizId: string; token: string
       const data = await res.json();
       const normalized = { ...data, percentage: data.maxScore > 0 ? (data.score / data.maxScore) * 100 : 0 };
       setResult(normalized);
-      if (normalized.percentage >= 80) onPassed?.();
+      if (normalized.percentage >= 80) notifyPassedOnce();
       toast.success(`Đã nộp quiz: ${Math.round(normalized.percentage)}%`);
     } catch (error: any) {
       toast.error(error.message || "Lỗi kết nối");
@@ -251,7 +263,8 @@ function isYoutubeUrl(url: string): boolean {
 
 export default function LessonPage() {
   const { id, lessonId } = useParams();
-  const { user, token } = useAuth();
+  const router = useRouter();
+  const { user, token, login, loading: authLoading } = useAuth();
   const [lesson, setLesson] = useState<any>(null);
   const [course, setCourse] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -262,6 +275,7 @@ export default function LessonPage() {
   const [watchedPercentage, setWatchedPercentage] = useState(0);
   const [resumeWatchTime, setResumeWatchTime] = useState(0);
   const [lessonProgress, setLessonProgress] = useState<Record<string, { completed: boolean; watchTime: number; watchedPercentage: number }>>({});
+  const [progressLoaded, setProgressLoaded] = useState(false);
   const [comment, setComment] = useState("");
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -338,11 +352,14 @@ export default function LessonPage() {
   }, []);
 
   useEffect(() => { 
-    if (token !== undefined) {
-      fetchData(); 
+    if (authLoading) return;
+    if (!token) {
+      setLoading(false);
+      return;
     }
+    fetchData(); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lessonId, id, token]);
+  }, [lessonId, id, token, authLoading]);
 
   useEffect(() => {
     const video = videoElementRef.current;
@@ -403,6 +420,7 @@ export default function LessonPage() {
 
   async function fetchData() {
     setLoading(true);
+    setProgressLoaded(false);
     try {
       const [lessonData, courseData] = await Promise.all([
         lessonsApi.getById(lessonId as string),
@@ -423,7 +441,13 @@ export default function LessonPage() {
             });
           }
           setLessonProgress(map);
-        }).catch(() => setLessonProgress({}));
+          setProgressLoaded(true);
+        }).catch(() => {
+          setLessonProgress({});
+          setProgressLoaded(true);
+        });
+      } else {
+        setProgressLoaded(true);
       }
       for (const sec of courseData.sections || []) {
         for (const les of sec.lessons || []) {
@@ -522,7 +546,40 @@ export default function LessonPage() {
       return;
     }
     try {
-      await progressApi.updateVideo({ lessonId: lessonId as string, watchTime: 0, watchedPercentage: 100 });
+      const completeLesson = async (accessToken: string) => fetch(`${API}/progress/video`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ lessonId: lessonId as string, watchTime: 0, watchedPercentage: 100 }),
+      });
+
+      let res = await completeLesson(token);
+      if (res.status === 401) {
+        const refreshRes = await fetch(`${API}/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+        });
+        if (!refreshRes.ok) {
+          toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+          return;
+        }
+        const refreshed = await refreshRes.json();
+        if (!refreshed?.access_token) {
+          toast.error("Không thể làm mới phiên đăng nhập.");
+          return;
+        }
+        login(refreshed.access_token);
+        res = await completeLesson(refreshed.access_token);
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Lỗi cập nhật tiến độ");
+      }
+
       setLessonProgress((prev) => ({
         ...prev,
         [lessonId as string]: { completed: true, watchTime: prev[lessonId as string]?.watchTime ?? 0, watchedPercentage: 100 },
@@ -531,15 +588,15 @@ export default function LessonPage() {
       const allL = course?.sections?.flatMap((s: any) => s.lessons?.sort((a: any, b: any) => a.order - b.order) || []) || [];
       const idx = allL.findIndex((l: any) => l.id === lessonId);
       if (idx < allL.length - 1) {
-        window.location.href = `/courses/${id}/lessons/${allL[idx + 1].id}`;
+        router.push(`/courses/${id}/lessons/${allL[idx + 1].id}`);
       } else {
         toast.success("🏆 Chúc mừng! Bạn đã hoàn thành khóa học!");
         setTimeout(() => {
-          window.location.href = `/courses/${id}/certificate`;
+          router.push(`/courses/${id}/certificate`);
         }, 1500);
       }
-    } catch (err: any) { 
-      toast.error(err.response?.data?.message || "Lỗi cập nhật tiến độ"); 
+    } catch (err: any) {
+      toast.error(err.message || err.response?.data?.message || "Lỗi cập nhật tiến độ");
     }
   }
 
@@ -549,10 +606,41 @@ export default function LessonPage() {
     </div>
   );
 
+  if (!token) return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="h-14 flex items-center justify-between px-4 bg-[#1c1d1f] text-white border-b border-gray-800">
+        <Link href={`/courses/${id}`} className="flex items-center gap-2 rounded px-2 py-1 hover:bg-white/10">
+          <ChevronLeft className="w-5 h-5" /> Khóa học
+        </Link>
+      </div>
+      <div className="flex flex-1 items-center justify-center px-6 py-16">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-muted text-foreground-muted">
+            <LogIn className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-extrabold">Phiên đăng nhập không còn hợp lệ</h1>
+          <p className="mt-3 text-sm text-foreground-muted">
+            Vui lòng đăng nhập lại để tiếp tục học. Trang sẽ không tự chuyển hướng để tránh làm mất ngữ cảnh bài học.
+          </p>
+          <Link href="/auth/login" className="btn-primary mt-6 inline-flex">
+            Đăng nhập lại
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+
   const allLessons = course?.sections?.flatMap((s: any) => s.lessons?.sort((a: any, b: any) => a.order - b.order) || []) || [];
   const currentIdx = allLessons.findIndex((l: any) => l.id === lessonId);
   const prevLesson = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
   const nextLesson = currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
+  const canBypassLessonLock = user?.role === "teacher" || user?.role === "admin";
+  const isLessonLocked = (targetIndex: number) => {
+    if (canBypassLessonLock || targetIndex <= 0) return false;
+    const previous = allLessons[targetIndex - 1];
+    return !lessonProgress[previous?.id]?.completed;
+  };
+  const currentLessonLocked = progressLoaded && isLessonLocked(currentIdx);
 
   const completedLessons = allLessons.filter((l: any) => lessonProgress[l.id]?.completed).length;
   const courseProgressPct = allLessons.length ? Math.round((completedLessons / allLessons.length) * 100) : 0;
@@ -563,6 +651,71 @@ export default function LessonPage() {
   const hasEssayAssignment = essayAssignments.length > 0;
   const hasQuizAssignment = quizAssignments.length > 0;
   const assignmentSubmitted = essayAssignments.length > 0 && essayAssignments.every((a: any) => a.submissions?.some((s: any) => s.studentId === user?.id));
+
+  async function downloadMaterial(material: any) {
+    if (!token) {
+      toast.error("Bạn cần đăng nhập để tải tài liệu.");
+      return;
+    }
+    const rawUrl = material.fileUrl || material.url || "";
+    if (!rawUrl) {
+      toast.error("Tài liệu không có đường dẫn tải xuống.");
+      return;
+    }
+    const fileHref = rawUrl.startsWith("http") ? rawUrl : `${BASE_URL}${rawUrl}`;
+    try {
+      const res = await fetch(fileHref, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Không tải được tài liệu.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = material.title || material.name || "tai-lieu";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast.error(error.message || "Không tải được tài liệu.");
+    }
+  }
+
+  if (currentLessonLocked) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="h-14 flex items-center justify-between px-4 bg-[#1c1d1f] text-white border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <Link href={`/courses/${id}`} className="flex items-center justify-center w-8 h-8 rounded hover:bg-white/10 transition-colors text-white" title="Quay lại khóa học">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <span className="font-bold text-sm truncate max-w-md">{course?.title || ""}</span>
+          </div>
+        </div>
+        <div className="flex flex-1 items-center justify-center px-6 py-16">
+          <div className="max-w-md text-center">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-muted text-foreground-muted">
+              <Lock className="h-7 w-7" />
+            </div>
+            <h1 className="text-2xl font-extrabold">Bài học đang bị khóa</h1>
+            <p className="mt-3 text-sm text-foreground-muted">
+              Bạn cần hoàn thành bài học trước đó trước khi mở bài này.
+            </p>
+            {prevLesson && (
+              <Link href={`/courses/${id}/lessons/${prevLesson.id}`} className="btn-primary mt-6 inline-flex">
+                Quay lại bài trước
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -671,55 +824,56 @@ export default function LessonPage() {
                 </div>
               );
             })()
-          ) : (
-            /* ─── Text/Reading Lesson (No Video) ─── */
-            <div className="w-full bg-[#f7f9fa] dark:bg-[#2d2f31] border-b border-[#d1d7dc] dark:border-[#3e4143]">
-              <div className="max-w-3xl mx-auto px-6 py-10">
-                <div className="flex items-start gap-5">
-                  <div className="w-14 h-14 flex-shrink-0 rounded-xl bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.15)] flex items-center justify-center">
-                    <BookOpen className="w-7 h-7 text-[#5624d0] dark:text-[#c0a5f7]" />
-                  </div>
-                  <div>
-                    <span className="inline-block px-2.5 py-0.5 bg-[#f3f0ff] dark:bg-[rgba(164,53,240,0.15)] text-[#5624d0] dark:text-[#c0a5f7] text-xs font-bold rounded mb-2">
-                      Bài học lý thuyết
-                    </span>
-                    <h2 className="text-xl font-bold text-[#2d2f31] dark:text-white">{lesson?.title || "Bài học"}</h2>
-                    <p className="text-sm text-[#6a6f73] mt-1">Đọc và nắm vững nội dung bài học bên dưới, sau đó hoàn thành bài tập để tiếp tục.</p>
-                  </div>
-                </div>
+          ) : null}
 
-                {/* Reading progress indicator */}
-                <div className="mt-6 flex items-center gap-3 p-4 bg-white dark:bg-[#1c1d1f] border border-[#d1d7dc] dark:border-[#3e4143] rounded">
-                  <div className="flex-1">
-                    <div className="flex justify-between text-xs font-medium mb-1.5">
-                      <span className="text-[#6a6f73]">Tiến độ đọc bài</span>
-                      <span className="text-[#5624d0]">Cuộn xuống để đọc toàn bộ</span>
+
+          {/* ─── Lesson Info & Tabs ─────────────────────────── */}
+          <div className={`w-full p-6 md:p-10 ${!lesson?.videoUrl ? "mx-auto max-w-5xl pt-8 md:pt-10" : "max-w-5xl"}`}>
+            {!lesson?.videoUrl ? (
+              <div className="mb-8 rounded-xl border border-border bg-[var(--card)] p-6 shadow-sm">
+                <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-[var(--primary)]">
+                      <BookOpen className="h-7 w-7" />
                     </div>
-                    <div className="h-1.5 bg-[#f7f9fa] dark:bg-[#3e4143] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#a435f0] rounded-full w-0 transition-all duration-500" id="reading-progress" />
+                    <div>
+                      <span className="inline-flex rounded-full bg-[var(--muted)] px-3 py-1 text-xs font-bold text-[var(--primary)]">
+                        Bài học lý thuyết
+                      </span>
+                      <h1 className="mt-3 text-2xl md:text-3xl font-extrabold">{lesson?.title || "Bài học"}</h1>
+                      <p className="mt-2 max-w-2xl text-sm text-foreground-muted">
+                        Đọc nội dung bài học, xem tài liệu liên quan và hoàn thành bài tập hoặc quiz để mở bài tiếp theo.
+                      </p>
                     </div>
                   </div>
                   <button
                     onClick={() => {
                       setVideoWatched(true);
-                      const bar = document.getElementById("reading-progress");
-                      if (bar) bar.style.width = "100%";
                       checkCanComplete();
                     }}
-                    className="flex-shrink-0 px-4 py-1.5 bg-[#a435f0] hover:bg-[#8710d8] text-white text-xs font-bold rounded transition-colors"
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
                   >
-                    ✓ Đã đọc xong
+                    <CheckCircle2 className="h-4 w-4" /> Đã đọc xong
                   </button>
                 </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border border-border bg-[var(--background)] p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-foreground-muted">Tài liệu</p>
+                    <p className="mt-1 text-xl font-extrabold">{materials.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-[var(--background)] p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-foreground-muted">Bài tập</p>
+                    <p className="mt-1 text-xl font-extrabold">{essayAssignments.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-[var(--background)] p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-foreground-muted">Quiz</p>
+                    <p className="mt-1 text-xl font-extrabold">{quizAssignments.length}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-
-
-          {/* ─── Lesson Info & Tabs ─────────────────────────── */}
-          <div className="p-6 md:p-10 max-w-5xl">
-            
-            <h1 className="text-2xl md:text-3xl font-extrabold mb-8 pb-4 border-b border-border">{lesson?.title || "Bài học"}</h1>
+            ) : (
+              <h1 className="text-2xl md:text-3xl font-extrabold mb-8 pb-4 border-b border-border">{lesson?.title || "Bài học"}</h1>
+            )}
             
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full justify-start gap-6 bg-transparent border-b border-border rounded-none px-0 h-auto pb-0">
@@ -755,17 +909,13 @@ export default function LessonPage() {
               <TabsContent value="resources" className="mt-8">
                 {materials.length > 0 ? (
                   <div className="space-y-4">
-                    {materials.map((m: any) => {
-                      const rawUrl = m.fileUrl || m.url || "";
-                      const fileHref = rawUrl.startsWith("http") ? rawUrl : rawUrl ? `${BASE_URL}${rawUrl}` : "#";
-                      return (
-                        <a key={m.id} href={fileHref} target="_blank" rel="noopener noreferrer" download
-                          className="flex items-center gap-4 p-4 border border-border rounded-lg hover:bg-muted transition-colors group">
+                    {materials.map((m: any) => (
+                        <button key={m.id} type="button" onClick={() => downloadMaterial(m)}
+                          className="flex w-full items-center gap-4 p-4 border border-border rounded-lg hover:bg-muted transition-colors group text-left">
                           <Download className="w-5 h-5 text-foreground-muted group-hover:text-primary transition-colors" />
                           <span className="font-bold text-sm flex-1">{m.title || m.name || "Tài liệu"}</span>
-                        </a>
-                      );
-                    })}
+                        </button>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-foreground-muted">Bài học này chưa có tài liệu đính kèm.</p>
@@ -962,18 +1112,33 @@ export default function LessonPage() {
                     {sec.lessons?.sort((a: any, b: any) => a.order - b.order).map((l: any, li: number) => {
                        const isCurrent = l.id === lessonId;
                        const progress = lessonProgress[l.id];
-                       return (
-                         <Link key={l.id} href={`/courses/${id}/lessons/${l.id}`} className={`flex items-start gap-3 p-4 transition-colors ${isCurrent ? 'bg-primary/10 hover:bg-primary/20' : 'hover:bg-muted'}`}>
+                       const lessonIndex = allLessons.findIndex((lessonItem: any) => lessonItem.id === l.id);
+                       const locked = progressLoaded && isLessonLocked(lessonIndex);
+                       const itemClass = `flex items-start gap-3 p-4 transition-colors ${locked ? 'cursor-not-allowed opacity-45 bg-muted/30' : isCurrent ? 'bg-primary/10 hover:bg-primary/20' : 'hover:bg-muted'}`;
+                       const itemContent = (
+                         <>
                             <div className="mt-0.5">
-                               {progress?.completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : isCurrent ? <PlayCircle className="w-4 h-4 text-primary" /> : <div className="w-4 h-4 rounded-full border border-foreground-muted" />}
+                               {locked ? <Lock className="w-4 h-4 text-foreground-muted" /> : progress?.completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : isCurrent ? <PlayCircle className="w-4 h-4 text-primary" /> : <div className="w-4 h-4 rounded-full border border-foreground-muted" />}
                             </div>
                             <div>
                                <p className={`text-sm ${isCurrent ? 'font-bold' : ''}`}>{li + 1}. {l.title}</p>
                                <p className="text-xs text-foreground-muted mt-1 flex items-center gap-1">
                                  <Clock className="w-3 h-3"/>
-                                 {progress?.completed ? "Đã hoàn thành" : l.duration ? `${l.duration} phút` : "Chưa hoàn thành"}
+                                 {locked ? "Hoàn thành bài trước để mở" : progress?.completed ? "Đã hoàn thành" : l.duration ? `${l.duration} phút` : "Chưa hoàn thành"}
                                </p>
                             </div>
+                         </>
+                       );
+                       if (locked) {
+                         return (
+                           <div key={l.id} className={itemClass} aria-disabled="true">
+                             {itemContent}
+                           </div>
+                         );
+                       }
+                       return (
+                         <Link key={l.id} href={`/courses/${id}/lessons/${l.id}`} className={itemClass}>
+                            {itemContent}
                          </Link>
                        );
                     })}

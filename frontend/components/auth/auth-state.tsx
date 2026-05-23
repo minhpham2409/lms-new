@@ -17,12 +17,12 @@ interface AuthContextType {
   token: string | null;
   isLoggedIn: boolean;
   login: (token: string, refreshToken?: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null, token: null, isLoggedIn: false, login: () => {}, logout: () => {}, loading: true,
+  user: null, token: null, isLoggedIn: false, login: () => {}, logout: async () => {}, loading: true,
 });
 
 export function useAuth() { return useContext(AuthContext); }
@@ -89,14 +89,13 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    if (token) {
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/auth/logout`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } catch {}
-    }
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+    } catch {}
     setAccessToken(null);
     localStorage.removeItem("refreshToken");
     setToken(null);

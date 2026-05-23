@@ -27,7 +27,7 @@ export function Header({ toggleSidebar }: HeaderProps) {
             {user?.username} {user?.role ? `(${user.role})` : ''}
           </span>
         </div>
-        <Button variant='outline' size='sm' onClick={logout}>
+        <Button variant='outline' size='sm' onClick={async () => { await logout(); }}>
           Logout
         </Button>
       </div>

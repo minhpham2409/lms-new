@@ -53,7 +53,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     {user?.firstName ?? user?.username}
                   </span>
                   <button
-                    onClick={() => { logout(); router.push('/'); }}
+                    onClick={async () => { await logout(); router.push('/'); }}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
                     <LogOut className="w-5 h-5 text-gray-600 dark:text-gray-400" />

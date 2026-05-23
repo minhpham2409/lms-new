@@ -303,7 +303,12 @@ html.dark {
    Responsive safeguards
    ============================================================ */
 @media (max-width: 640px) {
-  main { min-width: 0; }
+  html, body { overflow-x: hidden; }
+  main, section, article, aside { min-width: 0; }
+
+  :where(.card-base, .glass-card) {
+    max-width: 100%;
+  }
 
   :where(
     .grid.grid-cols-2, .grid.grid-cols-3, .grid.grid-cols-4,
@@ -315,6 +320,7 @@ html.dark {
   ) { grid-template-columns: minmax(0, 1fr) !important; }
 
   :where(table) { min-width: max-content; }
+  :where(.overflow-x-auto) { -webkit-overflow-scrolling: touch; }
 }
 
 @media (max-width: 480px) {

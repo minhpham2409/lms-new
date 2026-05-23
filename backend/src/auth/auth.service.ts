@@ -169,10 +169,10 @@ export class AuthService {
   /**
    * Logout user
    */
-  async logout(userId: string, refreshToken?: string) {
+  async logout(userId?: string, refreshToken?: string) {
     if (refreshToken) {
       await this.tokenManagerService.revokeRefreshToken(refreshToken);
-    } else {
+    } else if (userId) {
       await this.tokenManagerService.revokeAllUserTokens(userId);
     }
 
