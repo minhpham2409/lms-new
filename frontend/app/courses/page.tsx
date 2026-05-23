@@ -7,7 +7,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import {
   Search, BookOpen, Users, Star, Play, Grid3X3, List, Loader2,
-  Filter, ArrowRight, CheckCircle2,
+  Filter, ArrowRight, SlidersHorizontal, GraduationCap,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 
@@ -42,7 +42,7 @@ function guessCategory(title: string): string {
 }
 
 interface CourseItem {
-  id: string; title: string; description: string; price: number; status: string;
+  id: string; title: string; description: string; price: number; status: string; imageUrl?: string | null;
   author: { username: string; firstName?: string; lastName?: string };
   sections?: { _count?: { lessons: number } }[];
   _count: { enrollments: number };
@@ -118,52 +118,90 @@ function CoursesPageContent() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       <Navbar />
 
-      {/* Hero Header - Udemy Style */}
-      <section className="pt-24 pb-8 bg-background-2 border-b border-border">
+      <section className="pt-28 pb-10 border-b border-border bg-[var(--background-2)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           <h1 className="text-3xl font-bold mb-4">
-              {search ? `Kết quả tìm kiếm cho "${search}"` : "Tất cả khóa học"}
-           </h1>
-           <p className="text-foreground-muted mb-6">Khám phá hàng trăm khóa học trực tuyến từ cơ bản đến nâng cao.</p>
-           
-           <div className="flex flex-wrap gap-4 pb-2">
-             <div className="flex items-center gap-2 border border-border px-4 py-2 rounded-full cursor-pointer hover:bg-muted font-bold whitespace-nowrap">
-                <Filter className="w-4 h-4" /> Bộ lọc
-             </div>
-             {categories.slice(1).map(cat => (
-                <div key={cat} onClick={() => setActiveCategory(cat)} className={`border px-4 py-2 rounded-full cursor-pointer whitespace-nowrap font-bold transition-colors ${activeCategory === cat ? 'bg-primary text-white border-primary' : 'border-border hover:bg-muted text-foreground'}`}>
-                   {cat}
+          <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-end">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-[var(--card)] px-3 py-1 text-xs font-bold text-[var(--primary)] mb-5">
+                <GraduationCap className="w-4 h-4" />
+                LumiLearn Course Catalog
+              </div>
+              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
+                {search ? `Kết quả cho "${search}"` : "Khám phá khóa học phù hợp"}
+              </h1>
+              <p className="text-base md:text-lg text-foreground-muted max-w-2xl">
+                Tìm khóa học theo môn học, trình độ và giảng viên. Nội dung được trình bày rõ ràng để bạn dễ so sánh trước khi đăng ký.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-[var(--card)] p-4 shadow-sm">
+              <label className="text-xs font-bold uppercase tracking-wide text-foreground-muted mb-2 block">Tìm kiếm nhanh</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-muted" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Nhập tên khóa học..."
+                  className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm font-medium outline-none transition focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--ring)]"
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-lg bg-[var(--muted)] px-3 py-2">
+                  <p className="text-lg font-extrabold">{courses.length}</p>
+                  <p className="text-[11px] text-foreground-muted">Khóa học</p>
                 </div>
-             ))}
-           </div>
+                <div className="rounded-lg bg-[var(--muted)] px-3 py-2">
+                  <p className="text-lg font-extrabold">{categories.length - 1}</p>
+                  <p className="text-[11px] text-foreground-muted">Danh mục</p>
+                </div>
+                <div className="rounded-lg bg-[var(--muted)] px-3 py-2">
+                  <p className="text-lg font-extrabold">4.8</p>
+                  <p className="text-[11px] text-foreground-muted">Đánh giá</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Main Content Area */}
       <section className="flex-1 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            
-           {/* Top controls */}
-           <div className="flex justify-between items-center mb-6">
-              <div className="font-bold text-xl">
-                 {filtered.length} kết quả
-                 {totalPages > 1 && <span className="text-sm font-normal text-foreground-muted ml-2">(Trang {currentPage}/{totalPages})</span>}
+           <div className="rounded-xl border border-border bg-[var(--card)] p-3 sm:p-4 mb-7 shadow-sm">
+             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                 <div className="flex items-center gap-2 text-sm font-bold">
+                   <SlidersHorizontal className="w-4 h-4 text-[var(--primary)]" />
+                   {filtered.length} kết quả
+                   {totalPages > 1 && <span className="text-xs font-medium text-foreground-muted">(Trang {currentPage}/{totalPages})</span>}
+                 </div>
+                 <p className="text-xs text-foreground-muted mt-1">Lọc theo danh mục hoặc đổi chế độ hiển thị.</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setView("grid")} className={`p-2 rounded-md ${view === "grid" ? "bg-muted text-primary" : "text-foreground-muted hover:text-foreground"}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                {categories.map(cat => (
+                  <button key={cat} onClick={() => setActiveCategory(cat)} className={`rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${activeCategory === cat ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]' : 'border-border bg-background text-foreground-muted hover:text-foreground hover:bg-muted'}`}>
+                    {cat}
+                  </button>
+                ))}
+                <div className="hidden sm:block h-8 w-px bg-border mx-1" />
+                <button aria-label="Dạng lưới" onClick={() => setView("grid")} className={`h-10 w-10 inline-flex items-center justify-center rounded-lg border transition-colors ${view === "grid" ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-border text-foreground-muted hover:text-foreground hover:bg-muted"}`}>
                   <Grid3X3 className="w-5 h-5" />
                 </button>
-                <button onClick={() => setView("list")} className={`p-2 rounded-md ${view === "list" ? "bg-muted text-primary" : "text-foreground-muted hover:text-foreground"}`}>
+                <button aria-label="Dạng danh sách" onClick={() => setView("list")} className={`h-10 w-10 inline-flex items-center justify-center rounded-lg border transition-colors ${view === "list" ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]" : "border-border text-foreground-muted hover:text-foreground hover:bg-muted"}`}>
                   <List className="w-5 h-5" />
                 </button>
               </div>
+             </div>
            </div>
 
            <div className="flex flex-col lg:flex-row gap-8">
-              {/* Sidebar Filters - Desktop only */}
               <div className="hidden lg:block w-64 shrink-0">
-                 <div className="sticky top-24 border-t border-border pt-4">
-                    <h3 className="font-bold text-lg mb-4">Danh mục</h3>
+                 <div className="sticky top-24 rounded-xl border border-border bg-[var(--card)] p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Filter className="w-4 h-4 text-[var(--primary)]" />
+                      <h3 className="font-bold text-base">Bộ lọc</h3>
+                    </div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-foreground-muted mb-3">Danh mục</p>
                     <div className="space-y-3">
                        {categories.map(cat => (
                           <label key={cat} className="flex items-center gap-3 cursor-pointer group">
@@ -181,7 +219,7 @@ function CoursesPageContent() {
 
                     <div className="my-6 border-t border-border" />
 
-                    <h3 className="font-bold text-lg mb-4">Đánh giá</h3>
+                    <p className="text-xs font-bold uppercase tracking-wide text-foreground-muted mb-3">Đánh giá</p>
                     <div className="space-y-3">
                        {[4.5, 4.0, 3.5, 3.0].map(rating => (
                           <label key={rating} className="flex items-center gap-3 cursor-pointer group">
@@ -205,14 +243,14 @@ function CoursesPageContent() {
               {/* Course List */}
               <div className="flex-1">
                  {loading ? (
-                    <div className="flex justify-center items-center h-64">
+                    <div className="flex justify-center items-center h-64 rounded-xl border border-border bg-[var(--card)]">
                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
                  ) : filtered.length === 0 ? (
-                    <div className="text-center py-20 border border-border rounded-lg bg-background-2">
+                    <div className="text-center py-20 border border-border rounded-xl bg-[var(--card)]">
                        <h3 className="text-2xl font-bold mb-2">Không tìm thấy kết quả</h3>
                        <p className="text-foreground-muted mb-4">Vui lòng thử lại với từ khóa khác.</p>
-                       <button onClick={() => {setSearch(""); setActiveCategory("Tất cả");}} className="btn-primary px-6 py-2">Xóa bộ lọc</button>
+                       <button onClick={() => {setSearch(""); setActiveCategory("Tất cả");}} className="rounded-lg bg-[var(--primary)] px-6 py-2.5 font-bold text-[var(--primary-foreground)]">Xóa bộ lọc</button>
                     </div>
                  ) : (
                     <>
@@ -225,8 +263,10 @@ function CoursesPageContent() {
                           if (view === "list") {
                              return (
                                 <Link key={course.id} href={`/courses/${course.id}`} className="block">
-                                   <div className="flex flex-col sm:flex-row gap-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group">
-                                      <div className="w-full sm:w-64 aspect-video rounded-md relative overflow-hidden shrink-0 border border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #6366f1, #F8B486)' }}>
+                                   <div className="flex flex-col sm:flex-row gap-5 p-4 border border-border rounded-xl bg-[var(--card)] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group">
+                                      <div className="w-full sm:w-64 aspect-video rounded-lg relative overflow-hidden shrink-0 border border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #2563eb, #059669)' }}>
+                                         {course.imageUrl ? <img src={course.imageUrl} alt={course.title} className="absolute inset-0 h-full w-full object-cover" /> : null}
+                                         <div className="absolute inset-0 bg-black/10" />
                                          <div className="absolute inset-0 flex flex-col items-center justify-center">
                                             <span className="text-4xl font-extrabold text-white/30 mb-1">{course.title.charAt(0).toUpperCase()}</span>
                                             <Play className="w-8 h-8 text-white/60 group-hover:scale-110 transition-transform" />
@@ -235,7 +275,7 @@ function CoursesPageContent() {
                                       <div className="flex-1 flex flex-col">
                                          <h3 className="font-bold text-lg mb-1 line-clamp-2">{course.title}</h3>
                                          <p className="text-sm text-foreground-muted mb-1 line-clamp-2">{course.description}</p>
-                                         <p className="text-xs text-foreground-muted mb-2">{authorName}</p>
+                                         <p className="text-xs text-foreground-muted mb-2">Giảng viên {authorName}</p>
                                          
                                          <div className="flex items-center gap-1 mb-2">
                                             <span className="font-bold text-yellow-500 text-sm">4.8</span>
@@ -246,13 +286,13 @@ function CoursesPageContent() {
                                          </div>
 
                                          <div className="flex items-center gap-4 text-xs text-foreground-muted mt-auto">
-                                            <span>{lessons} bài học</span>
-                                            <span>•</span>
-                                            <span>Mọi trình độ</span>
+                                            <span className="inline-flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{lessons} bài học</span>
+                                            <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" />{course._count?.enrollments || 0} học viên</span>
                                          </div>
                                       </div>
-                                      <div className="sm:w-32 flex flex-col sm:items-end justify-start">
-                                         <span className="font-bold text-xl">{course.price === 0 ? "Miễn phí" : `${(course.price / 1000).toFixed(0)}k ₫`}</span>
+                                      <div className="sm:w-36 flex flex-row sm:flex-col sm:items-end justify-between sm:justify-start gap-3">
+                                         <span className="font-extrabold text-xl">{course.price === 0 ? "Miễn phí" : `${(course.price / 1000).toFixed(0)}k ₫`}</span>
+                                         <span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--primary)]">Xem chi tiết <ArrowRight className="w-4 h-4" /></span>
                                       </div>
                                    </div>
                                 </Link>
@@ -261,8 +301,10 @@ function CoursesPageContent() {
 
                           return (
                              <Link key={course.id} href={`/courses/${course.id}`} className="block">
-                                <div className="border border-border rounded-lg overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col">
-                                   <div className="w-full aspect-video relative overflow-hidden border-b border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #6366f1, #F8B486)' }}>
+                                <div className="border border-border rounded-xl bg-[var(--card)] overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group h-full flex flex-col">
+                                   <div className="w-full aspect-video relative overflow-hidden border-b border-border" style={{ background: gradientMap[cat] || 'linear-gradient(135deg, #2563eb, #059669)' }}>
+                                      {course.imageUrl ? <img src={course.imageUrl} alt={course.title} className="absolute inset-0 h-full w-full object-cover" /> : null}
+                                      <div className="absolute inset-0 bg-black/10" />
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                                          <span className="text-5xl font-extrabold text-white/30 mb-1">{course.title.charAt(0).toUpperCase()}</span>
                                          <Play className="w-8 h-8 text-white/60 group-hover:scale-110 transition-transform" />
@@ -270,7 +312,7 @@ function CoursesPageContent() {
                                    </div>
                                    <div className="p-4 flex flex-col flex-1">
                                       <h3 className="font-bold mb-1 line-clamp-2">{course.title}</h3>
-                                      <p className="text-xs text-foreground-muted mb-1">{authorName}</p>
+                                      <p className="text-xs text-foreground-muted mb-1">Giảng viên {authorName}</p>
                                       
                                       <div className="flex items-center gap-1 mb-2">
                                          <span className="font-bold text-yellow-500 text-sm">4.8</span>
@@ -280,8 +322,9 @@ function CoursesPageContent() {
                                          <span className="text-xs text-foreground-muted">({course._count?.enrollments || 0})</span>
                                       </div>
 
-                                      <div className="mt-auto pt-4 flex items-center justify-between">
+                                      <div className="mt-auto pt-4 flex items-center justify-between gap-3">
                                          <span className="font-bold text-lg">{course.price === 0 ? "Miễn phí" : `${(course.price / 1000).toFixed(0)}k ₫`}</span>
+                                         <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)]">Chi tiết <ArrowRight className="w-3.5 h-3.5" /></span>
                                       </div>
                                    </div>
                                 </div>

@@ -44,6 +44,42 @@ export class UsersService {
     return this.userRepository.findPublicTeacherById(id);
   }
 
+  async submitTeacherApplication(payload: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    expertise?: string;
+    experience?: string;
+    message?: string;
+  }) {
+    const fullName = payload.fullName?.trim();
+    const email = payload.email?.trim();
+    if (!fullName || !email) {
+      return { ok: false, message: 'Full name and email are required' };
+    }
+
+    const admins = await this.userRepository.findAdmins();
+    const message = JSON.stringify({
+      fullName,
+      email,
+      phone: payload.phone?.trim() || '',
+      expertise: payload.expertise?.trim() || '',
+      experience: payload.experience?.trim() || '',
+      message: payload.message?.trim() || '',
+      submittedAt: new Date().toISOString(),
+    });
+
+    for (const admin of admins) {
+      this.notificationsService.notifyUser(admin.id, {
+        title: `Đơn đăng ký giảng viên: ${fullName}`,
+        message,
+        type: 'teacher_application',
+      });
+    }
+
+    return { ok: true, message: 'Teacher application submitted' };
+  }
+
   async findOne(id: string) {
     return this.userRepository.findById(id);
   }

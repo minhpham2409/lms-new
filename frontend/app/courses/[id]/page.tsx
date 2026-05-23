@@ -314,6 +314,7 @@ export default function CourseDetailPage() {
   const firstLessonId = course.sections?.[0]?.lessons?.[0]?.id;
   const isPending = enrollStatus === "pending";
   const canAccess = enrolled && !isPending;
+  const formatMoney = (value: number) => `${Number(value || 0).toLocaleString("vi-VN")} ₫`;
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
@@ -324,16 +325,16 @@ export default function CourseDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#1c1d1f] to-transparent opacity-90 z-0" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid lg:grid-cols-3 gap-8">
           
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm font-semibold mb-6 text-[#a1a7b3]">
+            <div className="flex min-w-0 items-center gap-2 text-sm font-semibold mb-6 text-[#a1a7b3]">
               <Link href="/courses" className="hover:text-white transition-colors">Khóa học</Link>
               <ChevronRight className="w-3 h-3" />
-              <span className="text-white">{course.title}</span>
+              <span className="truncate text-white">{course.title}</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-extrabold mb-4">{course.title}</h1>
-            <p className="text-lg mb-6 max-w-2xl text-[#d1d7dc]">{course.description}</p>
+            <h1 className="text-2xl sm:text-4xl font-extrabold mb-4 text-white break-words">{course.title}</h1>
+            <p className="text-base sm:text-lg mb-6 max-w-2xl text-[#d1d7dc] break-words">{course.description}</p>
 
             <div className="flex flex-wrap items-center gap-4 mb-6 text-sm">
               <span className="flex items-center gap-1.5 text-yellow-500 font-bold">
@@ -366,13 +367,77 @@ export default function CourseDetailPage() {
         </div>
       </section>
 
+      {/* Mobile purchase / learning actions */}
+      <section className="block lg:hidden border-b border-border bg-background">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            {isPending ? (
+              <>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xl font-extrabold">{course.price > 0 ? formatMoney(course.price) : "Miễn phí"}</p>
+                  <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-bold text-yellow-500">Chờ thanh toán</span>
+                </div>
+                <Link href="/dashboard" className="btn-secondary w-full justify-center">Đi tới Dashboard</Link>
+              </>
+            ) : canAccess ? (
+              <>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="flex items-center gap-2 text-sm font-bold text-green-500"><CheckCircle2 className="h-4 w-4" /> Đã đăng ký</p>
+                  <span className="text-sm font-bold text-primary">{enrollProgress}%</span>
+                </div>
+                <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-primary" style={{ width: `${enrollProgress}%` }} />
+                </div>
+                <Link href={`/courses/${id}/lessons/${firstLessonId}`} className="btn-primary w-full justify-center">Tiếp tục học</Link>
+              </>
+            ) : (
+              <>
+                <p className="mb-4 text-2xl font-extrabold">{course.price > 0 ? formatMoney(course.price) : "Miễn phí"}</p>
+                {course.price > 0 && hasParent !== true && user?.role === "student" && (
+                  <p className="mb-3 text-xs text-yellow-500">Cần liên kết phụ huynh để mua khóa học.</p>
+                )}
+                <div className="space-y-2">
+                  <button onClick={course.price > 0 ? handleAddToCart : handleEnrollFree} disabled={actionLoading} className="btn-primary w-full justify-center">
+                    {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (course.price > 0 ? "Thêm vào giỏ" : "Đăng ký miễn phí")}
+                  </button>
+                  {course.price > 0 && (
+                    <>
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                        <input
+                          value={buyNowCoupon}
+                          onChange={(e) => {
+                            setBuyNowCoupon(e.target.value.toUpperCase());
+                            setBuyNowCouponPreview(null);
+                          }}
+                          placeholder="Mã giảm giá"
+                          disabled={course.allowPlatformPromotions === false}
+                          className="min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
+                        />
+                        <button
+                          onClick={previewBuyNowCoupon}
+                          disabled={buyNowCouponLoading || !buyNowCoupon.trim() || course.allowPlatformPromotions === false}
+                          className="rounded-md border border-border px-3 py-2 text-xs font-bold hover:bg-muted disabled:opacity-50"
+                        >
+                          {buyNowCouponLoading ? "..." : "Áp dụng"}
+                        </button>
+                      </div>
+                      <button onClick={handleBuyNow} disabled={actionLoading} className="btn-secondary w-full justify-center">Mua ngay</button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* ===== MAIN CONTENT ===== */}
       <section className="py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid lg:grid-cols-3 gap-10">
             
             {/* Left Content */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 min-w-0">
               
               {/* What you'll learn - Udemy style box */}
               <div className="border border-border p-6 rounded-lg bg-card mb-10">
@@ -389,7 +454,7 @@ export default function CourseDetailPage() {
 
               {/* Curriculum */}
               <h2 className="text-2xl font-bold mb-6">Nội dung khóa học</h2>
-              <div className="flex justify-between items-center text-sm text-foreground-muted mb-4">
+              <div className="flex flex-col gap-2 text-sm text-foreground-muted mb-4 sm:flex-row sm:items-center sm:justify-between">
                  <span>{course.sections?.length || 0} chương • {totalLessons} bài học</span>
                  <button className="text-primary hover:text-primary/80 font-bold" onClick={() => setOpenSections(course.sections.map(s => s.id))}>Mở rộng tất cả</button>
               </div>
@@ -399,35 +464,35 @@ export default function CourseDetailPage() {
                   <div key={sec.id} className={`${i !== 0 ? 'border-t border-border' : ''}`}>
                     <button 
                       onClick={() => toggleSection(sec.id)} 
-                      className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors bg-background"
+                      className="w-full flex items-start justify-between gap-3 p-4 text-left hover:bg-muted/50 transition-colors bg-background"
                     >
-                      <div className="flex items-center gap-3">
-                        <ChevronDown className={`w-4 h-4 transition-transform ${openSections.includes(sec.id) ? "rotate-180" : ""}`} />
-                        <span className="font-bold">{sec.title}</span>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${openSections.includes(sec.id) ? "rotate-180" : ""}`} />
+                        <span className="font-bold break-words">{sec.title}</span>
                       </div>
-                      <span className="text-sm text-foreground-muted">{sec.lessons?.length || 0} bài</span>
+                      <span className="shrink-0 text-sm text-foreground-muted">{sec.lessons?.length || 0} bài</span>
                     </button>
                     {openSections.includes(sec.id) && (
                       <div className="bg-card">
                         {sec.lessons?.sort((a, b) => a.order - b.order).map((lesson, li) => (
-                          <div key={lesson.id} className="flex items-center gap-3 px-6 py-3 border-t border-border/50 hover:bg-muted/30">
+                          <div key={lesson.id} className="flex items-start gap-3 px-4 py-3 border-t border-border/50 hover:bg-muted/30 sm:px-6">
                             {canAccess ? (
-                              <Link href={`/courses/${id}/lessons/${lesson.id}`} className="flex items-center gap-3 flex-1">
+                              <Link href={`/courses/${id}/lessons/${lesson.id}`} className="flex min-w-0 flex-1 items-start gap-3">
                                 <PlayCircle className="w-4 h-4 shrink-0 text-foreground" />
-                                <span className="text-sm text-foreground-muted hover:text-primary transition-colors">{lesson.title}</span>
+                                <span className="text-sm text-foreground-muted hover:text-primary transition-colors break-words">{lesson.title}</span>
                               </Link>
                             ) : (
-                              <div className="flex items-center gap-3 flex-1">
+                              <div className="flex min-w-0 flex-1 items-start gap-3">
                                 {li === 0 && sec.order === 1 ? (
                                   <PlayCircle className="w-4 h-4 shrink-0 text-primary" />
                                 ) : (
                                   <Lock className="w-4 h-4 shrink-0 text-foreground-muted" />
                                 )}
-                                <span className="text-sm text-foreground-muted">{lesson.title}</span>
+                                <span className="text-sm text-foreground-muted break-words">{lesson.title}</span>
                                 {li === 0 && sec.order === 1 && <span className="ml-2 text-xs text-primary font-bold">Xem trước</span>}
                               </div>
                             )}
-                            {lesson.duration && <span className="text-sm text-foreground-muted">{Math.round(lesson.duration / 60)}:00</span>}
+                            {lesson.duration && <span className="shrink-0 text-sm text-foreground-muted">{Math.round(lesson.duration / 60)}:00</span>}
                           </div>
                         ))}
                       </div>
@@ -449,7 +514,7 @@ export default function CourseDetailPage() {
               <div className="mb-10">
                  <Link href={`/teachers`} className="text-xl font-bold text-primary underline">{authorName}</Link>
                  <p className="text-sm text-foreground-muted mb-4">Chuyên gia Giáo dục</p>
-                 <div className="flex items-center gap-6 mb-4">
+                 <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center sm:gap-6">
                     <div className="w-28 h-28 rounded-full flex items-center justify-center text-4xl font-bold text-white shrink-0" style={{ background: "linear-gradient(135deg, #a435f0, #0891b2)" }}>
                       {authorName.charAt(0)}
                     </div>
@@ -528,7 +593,7 @@ export default function CourseDetailPage() {
                  <div className="p-6">
                     {isPending ? (
                       <>
-                        <p className="text-3xl font-bold mb-4">{course.price > 0 ? `${course.price.toLocaleString()} ₫` : "Miễn phí"}</p>
+                        <p className="text-3xl font-bold mb-4">{course.price > 0 ? formatMoney(course.price) : "Miễn phí"}</p>
                         <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 mb-4 text-center">
                            <AlertCircle className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
                            <p className="font-bold text-yellow-500 text-sm">Đang chờ duyệt thanh toán</p>
@@ -546,7 +611,7 @@ export default function CourseDetailPage() {
                       </>
                     ) : (
                       <>
-                        <p className="text-4xl font-extrabold mb-4">{course.price > 0 ? `${course.price.toLocaleString()} ₫` : "Miễn phí"}</p>
+                        <p className="text-4xl font-extrabold mb-4">{course.price > 0 ? formatMoney(course.price) : "Miễn phí"}</p>
                         
                         {course.price > 0 && hasParent !== true && user?.role === "student" && (
                           <p className="text-xs text-yellow-500 mb-4">Cần liên kết phụ huynh để mua khóa học.</p>
@@ -643,7 +708,7 @@ export default function CourseDetailPage() {
                       </p>
                       <div className="mt-4 flex justify-between px-4 py-3 rounded-lg bg-muted text-sm">
                         <span className="text-foreground-muted">Số tiền</span>
-                        <span className="font-bold gradient-text">{courseQrData.amount.toLocaleString()} ₫</span>
+                        <span className="font-bold gradient-text">{formatMoney(courseQrData.amount)}</span>
                       </div>
                     </div>
                     <button onClick={handleConfirmSentToParent} className="btn-primary w-full justify-center py-3">

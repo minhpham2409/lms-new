@@ -95,7 +95,10 @@ export class CourseRepository extends BaseRepository<Course> {
       }),
       this.prisma.enrollment.findMany({
         where: { course: { authorId } },
-        select: { userId: true, createdAt: true },
+        include: {
+          user: { select: { id: true, username: true, email: true, firstName: true, lastName: true } },
+          course: { select: { id: true, title: true, price: true, status: true } },
+        },
       }),
       this.prisma.review.findMany({
         where: { course: { authorId } },

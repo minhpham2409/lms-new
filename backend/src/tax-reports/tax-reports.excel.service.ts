@@ -17,13 +17,13 @@ export class TaxReportsExcelService {
     const colCount = 4 + months.length * 2;
     ws.mergeCells('A1', this.colLetter(colCount) + '1');
     const tc = ws.getCell('A1');
-    tc.value = `BÁO CÁO DOANH THU QUÝ ${quarter} NĂM ${year} — ${(report.teacher.fullName || '').toUpperCase()}`;
+    tc.value = `BÁO CÁO THỰC NHẬN QUÝ ${quarter} NĂM ${year} — ${(report.teacher.fullName || '').toUpperCase()}`;
     tc.font = { bold: true, size: 13 };
     tc.alignment = { horizontal: 'center', vertical: 'middle' };
     ws.getRow(1).height = 32;
     const headers = ['STT', 'Khóa học', 'Đơn giá',
-      ...months.flatMap(m => [`Số HS T${m}`, `Doanh thu T${m}`]),
-      'Tổng HS', 'Tổng doanh thu'];
+      ...months.flatMap(m => [`Số HS T${m}`, `Thực nhận T${m}`]),
+      'Tổng HS', 'Tổng thực nhận'];
     const hr = ws.addRow(headers);
     hr.font = { bold: true, size: 10 };
     hr.alignment = { horizontal: 'center', wrapText: true };
@@ -60,10 +60,10 @@ export class TaxReportsExcelService {
     const ws = workbook.addWorksheet('Báo cáo tháng');
     ws.mergeCells('A1', 'E1');
     const tc = ws.getCell('A1');
-    tc.value = `BÁO CÁO DOANH THU THÁNG ${month}/${year} — ${(report.teacher.fullName||'').toUpperCase()}`;
+    tc.value = `BÁO CÁO THỰC NHẬN THÁNG ${month}/${year} — ${(report.teacher.fullName||'').toUpperCase()}`;
     tc.font = { bold: true, size: 13 }; tc.alignment = { horizontal: 'center', vertical: 'middle' };
     ws.getRow(1).height = 32;
-    const hr = ws.addRow(['STT', 'Khóa học', 'Đơn giá', 'Số học sinh', 'Doanh thu']);
+    const hr = ws.addRow(['STT', 'Khóa học', 'Đơn giá', 'Số học sinh', 'Thực nhận']);
     hr.font = { bold: true }; hr.alignment = { horizontal: 'center' };
     hr.eachCell(c => { c.border = this.borders(); c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9E2F3'}}; });
     ws.getColumn(1).width = 5; ws.getColumn(2).width = 35; ws.getColumn(3).width = 16; ws.getColumn(4).width = 14; ws.getColumn(5).width = 20;
@@ -89,7 +89,7 @@ export class TaxReportsExcelService {
     tc.value = `DANH SÁCH HỌC SINH — ${(data.courseName||'').toUpperCase()} (T${month}/${year})`;
     tc.font = { bold: true, size: 12 }; tc.alignment = { horizontal: 'center', vertical: 'middle' };
     ws.getRow(1).height = 28;
-    const hr = ws.addRow(['STT', 'Họ và tên', 'Email', 'Ngày mua', 'Số tiền']);
+    const hr = ws.addRow(['STT', 'Họ và tên', 'Email', 'Ngày ghi nhận', 'Thực nhận']);
     hr.font = { bold: true }; hr.alignment = { horizontal: 'center' };
     hr.eachCell(c => { c.border = this.borders(); c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9E2F3'}}; });
     ws.getColumn(1).width = 5; ws.getColumn(2).width = 28; ws.getColumn(3).width = 28; ws.getColumn(4).width = 16; ws.getColumn(5).width = 18;

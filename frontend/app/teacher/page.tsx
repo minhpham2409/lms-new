@@ -36,6 +36,7 @@ export default function TeacherPage() {
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState("");
   const [myPayouts, setMyPayouts] = useState<any[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -262,6 +263,8 @@ export default function TeacherPage() {
   ];
 
   const money = (value: any) => `${Number(value || 0).toLocaleString("vi-VN")} ₫`;
+  const courseBreakdown = stats?.courseBreakdown || [];
+  const selectedCourse = courseBreakdown.find((course: any) => course.id === selectedCourseId) || courseBreakdown[0] || null;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -360,12 +363,11 @@ export default function TeacherPage() {
           <div className="animate-fade-in">
             {tab === "overview" && (
               <div className="space-y-6">
-                {/* Top Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   {[
                     { label: "KHÓA HỌC", value: String(stats?.totalCourses || myCourses.length), sub: `${stats?.publishedCourses || 0} ĐÃ XUẤT BẢN` },
                     { label: "HỌC SINH TÍCH LŨY", value: String(stats?.totalStudents || 0), sub: "TỔNG SỐ HỌC VIÊN" },
-                    { label: "DOANH THU", value: stats?.totalRevenue ? `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫` : "0 ₫", sub: "TỔNG DOANH THU" },
+                    { label: "DOANH THU", value: money(stats?.teacherRevenue ?? stats?.totalRevenue), sub: "KHỚP VÍ DOANH THU" },
                     { label: "ĐÁNH GIÁ TRUNG BÌNH", value: stats?.avgRating ? stats.avgRating : "—", sub: stats?.totalReviews ? `${stats.totalReviews} LƯỢT ĐÁNH GIÁ` : "CHƯA CÓ ĐÁNH GIÁ" },
                   ].map(({ label, value, sub }) => (
                     <div key={label} className="bg-[#121E36] border border-white/5 p-6 rounded-xl hover:border-white/10 transition-colors">
@@ -374,6 +376,85 @@ export default function TeacherPage() {
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] opacity-60">{sub}</p>
                     </div>
                   ))}
+                </div>
+
+                <div className="grid lg:grid-cols-[1.25fr_0.75fr] gap-6">
+                  <div className="bg-[#121E36] border border-white/5 rounded-xl overflow-hidden">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-base uppercase tracking-wider text-[#F8FAFC]">HỌC SINH THEO KHÓA</h3>
+                        <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest mt-1">BẤM VÀO MỘT KHÓA ĐỂ XEM HỌC SINH</p>
+                      </div>
+                      <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest">{courseBreakdown.length} KHÓA</span>
+                    </div>
+                    {courseBreakdown.length === 0 ? (
+                      <div className="p-10 text-center text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">CHƯA CÓ DỮ LIỆU</div>
+                    ) : (
+                      <div className="divide-y divide-white/5">
+                        {courseBreakdown.map((course: any) => {
+                          const active = selectedCourse?.id === course.id;
+                          return (
+                            <button key={course.id} onClick={() => setSelectedCourseId(course.id)}
+                              className={`w-full text-left p-5 transition-colors ${active ? "bg-[#F8B486]/10" : "hover:bg-white/[0.03]"}`}>
+                              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div className="min-w-0">
+                                  <p className="font-bold text-[#F8FAFC] truncate">{course.title}</p>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <span className="rounded bg-[#051025] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{course.status === "published" ? "Xuất bản" : "Nháp"}</span>
+                                    <span className="rounded bg-[#051025] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{course.price > 0 ? money(course.price) : "Miễn phí"}</span>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3 text-right md:min-w-[300px]">
+                                  <div>
+                                    <p className="text-lg font-extrabold text-[#F8FAFC]">{course.studentCount}</p>
+                                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">Học sinh</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-lg font-extrabold text-[#F8FAFC]">{course.paidStudents}</p>
+                                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">Đã mua</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-lg font-extrabold text-[#F8B486]">{money(course.teacherRevenue ?? course.revenue)}</p>
+                                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">Thực nhận</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-[#121E36] border border-white/5 rounded-xl overflow-hidden">
+                    <div className="p-6 border-b border-white/5">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">DANH SÁCH HỌC SINH</p>
+                      <h3 className="mt-2 font-bold text-[#F8FAFC] line-clamp-2">{selectedCourse?.title || "Chọn khóa học"}</h3>
+                    </div>
+                    {!selectedCourse ? (
+                      <div className="p-8 text-sm text-[#94A3B8]">Chọn một khóa học để xem học sinh.</div>
+                    ) : selectedCourse.students.length === 0 ? (
+                      <div className="p-8 text-sm text-[#94A3B8]">Khóa học này chưa có học sinh.</div>
+                    ) : (
+                      <div className="max-h-[420px] overflow-y-auto divide-y divide-white/5">
+                        {selectedCourse.students.map((student: any) => {
+                          const name = student.user?.firstName ? `${student.user.firstName} ${student.user.lastName || ""}`.trim() : student.user?.username || "Học sinh";
+                          return (
+                            <div key={student.enrollmentId} className="p-4 flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-[#051025] border border-white/5 flex items-center justify-center text-sm font-extrabold text-[#F8B486]">
+                                {name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-[#F8FAFC] truncate">{name}</p>
+                                <p className="text-[10px] text-[#94A3B8] truncate">{student.user?.email || student.user?.username}</p>
+                              </div>
+                              <span className="rounded bg-[#051025] px-2 py-1 text-[10px] font-bold uppercase text-[#94A3B8]">{student.status}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
@@ -554,7 +635,7 @@ export default function TeacherPage() {
                 <div className="grid lg:grid-cols-2 gap-6">
                   <div className="bg-[#121E36] border border-white/5 rounded-xl p-8">
                     <h3 className="font-bold text-base uppercase tracking-wider text-[#F8FAFC] mb-8">
-                      DOANH THU 6 THÁNG QUA
+                      DOANH THU THỰC NHẬN 6 THÁNG QUA
                     </h3>
                     {stats?.monthlyData && stats.monthlyData.length > 0 ? (
                       <div className="h-72 w-full">
@@ -571,7 +652,7 @@ export default function TeacherPage() {
                             <YAxis stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/1000}K`} />
                             <RechartsTooltip content={<CustomTooltip />} />
                             <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                            <Line type="monotone" name="Doanh thu" dataKey="revenue" stroke="#F8B486" strokeWidth={3} dot={{ r: 4, fill: "#F8B486", strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                            <Line type="monotone" name="Doanh thu thực nhận" dataKey="revenue" stroke="#F8B486" strokeWidth={3} dot={{ r: 4, fill: "#F8B486", strokeWidth: 0 }} activeDot={{ r: 6 }} />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>

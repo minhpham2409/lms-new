@@ -7,7 +7,9 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
 import {
-  Loader2, PlayCircle, Clock, CheckCircle2, Award, AlertCircle, ClipboardList, MessageSquareText
+  Loader2, PlayCircle, Clock, CheckCircle2, Award, AlertCircle, ClipboardList, MessageSquareText,
+  CalendarDays, ChevronRight, GraduationCap, LayoutGrid, ListChecks,
+  TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { studentLearningApi } from "@/lib/api-service";
@@ -132,90 +134,121 @@ export default function DashboardPage() {
 
   const activeCourses = enrolledCourses.filter(e => e.status === "active" || e.status === "completed");
   const pendingCourses = enrolledCourses.filter(e => e.status === "pending");
+  const completedCourses = activeCourses.filter(c => c.progress >= 100).length;
+  const totalTodos = learningSummary?.todos.length ?? 0;
+  const earnedBadges = achievements.filter(a => a.earned).length;
+  const displayName = user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.username || "Học viên";
+  const tabs: Array<{ id: typeof activeTab; label: string; count?: number; icon: any }> = [
+    { id: "courses", label: "Khóa học", count: activeCourses.length, icon: LayoutGrid },
+    { id: "todos", label: "Việc cần làm", count: totalTodos, icon: ListChecks },
+    { id: "feedback", label: "Điểm & nhận xét", count: learningSummary?.feedback.length, icon: MessageSquareText },
+    { id: "stats", label: "Thành tích", count: earnedBadges, icon: TrendingUp },
+    ...(parentRequests.length > 0 || pendingCourses.length > 0
+      ? [{ id: "requests" as const, label: "Chờ xử lý", count: parentRequests.length + pendingCourses.length, icon: AlertCircle }]
+      : []),
+  ];
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       <Navbar />
 
-      {/* ===== UDEMY STYLE HEADER ===== */}
-      <section className="bg-[#1c1d1f] text-white pt-28 pb-0">
+      <section className="pt-28 pb-8 border-b border-border bg-[var(--background-2)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           <h1 className="text-3xl sm:text-4xl font-bold mb-8">Học tập của tôi</h1>
-           
-           <div className="flex flex-wrap gap-6 border-b border-gray-700">
-             <button onClick={() => setActiveTab("courses")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "courses" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
-                Tất cả khóa học
-             </button>
-             <button onClick={() => setActiveTab("todos")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "todos" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
-                Việc cần làm {learningSummary?.todos.length ? `(${learningSummary.todos.length})` : ""}
-             </button>
-             <button onClick={() => setActiveTab("feedback")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "feedback" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
-                Điểm & nhận xét
-             </button>
-             <button onClick={() => setActiveTab("stats")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "stats" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
-                Thống kê & Thành tích
-             </button>
-             {(parentRequests.length > 0 || pendingCourses.length > 0) && (
-               <button onClick={() => setActiveTab("requests")} className={`pb-3 font-bold text-sm border-b-4 transition-colors whitespace-nowrap ${activeTab === "requests" ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
-                  Chờ xử lý ({parentRequests.length + pendingCourses.length})
-               </button>
-             )}
-           </div>
+          <div>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-[var(--card)] px-3 py-1 text-xs font-bold text-[var(--primary)]">
+              <GraduationCap className="h-4 w-4" />
+              Student Learning Hub
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">Học tập của tôi</h1>
+            <p className="mt-4 max-w-2xl text-base text-foreground-muted">
+              Xin chào {displayName}. Theo dõi khóa học, việc cần làm, điểm số và tiến độ học tập ở một nơi.
+            </p>
+          </div>
+
+          <div className="mt-8 overflow-x-auto rounded-xl border border-border bg-[var(--card)] p-2 shadow-sm">
+            <div className="flex min-w-max gap-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-colors ${
+                    activeTab === tab.id
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                      : "text-foreground-muted hover:bg-[var(--muted)] hover:text-foreground"
+                  }`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  {tab.label}
+                  {typeof tab.count === "number" && tab.count > 0 && (
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] ${activeTab === tab.id ? "bg-white/20" : "bg-[var(--muted)]"}`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ===== MAIN CONTENT ===== */}
-      <section className="flex-1 py-10">
+      <section className="flex-1 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            
-           {/* TAB: COURSES */}
            {activeTab === "courses" && (
              <div>
                 {learningSummary?.continueLearning && (
                   <Link
                     href={learningSummary.continueLearning.url}
-                    className="mb-6 flex flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="mb-7 flex flex-col gap-5 rounded-xl border border-border bg-[var(--card)] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-[var(--primary)]">
                         <PlayCircle className="h-6 w-6" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold uppercase text-foreground-muted">Học tiếp</p>
-                        <h2 className="font-bold">{learningSummary.continueLearning.lessonTitle}</h2>
+                        <p className="text-xs font-bold uppercase tracking-wide text-foreground-muted">Học tiếp</p>
+                        <h2 className="text-lg font-extrabold">{learningSummary.continueLearning.lessonTitle}</h2>
                         <p className="text-sm text-foreground-muted">
                           Đã xem {Math.round(learningSummary.continueLearning.watchedPercentage)}%
                           {learningSummary.continueLearning.watchTime > 0 ? ` · tiếp tục từ ${Math.floor(learningSummary.continueLearning.watchTime / 60)}:${String(learningSummary.continueLearning.watchTime % 60).padStart(2, "0")}` : ""}
                         </p>
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-primary">Vào bài học</span>
+                    <span className="inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-[var(--primary-foreground)]">
+                      Vào bài học <ChevronRight className="h-4 w-4" />
+                    </span>
                   </Link>
                 )}
                 {coursesLoading ? (
-                  <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                  <div className="flex justify-center rounded-xl border border-border bg-[var(--card)] py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
                 ) : activeCourses.length === 0 ? (
-                  <div className="text-center py-20 border border-border rounded-lg bg-card shadow-sm">
+                  <div className="text-center py-20 border border-border rounded-xl bg-[var(--card)] shadow-sm">
                      <h3 className="text-2xl font-bold mb-4">Bạn chưa đăng ký khóa học nào</h3>
-                     <Link href="/courses" className="btn-primary px-6 py-3">Khám phá khóa học ngay</Link>
+                     <Link href="/courses" className="inline-flex rounded-lg bg-[var(--primary)] px-6 py-3 font-bold text-[var(--primary-foreground)]">Khám phá khóa học ngay</Link>
                   </div>
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                      {activeCourses.map(enrollment => {
                         const totalLessons = enrollment.course?.sections?.reduce((sum: number, sec: any) => sum + (sec.lessons?.length || 0), 0) || enrollment.course?._count?.lessons || 0;
                         const authorName = enrollment.course?.author?.firstName || enrollment.course?.author?.username || "Giáo viên";
                         const isCompleted = enrollment.progress >= 100;
                         return (
                            <Link key={enrollment.id} href={`/courses/${enrollment.courseId}`} className="group">
-                              <div className="border border-border rounded-lg overflow-hidden h-full flex flex-col bg-card hover:shadow-lg transition-all hover:-translate-y-1">
-                                 <div className="aspect-video bg-muted relative border-b border-border">
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-colors">
-                                       <PlayCircle className="w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
+                              <div className="border border-border rounded-xl overflow-hidden h-full flex flex-col bg-[var(--card)] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+                                 <div className="aspect-video bg-[var(--background-2)] relative border-b border-border">
+                                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(232,154,100,0.18),rgba(59,130,246,0.14))]" />
+                                    <div className="absolute left-4 top-4 rounded-full bg-black/30 px-2.5 py-1 text-xs font-bold text-white">
+                                      {totalLessons} bài học
+                                    </div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                       <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/20 text-white transition-transform group-hover:scale-105">
+                                         <PlayCircle className="w-9 h-9" />
+                                       </div>
                                     </div>
                                  </div>
-                                 <div className="p-4 flex-1 flex flex-col">
-                                    <h3 className="font-bold mb-1 line-clamp-2 leading-tight group-hover:text-primary transition-colors">{enrollment.course?.title}</h3>
-                                    <p className="text-xs text-foreground-muted mb-4">{authorName}</p>
+                                 <div className="p-5 flex-1 flex flex-col">
+                                    <h3 className="font-extrabold mb-1 line-clamp-2 leading-tight group-hover:text-primary transition-colors">{enrollment.course?.title}</h3>
+                                    <p className="text-xs text-foreground-muted mb-5">Giảng viên {authorName}</p>
                                     
                                     <div className="mt-auto">
                                        <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden mb-2">
@@ -224,6 +257,10 @@ export default function DashboardPage() {
                                        <div className="flex justify-between text-xs font-bold">
                                           <span className="text-foreground-muted">{Math.round(enrollment.progress)}% hoàn thành</span>
                                           {isCompleted && <span className="text-green-500 flex items-center gap-1"><Award className="w-3 h-3"/> Đã hoàn thành</span>}
+                                       </div>
+                                       <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm font-bold text-[var(--primary)]">
+                                         <span>Tiếp tục học</span>
+                                         <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                                        </div>
                                     </div>
                                  </div>
@@ -241,13 +278,13 @@ export default function DashboardPage() {
              <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
                 <div className="space-y-3">
                   {(learningSummary?.todos.length ?? 0) === 0 ? (
-                    <div className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+                    <div className="rounded-xl border border-border bg-[var(--card)] p-8 text-center shadow-sm">
                       <ClipboardList className="mx-auto mb-3 h-9 w-9 text-foreground-muted" />
                       <h3 className="font-bold">Không có việc cần làm</h3>
                       <p className="mt-1 text-sm text-foreground-muted">Bài tập và quiz chưa làm sẽ xuất hiện tại đây.</p>
                     </div>
                   ) : learningSummary?.todos.map((item) => (
-                    <Link key={item.id} href={item.url} className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/50">
+                    <Link key={item.id} href={item.url} className="flex items-center justify-between gap-4 rounded-xl border border-border bg-[var(--card)] p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
                       <div className="min-w-0">
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                           <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{item.type === "quiz" ? "Quiz" : "Bài tập"}</span>
@@ -260,7 +297,7 @@ export default function DashboardPage() {
                     </Link>
                   ))}
                 </div>
-                <div className="rounded-lg border border-border bg-card p-5 shadow-sm h-fit">
+                <div className="rounded-xl border border-border bg-[var(--card)] p-5 shadow-sm h-fit">
                   <h3 className="mb-3 font-bold">Tổng quan học tập</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between"><span className="text-foreground-muted">Khóa đang học</span><b>{learningSummary?.stats.activeCourses ?? activeCourses.length}</b></div>
@@ -275,13 +312,13 @@ export default function DashboardPage() {
            {activeTab === "feedback" && (
              <div className="space-y-3">
                 {(learningSummary?.feedback.length ?? 0) === 0 ? (
-                  <div className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+                  <div className="rounded-xl border border-border bg-[var(--card)] p-8 text-center shadow-sm">
                     <MessageSquareText className="mx-auto mb-3 h-9 w-9 text-foreground-muted" />
                     <h3 className="font-bold">Chưa có điểm hoặc nhận xét mới</h3>
                     <p className="mt-1 text-sm text-foreground-muted">Kết quả quiz và bài tập đã chấm sẽ được gom ở đây.</p>
                   </div>
                 ) : learningSummary?.feedback.map((item) => (
-                  <Link key={`${item.kind}-${item.id}`} href={item.url} className="block rounded-lg border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/50">
+                  <Link key={`${item.kind}-${item.id}`} href={item.url} className="block rounded-xl border border-border bg-[var(--card)] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -304,30 +341,28 @@ export default function DashboardPage() {
            {/* TAB: STATS & ACHIEVEMENTS */}
            {activeTab === "stats" && (
              <div className="grid lg:grid-cols-3 gap-8">
-                {/* Left col - Stats */}
                 <div className="lg:col-span-2 space-y-6">
                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="border border-border rounded-lg p-6 bg-card text-center shadow-sm">
+                      <div className="border border-border rounded-xl p-6 bg-[var(--card)] text-center shadow-sm">
                          <p className="text-3xl font-extrabold text-primary mb-1">{activeCourses.length}</p>
                          <p className="text-sm text-foreground-muted font-bold">Đang học</p>
                       </div>
-                      <div className="border border-border rounded-lg p-6 bg-card text-center shadow-sm">
-                         <p className="text-3xl font-extrabold text-green-500 mb-1">{activeCourses.filter(c => c.progress >= 100).length}</p>
+                      <div className="border border-border rounded-xl p-6 bg-[var(--card)] text-center shadow-sm">
+                         <p className="text-3xl font-extrabold text-green-500 mb-1">{completedCourses}</p>
                          <p className="text-sm text-foreground-muted font-bold">Hoàn thành</p>
                       </div>
-                      <div className="border border-border rounded-lg p-6 bg-card text-center shadow-sm">
+                      <div className="border border-border rounded-xl p-6 bg-[var(--card)] text-center shadow-sm">
                          <p className="text-3xl font-extrabold text-yellow-500 mb-1">{dashboard.streak}</p>
                          <p className="text-sm text-foreground-muted font-bold">Ngày liên tiếp</p>
                       </div>
-                      <div className="border border-border rounded-lg p-6 bg-card text-center shadow-sm">
-                         <p className="text-3xl font-extrabold text-cyan-500 mb-1">{achievements.filter(a => a.earned).length}</p>
+                      <div className="border border-border rounded-xl p-6 bg-[var(--card)] text-center shadow-sm">
+                         <p className="text-3xl font-extrabold text-cyan-500 mb-1">{earnedBadges}</p>
                          <p className="text-sm text-foreground-muted font-bold">Huy hiệu</p>
                       </div>
                    </div>
 
-                   {/* Weekly Activity */}
-                   <div className="border border-border rounded-lg p-6 bg-card shadow-sm">
-                      <h3 className="font-bold text-lg mb-6">Hoạt động trong tuần</h3>
+                   <div className="border border-border rounded-xl p-6 bg-[var(--card)] shadow-sm">
+                      <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><CalendarDays className="h-5 w-5 text-[var(--primary)]" />Hoạt động trong tuần</h3>
                       <div className="flex items-end gap-4 h-40">
                         {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day, i) => {
                           const heights = [60, 80, 45, 90, 70, 30, 50]; // mock
@@ -347,16 +382,15 @@ export default function DashboardPage() {
                    </div>
                 </div>
 
-                {/* Right col - Badges */}
                 <div className="space-y-6">
-                   <div className="border border-border rounded-lg p-6 bg-card shadow-sm">
+                   <div className="border border-border rounded-xl p-6 bg-[var(--card)] shadow-sm">
                       <div className="flex justify-between items-center mb-4">
                          <h3 className="font-bold text-lg">Huy hiệu đạt được</h3>
                          <Link href="/achievements" className="text-sm text-primary font-bold hover:underline">Xem tất cả</Link>
                       </div>
                       <div className="grid grid-cols-4 gap-3">
                          {achievements.filter(a => a.earned).slice(0, 8).map((badge, i) => (
-                           <div key={i} className="aspect-square rounded-full border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center text-2xl relative group cursor-pointer" title={badge.name}>
+                           <div key={i} className="aspect-square rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center text-2xl relative group cursor-pointer" title={badge.name}>
                               {badge.icon || "🏆"}
                               <div className="absolute bottom-[-10px] right-[-5px] bg-white rounded-full">
                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -369,7 +403,7 @@ export default function DashboardPage() {
                       </div>
                    </div>
 
-                   <div className="border border-border rounded-lg p-6 bg-card shadow-sm">
+                   <div className="border border-border rounded-xl p-6 bg-[var(--card)] shadow-sm">
                       <h3 className="font-bold text-lg mb-4">Lịch sử hoạt động</h3>
                       {dashboard.activities.length === 0 ? (
                          <p className="text-sm text-foreground-muted">Chưa có hoạt động nào.</p>
@@ -396,11 +430,11 @@ export default function DashboardPage() {
              <div className="max-w-2xl mx-auto space-y-6">
                 
                 {pendingCourses.length > 0 && (
-                  <div className="border border-border rounded-lg p-6 bg-card shadow-sm">
+                  <div className="border border-border rounded-xl p-6 bg-[var(--card)] shadow-sm">
                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-yellow-500"/> Khóa học chờ duyệt thanh toán</h3>
                      <div className="space-y-4">
                         {pendingCourses.map(course => (
-                           <div key={course.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
+                           <div key={course.id} className="flex items-center gap-4 p-4 border border-border rounded-xl">
                               <div className="aspect-video w-24 bg-muted rounded shrink-0 border border-border" />
                               <div className="flex-1">
                                  <h4 className="font-bold text-sm mb-1">{course.course?.title}</h4>
@@ -413,7 +447,7 @@ export default function DashboardPage() {
                 )}
 
                 {parentRequests.length > 0 && (
-                  <div className="border border-[#d1d7dc] dark:border-[#3e4143] rounded p-6 bg-white dark:bg-[#2d2f31]">
+                  <div className="border border-border rounded-xl p-6 bg-[var(--card)] shadow-sm">
                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                        <AlertCircle className="w-5 h-5 text-[#3b82f6]"/>
                        Yêu cầu liên kết phụ huynh
@@ -421,24 +455,24 @@ export default function DashboardPage() {
                      </h3>
                      <div className="space-y-3">
                         {parentRequests.map(req => (
-                           <div key={req.id} className="flex items-center justify-between p-4 border border-[#d1d7dc] dark:border-[#3e4143] rounded bg-[#f7f9fa] dark:bg-[#1c1d1f]">
+                           <div key={req.id} className="flex items-center justify-between gap-4 p-4 border border-border rounded-xl bg-[var(--background-2)]">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-[#3b82f6] flex items-center justify-center text-white font-bold text-sm">
                                   {(req.parent?.firstName || req.parent?.username || "P").charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                  <h4 className="font-bold text-sm text-[#2d2f31] dark:text-white">{req.parent?.firstName ? `${req.parent.firstName} ${req.parent.lastName || ""}`.trim() : req.parent?.username}</h4>
-                                  <p className="text-xs text-[#6a6f73]">{req.parent?.email} · Muốn theo dõi học tập của bạn</p>
+                                  <h4 className="font-bold text-sm">{req.parent?.firstName ? `${req.parent.firstName} ${req.parent.lastName || ""}`.trim() : req.parent?.username}</h4>
+                                  <p className="text-xs text-foreground-muted">{req.parent?.email} · Muốn theo dõi học tập của bạn</p>
                                 </div>
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
                                  <button
                                    onClick={() => acceptParentLink(req.id)}
-                                   className="px-4 py-2 bg-[#FFCCAA] hover:bg-[#8710d8] text-white text-xs font-bold rounded transition-colors"
+                                   className="px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-bold rounded-lg transition-colors hover:bg-[var(--primary-hover)]"
                                  >✓ Chấp nhận</button>
                                  <button
                                    onClick={() => rejectParentLink(req.id)}
-                                   className="px-4 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] text-[#6a6f73] text-xs font-bold rounded hover:bg-[#fee2e2] hover:text-[#F8B486] hover:border-[#F8B486] transition-colors"
+                                   className="px-4 py-2 border border-border text-foreground-muted text-xs font-bold rounded-lg hover:bg-muted hover:text-foreground transition-colors"
                                  >✕ Từ chối</button>
                               </div>
                            </div>

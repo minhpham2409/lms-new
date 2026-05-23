@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const ADMIN_PAGE_SIZE = 10;
 
 const roleColors: Record<string, string> = { student: "#FFCCAA", teacher: "#94A3B8", parent: "#FFCCAA", admin: "#F8B486" };
 const roleLabels: Record<string, string> = { student: "Học sinh", teacher: "Giáo viên", parent: "Phụ huynh", admin: "Admin" };
@@ -164,6 +165,7 @@ export default function AdminPage() {
   const [queues, setQueues] = useState<any>(null);
   const [raceConfig, setRaceConfig] = useState<any>(null);
   const [feeConfig, setFeeConfig] = useState<any>(null);
+  const [pageByTab, setPageByTab] = useState<Partial<Record<Tab, number>>>({});
 
   useEffect(() => {
     if (authLoading) return;
@@ -385,8 +387,49 @@ export default function AdminPage() {
     { id: "race", label: "Thi đua", icon: Flag },
     { id: "fee", label: "Phí", icon: Percent },
   ];
+  const primaryTabs = tabs.slice(0, 5);
+  const secondaryTabs = tabs.slice(5);
+  const activeTabInfo = tabs.find(t => t.id === tab) || tabs[0];
+  const isSecondaryActive = secondaryTabs.some(t => t.id === tab);
 
   const filteredUsers = users.filter(u => !search || u.username?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
+  const getPaged = <T,>(items: T[], key: Tab) => {
+    const totalPages = Math.max(1, Math.ceil(items.length / ADMIN_PAGE_SIZE));
+    const page = Math.min(pageByTab[key] || 1, totalPages);
+    const start = (page - 1) * ADMIN_PAGE_SIZE;
+    return { page, totalPages, items: items.slice(start, start + ADMIN_PAGE_SIZE) };
+  };
+  const pagedUsers = getPaged(filteredUsers, "users");
+  const pagedCourses = getPaged(courses, "courses");
+  const pagedOrders = getPaged(orders, "orders");
+  const pagedCoupons = getPaged(coupons, "coupons");
+  const pagedPayouts = getPaged(payouts, "payouts");
+  const PaginationControls = ({ pageKey, page, totalPages, totalItems }: { pageKey: Tab; page: number; totalPages: number; totalItems: number }) => {
+    if (totalItems <= ADMIN_PAGE_SIZE) return null;
+    return (
+      <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs" style={{ color: "#6a6f73" }}>
+          Trang {page}/{totalPages} · {totalItems} mục
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPageByTab(prev => ({ ...prev, [pageKey]: Math.max(1, page - 1) }))}
+            disabled={page <= 1}
+            className="rounded-lg border border-border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40 hover:bg-muted"
+          >
+            Trước
+          </button>
+          <button
+            onClick={() => setPageByTab(prev => ({ ...prev, [pageKey]: Math.min(totalPages, page + 1) }))}
+            disabled={page >= totalPages}
+            className="rounded-lg border border-border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40 hover:bg-muted"
+          >
+            Sau
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
@@ -405,31 +448,56 @@ export default function AdminPage() {
       <Navbar />
       <div className="pt-20 pb-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(248,180,134,0.15)" }}>
+          <div className="mb-5 rounded-2xl border border-border bg-card p-4 sm:p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(248,180,134,0.15)" }}>
                 <Shield className="w-6 h-6" style={{ color: "#F8B486" }} />
               </div>
-              <div>
-                <h1 className="text-2xl font-extrabold">Admin Panel</h1>
-                <p className="text-xs" style={{ color: "#6a6f73" }}>Quản lý toàn bộ hệ thống</p>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#6a6f73" }}>Quản trị hệ thống</p>
+                  <h1 className="truncate text-2xl font-extrabold">Admin Panel</h1>
+                  <p className="text-sm" style={{ color: "#6a6f73" }}>Đang xem: <span className="font-bold text-foreground">{activeTabInfo.label}</span></p>
+                </div>
               </div>
-            </div>
-            <button onClick={fetchAll} className="btn-secondary text-sm"><RefreshCw className="w-4 h-4" /> Làm mới</button>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5 mb-6 pb-1">
-            {tabs.map((t) => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap"
-                style={{
-                  background: tab === t.id ? "rgba(248,180,134,0.15)" : "var(--muted)",
-                  border: `1px solid ${tab === t.id ? "rgba(248,180,134,0.3)" : "var(--border)"}`,
-                  color: tab === t.id ? "#FFCCAA" : "var(--foreground-muted)",
-                }}>
-                <t.icon className="w-4 h-4" /> {t.label}
+              <button onClick={fetchAll} className="btn-secondary w-full justify-center px-4 py-2.5 text-sm lg:w-auto">
+                <RefreshCw className="w-4 h-4" /> Làm mới
               </button>
-            ))}
+            </div>
+
+            <div className="mt-5 block md:hidden">
+              <select
+                value={tab}
+                onChange={(e) => setTab(e.target.value as Tab)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm font-bold outline-none focus:border-primary"
+              >
+                {tabs.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </div>
+
+            <div className="mt-5 hidden items-center justify-between gap-3 md:flex">
+              <div className="flex min-w-0 items-center gap-1.5 rounded-xl border border-border bg-background p-1">
+                {primaryTabs.map((t) => (
+                  <button key={t.id} onClick={() => setTab(t.id)}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors lg:px-4 ${
+                      tab === t.id ? "bg-primary text-primary-foreground" : "text-foreground-muted hover:bg-muted hover:text-foreground"
+                    }`}>
+                    <t.icon className="w-4 h-4" /> <span className="hidden lg:inline">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={isSecondaryActive ? tab : ""}
+                onChange={(e) => { if (e.target.value) setTab(e.target.value as Tab); }}
+                className={`shrink-0 rounded-xl border px-4 py-2.5 text-sm font-bold outline-none transition-colors ${
+                  isSecondaryActive ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground-muted"
+                }`}
+              >
+                <option value="">Công cụ quản trị</option>
+                {secondaryTabs.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </div>
           </div>
 
           {dataLoading ? (
@@ -447,41 +515,72 @@ export default function AdminPage() {
                 const pendingCourses = courses.filter(c => c.status === 'pending' || c.status === 'draft');
                 const _completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'paid');
                 const pendingOrders = orders.filter(o => o.status === 'pending');
+                const totalRevenue = revenueData?.totalRevenue || stats?.revenue || 0;
+                const publishedRate = courses.length > 0 ? Math.round(((csData.published || 0) / courses.length) * 100) : 0;
+                const paidOrders = orders.filter(o => o.status === "completed" || o.status === "paid").length;
+                const paidRate = orders.length > 0 ? Math.round((paidOrders / orders.length) * 100) : 0;
 
                 return (
-                  <>
+                  <div className="space-y-6">
+                    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wide text-foreground-muted">Tổng quan vận hành</p>
+                          <h2 className="mt-1 text-2xl font-extrabold">Tình hình hệ thống</h2>
+                          <p className="mt-1 text-sm text-foreground-muted">Theo dõi người dùng, khóa học, đơn hàng và doanh thu trong một màn hình.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          <div className="rounded-lg border border-border bg-background px-4 py-3">
+                            <p className="text-[10px] font-bold uppercase text-foreground-muted">Duyệt khóa học</p>
+                            <p className="mt-1 text-lg font-extrabold text-primary">{publishedRate}%</p>
+                          </div>
+                          <div className="rounded-lg border border-border bg-background px-4 py-3">
+                            <p className="text-[10px] font-bold uppercase text-foreground-muted">Đơn đã thu</p>
+                            <p className="mt-1 text-lg font-extrabold">{paidRate}%</p>
+                          </div>
+                          <div className="col-span-2 rounded-lg border border-border bg-background px-4 py-3 sm:col-span-1">
+                            <p className="text-[10px] font-bold uppercase text-foreground-muted">Doanh thu</p>
+                            <p className="mt-1 text-lg font-extrabold">{totalRevenue.toLocaleString("vi-VN")} ₫</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Top stats */}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+                    <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
                       {[
                         { label: "Người dùng", value: stats?.users ?? users.length, icon: Users, color: "#F8B486", sub: `+${(stats?.recentUsers || []).length} mới` },
                         { label: "Khóa học", value: stats?.courses ?? courses.length, icon: BookOpen, color: "#94A3B8", sub: `${csData.published} xuất bản` },
                         { label: "Bài học", value: stats?.lessons ?? 0, icon: Activity, color: "#FFCCAA", sub: "tổng bài" },
                         { label: "Đăng ký", value: stats?.enrollments ?? 0, icon: TrendingUp, color: "#F8B486", sub: "lượt đăng ký" },
                         { label: "Đơn hàng", value: orders.length, icon: Package, color: "#FFCCAA", sub: `${pendingOrders.length} chờ xử lý` },
-                        { label: "Doanh thu", value: revenueData?.totalRevenue ? `${(revenueData.totalRevenue / 1000000).toFixed(1)}M` : stats?.revenue ? `${(stats.revenue / 1000000).toFixed(1)}M` : "0", icon: DollarSign, color: "#F8B486", sub: "VNĐ" },
+                        { label: "Doanh thu", value: totalRevenue ? `${(totalRevenue / 1000000).toFixed(1)}M` : "0", icon: DollarSign, color: "#F8B486", sub: "VNĐ" },
                       ].map(({ label, value, icon: Icon, color, sub }) => (
-                        <div key={label} className="bg-card border border-border p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="w-9 h-9 rounded flex items-center justify-center" style={{ background: `${color}18` }}>
+                        <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+                          <div className="mb-3 flex items-center justify-between">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: `${color}18` }}>
                               <Icon className="w-4 h-4" style={{ color }} />
                             </div>
                           </div>
-                          <p className="text-xl font-bold">{value}</p>
-                          <p className="text-[10px] mt-0.5 text-foreground-muted uppercase tracking-wider font-bold">{label}</p>
-                          <p className="text-[10px] font-bold" style={{ color }}>{sub}</p>
+                          <p className="text-2xl font-extrabold">{value}</p>
+                          <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground-muted">{label}</p>
+                          <p className="mt-1 text-[10px] font-bold" style={{ color }}>{sub}</p>
                         </div>
                       ))}
                     </div>
 
-                    <div className="grid lg:grid-cols-3 gap-6 mb-6">
+                    <div className="grid gap-6 lg:grid-cols-3">
                       {/* Revenue chart */}
-                      <div className="lg:col-span-2 bg-card border border-border p-6 shadow-sm">
-                        <h3 className="font-bold text-sm mb-1 flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" style={{ color: "#F8B486" }} /> Doanh thu 12 tháng
-                        </h3>
-                        <p className="text-[10px] mb-4" style={{ color: "#6a6f73" }}>
-                          Tổng: {(revenueData?.totalRevenue || 0).toLocaleString()} ₫
-                        </p>
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm lg:col-span-2">
+                        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <h3 className="flex items-center gap-2 text-sm font-bold">
+                              <DollarSign className="w-4 h-4" style={{ color: "#F8B486" }} /> Doanh thu 12 tháng
+                            </h3>
+                            <p className="mt-1 text-xs text-foreground-muted">Tổng: {(revenueData?.totalRevenue || 0).toLocaleString("vi-VN")} ₫</p>
+                          </div>
+                          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{revMonths.length} tháng</span>
+                        </div>
                         <div className="flex items-end gap-1.5 h-44">
                           {revMonths.map((m: any, i: number) => {
                             const h = maxRev > 0 ? (m.revenue / maxRev) * 100 : 0;
@@ -504,23 +603,23 @@ export default function AdminPage() {
                       </div>
 
                       {/* User role distribution */}
-                      <div className="bg-card border border-border p-6 shadow-sm">
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
                           <Users className="w-4 h-4" style={{ color: "#F8B486" }} /> Phân bố người dùng
                         </h3>
                         <div className="space-y-3">
                           {([
-                            { role: "student", label: "Học sinh", color: "#F8B486", icon: "🎓" },
-                            { role: "teacher", label: "Giáo viên", color: "#94A3B8", icon: "👨‍🏫" },
-                            { role: "parent", label: "Phụ huynh", color: "#FFCCAA", icon: "👪" },
-                            { role: "admin", label: "Admin", color: "#F8B486", icon: "🛡️" },
-                          ] as const).map(({ role, label, color, icon }) => {
+                            { role: "student", label: "Học sinh", color: "#F8B486" },
+                            { role: "teacher", label: "Giáo viên", color: "#94A3B8" },
+                            { role: "parent", label: "Phụ huynh", color: "#FFCCAA" },
+                            { role: "admin", label: "Admin", color: "#F8B486" },
+                          ] as const).map(({ role, label, color }) => {
                             const count = roleData[role] || 0;
                             const pct = totalRoleUsers > 0 ? Math.round((count / totalRoleUsers) * 100) : 0;
                             return (
                               <div key={role}>
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className="text-xs flex items-center gap-1.5">{icon} {label}</span>
+                                  <span className="text-xs font-semibold">{label}</span>
                                   <span className="text-xs font-bold">{count} <span style={{ color: "#6a6f73" }}>({pct}%)</span></span>
                                 </div>
                                 <div className="w-full h-2 rounded-full" style={{ background: "var(--border)" }}>
@@ -537,9 +636,9 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="grid lg:grid-cols-3 gap-6 mb-6">
+                    <div className="grid gap-6 lg:grid-cols-3">
                       {/* Course status */}
-                      <div className="bg-card border border-border p-6 shadow-sm">
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
                           <BookOpen className="w-4 h-4" style={{ color: "#94A3B8" }} /> Trạng thái khóa học
                         </h3>
@@ -565,7 +664,7 @@ export default function AdminPage() {
                       </div>
 
                       {/* Top courses */}
-                      <div className="lg:col-span-2 bg-card border border-border p-6 shadow-sm">
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm lg:col-span-2">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
                           <TrendingUp className="w-4 h-4" style={{ color: "#FFCCAA" }} /> Top khóa học (theo học sinh)
                         </h3>
@@ -599,9 +698,9 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="grid lg:grid-cols-2 gap-6">
+                    <div className="grid gap-6 lg:grid-cols-2">
                       {/* Recent users */}
-                      <div className="bg-card border border-border p-6 shadow-sm">
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
                           <Users className="w-4 h-4" style={{ color: "#F8B486" }} /> Người dùng mới nhất
                         </h3>
@@ -622,7 +721,7 @@ export default function AdminPage() {
                       </div>
 
                       {/* Recent courses */}
-                      <div className="bg-card border border-border p-6 shadow-sm">
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
                           <BookOpen className="w-4 h-4" style={{ color: "#94A3B8" }} /> Khóa học gần đây
                         </h3>
@@ -642,7 +741,7 @@ export default function AdminPage() {
                         </div>
                       </div>
                     </div>
-                  </>
+                  </div>
                 );
               })()}
 
@@ -654,29 +753,61 @@ export default function AdminPage() {
                 const recentOrders = detail.recentOrders || [];
                 const paymentIssues = detail.paymentIssues || [];
                 const refunds = refundRequests.length ? refundRequests : detail.refundRequests || [];
+                const receivedRevenue = Number(summary.receivedRevenue || summary.grossRevenue || 0);
+                const platformRevenue = Number(summary.platformRevenue || 0);
+                const teacherRevenue = Number(summary.teacherRevenue || 0);
+                const discountTotal = Number(summary.discountTotal || 0);
+                const platformShare = receivedRevenue > 0 ? Math.round((platformRevenue / receivedRevenue) * 100) : 0;
+                const teacherShare = receivedRevenue > 0 ? Math.round((teacherRevenue / receivedRevenue) * 100) : 0;
 
                 return (
                   <div className="space-y-6">
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wide text-foreground-muted">Quản trị tài chính</p>
+                          <h2 className="mt-1 text-2xl font-extrabold">Doanh thu & đối soát</h2>
+                          <p className="mt-1 text-sm text-foreground-muted">Theo dõi dòng tiền đã thu, chia sẻ doanh thu, đơn lỗi và yêu cầu hoàn tiền.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          <div className="rounded-lg border border-border bg-background px-4 py-3">
+                            <p className="text-[10px] font-bold uppercase text-foreground-muted">Tỷ lệ nền tảng</p>
+                            <p className="mt-1 text-lg font-extrabold text-primary">{platformShare}%</p>
+                          </div>
+                          <div className="rounded-lg border border-border bg-background px-4 py-3">
+                            <p className="text-[10px] font-bold uppercase text-foreground-muted">Tỷ lệ GV</p>
+                            <p className="mt-1 text-lg font-extrabold">{teacherShare}%</p>
+                          </div>
+                          <div className="col-span-2 rounded-lg border border-border bg-background px-4 py-3 sm:col-span-1">
+                            <p className="text-[10px] font-bold uppercase text-foreground-muted">Cần xử lý</p>
+                            <p className="mt-1 text-lg font-extrabold text-[#FFCCAA]">{paymentIssues.length + refunds.filter((r: any) => r.status !== "PAID").length}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       {[
-                        { label: "Tiền đã nhận", value: money(summary.receivedRevenue || summary.grossRevenue), icon: DollarSign, color: "#F8B486", sub: "Gồm cả đơn còn thiếu" },
-                        { label: "Nền tảng giữ lại", value: money(summary.platformRevenue), icon: Percent, color: "#F8B486", sub: "Sau chia giáo viên" },
-                        { label: "Đã ghi nhận GV", value: money(summary.teacherRevenue), icon: Wallet, color: "#94A3B8", sub: "Ví giáo viên" },
-                        { label: "Giảm giá", value: money(summary.discountTotal), icon: Tag, color: "#FFCCAA", sub: "Từ coupon/ưu đãi" },
+                        { label: "Tiền đã nhận", value: money(receivedRevenue), icon: DollarSign, color: "#F8B486", sub: "Dòng tiền vào" },
+                        { label: "Nền tảng giữ lại", value: money(platformRevenue), icon: Percent, color: "#F8B486", sub: `${platformShare}% doanh thu` },
+                        { label: "Đã ghi nhận GV", value: money(teacherRevenue), icon: Wallet, color: "#94A3B8", sub: `${teacherShare}% doanh thu` },
+                        { label: "Giảm giá", value: money(discountTotal), icon: Tag, color: "#FFCCAA", sub: "Coupon/ưu đãi" },
                       ].map(({ label, value, icon: Icon, color, sub }) => (
-                        <div key={label} className="bg-card border border-border p-5 shadow-sm">
-                          <div className="w-10 h-10 rounded flex items-center justify-center mb-3" style={{ background: `${color}18` }}>
+                        <div key={label} className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                          <div className="mb-4 flex items-center justify-between">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: `${color}18` }}>
                             <Icon className="w-5 h-5" style={{ color }} />
+                            </div>
                           </div>
                           <p className="text-xl font-extrabold">{value}</p>
-                          <p className="text-xs font-bold mt-1">{label}</p>
-                          <p className="text-[10px]" style={{ color }}>{sub}</p>
+                          <p className="mt-1 text-xs font-bold">{label}</p>
+                          <p className="mt-1 text-[10px] font-bold" style={{ color }}>{sub}</p>
                         </div>
                       ))}
                     </div>
 
-                    <div className="grid lg:grid-cols-3 gap-6">
-                      <div className="bg-card border border-border p-6 shadow-sm">
+                    <div className="grid gap-6 lg:grid-cols-3">
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <h3 className="font-bold mb-4 flex items-center gap-2">
                           <Activity className="w-4 h-4 text-[#FFCCAA]" /> Trạng thái thanh toán
                         </h3>
@@ -687,7 +818,7 @@ export default function AdminPage() {
                             { label: "Chuyển thừa", count: refunds.filter((r: any) => r.status !== "PAID").length, amount: summary.overpaidAmount, color: "#94A3B8" },
                             { label: "Thất bại", count: summary.failedOrders, amount: summary.failedAmount, color: "#F8B486" },
                           ].map((row) => (
-                            <div key={row.label} className="p-3 rounded border border-border">
+                            <div key={row.label} className="rounded-lg border border-border bg-background p-3">
                               <div className="flex justify-between items-center">
                                 <span className="text-sm font-semibold">{row.label}</span>
                                 <span className="text-xs font-bold" style={{ color: row.color }}>{row.count || 0} đơn</span>
@@ -698,17 +829,23 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      <div className="lg:col-span-2 bg-card border border-border p-6 shadow-sm">
-                        <h3 className="font-bold mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-[#F8B486]" /> Top khóa học theo doanh thu
-                        </h3>
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm lg:col-span-2">
+                        <div className="mb-4 flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="flex items-center gap-2 font-bold">
+                              <TrendingUp className="w-4 h-4 text-[#F8B486]" /> Top khóa học theo doanh thu
+                            </h3>
+                            <p className="mt-1 text-xs text-foreground-muted">Xếp hạng khóa học tạo doanh thu cao nhất.</p>
+                          </div>
+                          <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-foreground-muted">{topCourses.length} khóa</span>
+                        </div>
                         {topCourses.length === 0 ? (
                           <p className="text-sm py-8 text-center" style={{ color: "#6a6f73" }}>Chưa có doanh thu khóa học</p>
                         ) : (
                           <div className="space-y-3">
                             {topCourses.map((course: any, index: number) => (
-                              <div key={course.id} className="flex items-center gap-3">
-                                <span className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold bg-[#FFCCAA]/10 text-[#FFCCAA]">{index + 1}</span>
+                              <div key={course.id} className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">{index + 1}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-bold truncate">{course.title}</p>
                                   <p className="text-xs" style={{ color: "#6a6f73" }}>
@@ -723,8 +860,8 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="grid lg:grid-cols-2 gap-6">
-                      <div className="bg-card border border-border p-6 shadow-sm">
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <h3 className="font-bold mb-4 flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-[#F8B486]" /> Đơn đã thu gần đây
                         </h3>
@@ -732,7 +869,7 @@ export default function AdminPage() {
                           {recentOrders.length === 0 ? (
                             <p className="text-sm py-6 text-center" style={{ color: "#6a6f73" }}>Chưa có đơn đã thanh toán</p>
                           ) : recentOrders.map((order: any) => (
-                            <div key={order.id} className="p-3 rounded border border-border">
+                            <div key={order.id} className="rounded-lg border border-border bg-background p-3">
                               <div className="flex justify-between gap-3">
                                 <div className="min-w-0">
                                   <p className="text-sm font-bold">#{order.id?.substring(0, 8)} · {order.user?.username || "Khách hàng"}</p>
@@ -753,7 +890,7 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      <div className="bg-card border border-border p-6 shadow-sm">
+                      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                         <h3 className="font-bold mb-4 flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-[#FFCCAA]" /> Cần đối soát
                         </h3>
@@ -763,7 +900,7 @@ export default function AdminPage() {
                           ) : paymentIssues.map((event: any) => {
                             const payload = event.payload || {};
                             return (
-                              <div key={event.id} className="p-3 rounded border border-[#FFCCAA]/30 bg-[#FFCCAA]/5">
+                              <div key={event.id} className="rounded-lg border border-[#FFCCAA]/30 bg-[#FFCCAA]/5 p-3">
                                 <div className="flex justify-between gap-3">
                                   <div className="min-w-0">
                                     <p className="text-sm font-bold text-[#FFCCAA]">{event.error || "Webhook cần kiểm tra"}</p>
@@ -783,16 +920,22 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="bg-card border border-border p-6 shadow-sm">
-                      <h3 className="font-bold mb-4 flex items-center gap-2">
-                        <BanknoteIcon className="w-4 h-4 text-[#94A3B8]" /> Yêu cầu hoàn tiền chuyển dư
-                      </h3>
+                    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h3 className="flex items-center gap-2 font-bold">
+                            <BanknoteIcon className="w-4 h-4 text-[#94A3B8]" /> Yêu cầu hoàn tiền chuyển dư
+                          </h3>
+                          <p className="mt-1 text-xs text-foreground-muted">Theo dõi các giao dịch học viên/phụ huynh chuyển thừa.</p>
+                        </div>
+                        <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-foreground-muted">{refunds.length} yêu cầu</span>
+                      </div>
                       {refunds.length === 0 ? (
                         <p className="text-sm py-6 text-center" style={{ color: "#6a6f73" }}>Chưa có yêu cầu hoàn tiền</p>
                       ) : (
                         <div className="grid md:grid-cols-2 gap-4">
                           {refunds.map((refund: any) => (
-                            <div key={refund.id} className="p-4 rounded border border-border flex gap-4">
+                            <div key={refund.id} className="flex gap-4 rounded-lg border border-border bg-background p-4">
                               {refund.refundQrUrl && (
                                 <img src={refund.refundQrUrl} alt="QR hoàn tiền" className="w-28 h-28 object-contain bg-white rounded" />
                               )}
@@ -829,7 +972,7 @@ export default function AdminPage() {
               {tab === "users" && (
                 <div className="bg-card border border-border shadow-sm overflow-hidden">
                   <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" style={{ borderBottom: "1px solid var(--border)" }}>
-                    <h2 className="font-bold">Quản lý người dùng <span className="text-xs font-normal" style={{ color: "#6a6f73" }}>({users.length} người)</span></h2>
+                    <h2 className="font-bold">Quản lý người dùng <span className="text-xs font-normal" style={{ color: "#6a6f73" }}>({filteredUsers.length} người)</span></h2>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setShowCreateTeacher(true)}
@@ -851,7 +994,7 @@ export default function AdminPage() {
                         ))}
                       </tr></thead>
                       <tbody>
-                        {filteredUsers.map(u => (
+                        {pagedUsers.items.map(u => (
                           <tr key={u.id} className="transition-colors hover:bg-[var(--muted)]" style={{ borderBottom: "1px solid var(--border)" }}>
                             <td className="px-4 py-3.5 font-semibold">{u.firstName || u.username}</td>
                             <td className="px-4 py-3.5" style={{ color: "#6a6f73" }}>{u.email}</td>
@@ -874,6 +1017,7 @@ export default function AdminPage() {
                       </tbody>
                     </table>
                   </div>
+                  <PaginationControls pageKey="users" page={pagedUsers.page} totalPages={pagedUsers.totalPages} totalItems={filteredUsers.length} />
                 </div>
               )}
 
@@ -891,7 +1035,7 @@ export default function AdminPage() {
                         ))}
                       </tr></thead>
                       <tbody>
-                        {courses.map(c => (
+                        {pagedCourses.items.map(c => (
                           <tr key={c.id} className="transition-colors hover:bg-[var(--muted)]" style={{ borderBottom: "1px solid var(--border)" }}>
                             <td className="px-4 py-3.5 font-semibold max-w-[200px] truncate">{c.title}</td>
                             <td className="px-4 py-3.5" style={{ color: "#6a6f73" }}>{c.author?.username || "—"}</td>
@@ -908,6 +1052,7 @@ export default function AdminPage() {
                       </tbody>
                     </table>
                   </div>
+                  <PaginationControls pageKey="courses" page={pagedCourses.page} totalPages={pagedCourses.totalPages} totalItems={courses.length} />
                 </div>
               )}
 
@@ -927,7 +1072,7 @@ export default function AdminPage() {
                       <tbody>
                         {orders.length === 0 ? (
                           <tr><td colSpan={5} className="px-4 py-8 text-center text-sm" style={{ color: "#6a6f73" }}>Chưa có đơn hàng nào</td></tr>
-                        ) : orders.map(o => {
+                        ) : pagedOrders.items.map(o => {
                           const st = statusIcons[o.status] || statusIcons.pending;
                           return (
                             <tr key={o.id} className="transition-colors hover:bg-[var(--muted)]" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -942,6 +1087,7 @@ export default function AdminPage() {
                       </tbody>
                     </table>
                   </div>
+                  <PaginationControls pageKey="orders" page={pagedOrders.page} totalPages={pagedOrders.totalPages} totalItems={orders.length} />
                 </div>
               )}
 
@@ -959,7 +1105,7 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {coupons.map(c => {
+                      {pagedCoupons.items.map(c => {
                         const st = statusIcons[c.isActive ? "active" : "expired"] || statusIcons.active;
                         return (
                           <div key={c.id} className="card-base card-hover">
@@ -978,6 +1124,7 @@ export default function AdminPage() {
                       })}
                     </div>
                   )}
+                  <PaginationControls pageKey="coupons" page={pagedCoupons.page} totalPages={pagedCoupons.totalPages} totalItems={coupons.length} />
                 </div>
               )}
 
@@ -997,7 +1144,7 @@ export default function AdminPage() {
                       <tbody>
                         {payouts.length === 0 ? (
                           <tr><td colSpan={8} className="px-4 py-8 text-center text-sm" style={{ color: "#6a6f73" }}>Chưa có yêu cầu rút tiền nào</td></tr>
-                        ) : payouts.map((p: any) => {
+                        ) : pagedPayouts.items.map((p: any) => {
                           const bank = p.bankDetails || {};
                           const statusColors: Record<string, string> = { PENDING: "#FFCCAA", APPROVED: "#F8B486", REJECTED: "#F8B486", CANCELLED: "#6b7280" };
                           const statusLabels: Record<string, string> = { PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối", CANCELLED: "Đã hủy" };
@@ -1031,6 +1178,7 @@ export default function AdminPage() {
                       </tbody>
                     </table>
                   </div>
+                  <PaginationControls pageKey="payouts" page={pagedPayouts.page} totalPages={pagedPayouts.totalPages} totalItems={payouts.length} />
                 </div>
               )}
               {/* QUEUES */}

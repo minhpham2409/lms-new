@@ -6,6 +6,20 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth/auth-state";
 import { Logo } from "@/components/ui/logo";
+import {
+  Bell,
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Moon,
+  Search,
+  Settings,
+  ShoppingCart,
+  Sun,
+  User,
+  X,
+} from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
@@ -56,7 +70,11 @@ export function Navbar() {
   useEffect(() => { fetchCounts(); const i = setInterval(fetchCounts, 15000); return () => clearInterval(i); }, [fetchCounts]);
   useEffect(() => { fetchCounts(); }, [pathname, fetchCounts]);
 
-  const handleLogout = () => { logout(); setUserMenuOpen(false); router.push("/"); };
+  const handleLogout = async () => {
+    setUserMenuOpen(false);
+    await logout();
+    router.push("/");
+  };
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); if (searchQuery.trim()) router.push(`/courses?search=${encodeURIComponent(searchQuery)}`); };
 
   const userInitial = user?.firstName?.charAt(0) || user?.username?.charAt(0)?.toUpperCase() || "U";
@@ -80,13 +98,13 @@ export function Navbar() {
         borderBottom: scrolled ? `1px solid var(--border)` : "1px solid transparent",
       }}
     >
-      <nav className="max-w-[1200px] mx-auto px-6 sm:px-10">
-        <div className="flex items-center justify-between h-[64px] gap-6">
+      <nav className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-[64px] gap-3">
           {/* Logo */}
           <Link href="/" className="shrink-0"><Logo size="lg" /></Link>
 
           {/* Desktop nav */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden xl:flex items-center gap-1">
             {navLinks.map((l) => (
               <Link key={l.href} href={l.href}
                 className="px-3 py-2 text-sm font-semibold rounded-lg transition-colors"
@@ -97,67 +115,44 @@ export function Navbar() {
           </div>
 
           {/* Search */}
-          <div className="hidden lg:flex flex-1 max-w-md mx-4">
+          <div className="hidden lg:flex flex-1 max-w-sm xl:max-w-md mx-2">
             <form onSubmit={handleSearch} className="w-full">
-              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm khóa học..."
-                className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-all"
-                style={{ background: "var(--muted)", border: `1.5px solid var(--border)`, color: "var(--foreground)" }}
-                onFocus={e => { e.target.style.borderColor = "var(--primary)"; }}
-                onBlur={e => { e.target.style.borderColor = "var(--border)"; }}
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--muted-foreground)" }} />
+                <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm"
+                  className="w-full rounded-lg py-2.5 pl-9 pr-3 text-sm outline-none transition-all"
+                  style={{ background: "var(--muted)", border: `1.5px solid var(--border)`, color: "var(--foreground)" }}
+                  onFocus={e => { e.target.style.borderColor = "var(--primary)"; }}
+                  onBlur={e => { e.target.style.borderColor = "var(--border)"; }}
+                />
+              </div>
             </form>
           </div>
 
           {/* Right */}
           <div className="hidden lg:flex items-center gap-2 shrink-0">
-            {/* Theme toggle — text */}
             <button onClick={toggle}
-              className="px-3 py-2 rounded-lg text-xs font-bold transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors"
               style={{ color: "var(--muted-foreground)" }}>
-              {theme === "dark" ? "☀ Sáng" : "☾ Tối"}
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
             {!loading && isLoggedIn && user ? (
-              <>
-                {/* Notifications — text badge */}
-                <Link href="/notifications"
-                  className="relative px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-                  style={{ color: "var(--muted-foreground)" }}>
-                  Thông báo
-                  {notifCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center"
-                      style={{ background: "var(--destructive)", color: "#fff" }}>
-                      {notifCount > 99 ? "99+" : notifCount}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Cart — text */}
-                {user.role === "student" && (
-                  <Link href="/cart"
-                    className="relative px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-                    style={{ color: "var(--muted-foreground)" }}>
-                    Giỏ hàng
-                    {cartCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center"
-                        style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
-                        {cartCount}
-                      </span>
-                    )}
-                  </Link>
-                )}
-
-                {/* User menu */}
+              <div className="flex items-center gap-1">
                 <div className="relative ml-1">
                   <button onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); }}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
+                    className="relative flex max-w-[180px] items-center gap-2 rounded-lg px-2 py-1.5 transition-colors"
                     style={{ color: "var(--foreground)" }}>
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                       style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
                       {userInitial}
                     </div>
-                    <span className="text-sm font-semibold">{displayName.split(" ")[0]}</span>
+                    {(notifCount > 0 || (user.role === "student" && cartCount > 0)) && (
+                      <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full ring-2 ring-[var(--background)]" style={{ background: "var(--destructive)" }} />
+                    )}
+                    <span className="hidden max-w-[90px] truncate text-sm font-semibold xl:block">{displayName.split(" ")[0]}</span>
+                    <ChevronDown className="hidden h-4 w-4 xl:block" style={{ color: "var(--muted-foreground)" }} />
                   </button>
 
                   {userMenuOpen && (
@@ -169,16 +164,26 @@ export function Navbar() {
                         <p className="text-xs" style={{ color: "var(--primary)" }}>{roleLabel}</p>
                       </div>
                       <div className="py-1">
-                        <Link href={dashboardLink} onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]">Dashboard</Link>
-                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]">Hồ sơ</Link>
-                        <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]">Cài đặt</Link>
+                        <Link href={dashboardLink} onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>
+                        <Link href="/notifications" onClick={() => setUserMenuOpen(false)} className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]">
+                          <span className="flex items-center gap-2"><Bell className="h-4 w-4" /> Thông báo</span>
+                          {notifCount > 0 && <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "var(--destructive)", color: "#fff" }}>{notifCount > 99 ? "99+" : notifCount}</span>}
+                        </Link>
+                        {user.role === "student" && (
+                          <Link href="/cart" onClick={() => setUserMenuOpen(false)} className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]">
+                            <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Giỏ hàng</span>
+                            {cartCount > 0 && <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>{cartCount}</span>}
+                          </Link>
+                        )}
+                        <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]"><User className="h-4 w-4" /> Hồ sơ</Link>
+                        <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]"><Settings className="h-4 w-4" /> Cài đặt</Link>
                         <div className="h-px mx-3" style={{ background: "var(--border)" }} />
-                        <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]" style={{ color: "var(--destructive)" }}>Đăng xuất</button>
+                        <button onClick={handleLogout} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium transition-colors hover:bg-[var(--muted)]" style={{ color: "var(--destructive)" }}><LogOut className="h-4 w-4" /> Đăng xuất</button>
                       </div>
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             ) : !loading ? (
               <div className="flex items-center gap-2">
                 <Link href="/auth/login" className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors" style={{ color: "var(--primary)" }}>Đăng nhập</Link>
@@ -191,8 +196,8 @@ export function Navbar() {
           </div>
 
           {/* Mobile toggle */}
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden text-sm font-bold" style={{ color: "var(--foreground)" }}>
-            {mobileOpen ? "✕" : "☰"}
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg" style={{ color: "var(--foreground)" }}>
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
@@ -215,6 +220,22 @@ export function Navbar() {
             <button onClick={toggle} className="block px-4 py-2.5 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>
               {theme === "dark" ? "☀ Chế độ sáng" : "☾ Chế độ tối"}
             </button>
+            {!loading && isLoggedIn && user && (
+              <div className="mt-2 space-y-1">
+                <Link href="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                  <span>Thông báo</span>
+                  {notifCount > 0 && <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "var(--destructive)", color: "#fff" }}>{notifCount > 99 ? "99+" : notifCount}</span>}
+                </Link>
+                {user.role === "student" && (
+                  <Link href="/cart" onClick={() => setMobileOpen(false)} className="flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                    <span>Giỏ hàng</span>
+                    {cartCount > 0 && <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>{cartCount}</span>}
+                  </Link>
+                )}
+                <Link href="/profile" onClick={() => setMobileOpen(false)} className="block rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>Hồ sơ</Link>
+                <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="block w-full rounded-lg px-4 py-2.5 text-left text-sm font-semibold" style={{ color: "var(--destructive)" }}>Đăng xuất</button>
+              </div>
+            )}
             {!loading && !isLoggedIn && (
               <div className="flex gap-2 mt-3 px-4">
                 <Link href="/auth/login" className="flex-1 text-center py-2.5 text-sm font-bold rounded-lg" style={{ border: `1.5px solid var(--primary)`, color: "var(--primary)" }}>Đăng nhập</Link>

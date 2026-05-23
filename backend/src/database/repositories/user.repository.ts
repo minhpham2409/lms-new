@@ -134,6 +134,13 @@ export class UserRepository extends BaseRepository<User> {
     });
   }
 
+  async findAdmins() {
+    return this.model.findMany({
+      where: { role: 'admin', isActive: true },
+      select: { id: true, email: true, username: true },
+    });
+  }
+
   async findPublicTeacherById(id: string) {
     return this.model.findUnique({
       where: { id, role: 'teacher' },

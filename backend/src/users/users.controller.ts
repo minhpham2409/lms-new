@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Put,
   Body,
   Param,
@@ -57,6 +58,19 @@ export class UsersController {
   @Get('public/teachers')
   getPublicTeachers() {
     return this.usersService.findPublicTeachers();
+  }
+
+  /** POST /users/public/teacher-applications */
+  @Post('public/teacher-applications')
+  submitTeacherApplication(@Body() body: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    expertise?: string;
+    experience?: string;
+    message?: string;
+  }) {
+    return this.usersService.submitTeacherApplication(body);
   }
 
   /** GET /users/public/teachers/:id */

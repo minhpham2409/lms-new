@@ -104,9 +104,9 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Refresh failed — clear state and redirect to login
+        // Refresh failed. Keep navigation under the current page's control;
+        // a background request must not unexpectedly kick the user to login.
         setAccessToken(null);
-        window.location.href = '/auth/login';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

@@ -110,7 +110,7 @@ export function ManagementShell({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { logout(); router.push('/auth/login'); }}
+            onClick={async () => { await logout(); router.push('/auth/login'); }}
           >
             Sign out
           </Button>

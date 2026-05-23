@@ -4,6 +4,7 @@ import { ProgressService } from './progress.service';
 describe('ProgressService', () => {
   const progressRepo = {
     findLessonWithDetails: jest.fn(),
+    findLessonWithAssignments: jest.fn(),
     findActiveEnrollment: jest.fn(),
     upsertVideoProgressMonotonic: jest.fn(),
     countLessonsByCourse: jest.fn(),
@@ -43,6 +44,10 @@ describe('ProgressService', () => {
       section: { courseId: 'course-1' },
     });
     progressRepo.findActiveEnrollment.mockResolvedValue({ id: 'enrollment-1' });
+    progressRepo.findLessonWithAssignments.mockResolvedValue({
+      id: 'lesson-1',
+      assignments: [],
+    });
     progressRepo.upsertVideoProgressMonotonic.mockResolvedValue({
       completed: false,
       watchedPercentage: 30,

@@ -257,7 +257,7 @@ export function Step3Lessons({ sections, setSections, token }: any) {
                               <div className="relative w-full h-20 rounded-lg overflow-hidden border border-white/10">
                                 <Image
                                   src={les.assignmentImageUrl.startsWith("http") ? les.assignmentImageUrl : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace("/api/v1", "")}${les.assignmentImageUrl}`}
-                                  alt="Đề bài" fill className="object-cover"
+                                  alt="Đề bài" fill unoptimized className="object-cover"
                                 />
                               </div>
                               <button type="button" onClick={() => updateLesson(sec.id, les.id, { assignmentImageUrl: "" })}

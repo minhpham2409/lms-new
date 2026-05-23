@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { WalletTransactionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -11,6 +12,10 @@ export class TaxReportsService {
   private readonly logger = new Logger(TaxReportsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private getCourseIdFromTransaction(idempotencyKey?: string | null) {
+    return idempotencyKey?.split(':')?.[2] || null;
+  }
 
   /**
    * Get revenue breakdown by course for a specific month.
@@ -25,36 +30,44 @@ export class TaxReportsService {
       select: { id: true, firstName: true, lastName: true },
     });
 
-    // Get all paid order items grouped by course for this month
-    const revenueData = await this.prisma.orderItem.groupBy({
-      by: ['courseId'],
+    const earningTransactions = await this.prisma.walletTransaction.findMany({
       where: {
-        course: { authorId: teacherId },
-        order: {
-          status: 'paid',
-          createdAt: { gte: startDate, lt: endDate },
-        },
+        type: WalletTransactionType.EARNING,
+        wallet: { userId: teacherId },
+        createdAt: { gte: startDate, lt: endDate },
       },
-      _sum: { price: true },
-      _count: { id: true },
+      select: {
+        amount: true,
+        idempotencyKey: true,
+      },
     });
 
     // Fetch course names for matched courseIds
-    const courseIds = revenueData.map((r) => r.courseId);
+    const revenueByCourse = new Map<string, { revenue: number; studentCount: number }>();
+    for (const transaction of earningTransactions) {
+      const courseId = this.getCourseIdFromTransaction(transaction.idempotencyKey);
+      if (!courseId) continue;
+      const current = revenueByCourse.get(courseId) || { revenue: 0, studentCount: 0 };
+      current.revenue += Number(transaction.amount || 0);
+      current.studentCount += 1;
+      revenueByCourse.set(courseId, current);
+    }
+
+    const courseIds = Array.from(revenueByCourse.keys());
     const courses = await this.prisma.course.findMany({
       where: { id: { in: courseIds } },
       select: { id: true, title: true, price: true },
     });
     const courseMap = new Map(courses.map((c) => [c.id, c]));
 
-    const courseReports = revenueData.map((r, idx) => {
-      const course = courseMap.get(r.courseId);
+    const courseReports = Array.from(revenueByCourse.entries()).map(([courseId, data]) => {
+      const course = courseMap.get(courseId);
       return {
-        courseId: r.courseId,
+        courseId,
         courseName: course?.title ?? 'Khóa học đã xóa',
         coursePrice: Number(course?.price ?? 0),
-        studentCount: r._count.id,
-        revenue: Number(r._sum.price ?? 0),
+        studentCount: data.studentCount,
+        revenue: data.revenue,
       };
     });
 
@@ -93,20 +106,31 @@ export class TaxReportsService {
       select: { id: true, firstName: true, lastName: true },
     });
 
-    // Fetch all paid order items in the quarter for this teacher's courses
-    const orderItems = await this.prisma.orderItem.findMany({
+    const earningTransactions = await this.prisma.walletTransaction.findMany({
       where: {
-        course: { authorId: teacherId },
-        order: {
-          status: 'paid',
-          createdAt: { gte: startDate, lt: endDate },
-        },
+        type: WalletTransactionType.EARNING,
+        wallet: { userId: teacherId },
+        createdAt: { gte: startDate, lt: endDate },
       },
-      include: {
-        order: { select: { createdAt: true } },
-        course: { select: { id: true, title: true, price: true } },
+      select: {
+        amount: true,
+        createdAt: true,
+        idempotencyKey: true,
       },
     });
+
+    const courseIds = Array.from(
+      new Set(
+        earningTransactions
+          .map((transaction) => this.getCourseIdFromTransaction(transaction.idempotencyKey))
+          .filter(Boolean) as string[],
+      ),
+    );
+    const courses = await this.prisma.course.findMany({
+      where: { id: { in: courseIds } },
+      select: { id: true, title: true, price: true },
+    });
+    const courseMap = new Map(courses.map((course) => [course.id, course]));
 
     // Build maps: courseId → { month → { revenue, count } }
     const courseMonthlyMap = new Map<
@@ -114,20 +138,23 @@ export class TaxReportsService {
       { title: string; price: number; data: Record<number, { revenue: number; count: number }> }
     >();
 
-    for (const item of orderItems) {
-      const itemMonth = item.order.createdAt.getMonth() + 1;
-      if (!courseMonthlyMap.has(item.courseId)) {
-        courseMonthlyMap.set(item.courseId, {
-          title: item.course.title,
-          price: Number(item.course.price),
+    for (const transaction of earningTransactions) {
+      const courseId = this.getCourseIdFromTransaction(transaction.idempotencyKey);
+      if (!courseId) continue;
+      const course = courseMap.get(courseId);
+      const itemMonth = transaction.createdAt.getMonth() + 1;
+      if (!courseMonthlyMap.has(courseId)) {
+        courseMonthlyMap.set(courseId, {
+          title: course?.title ?? 'Khóa học đã xóa',
+          price: Number(course?.price ?? 0),
           data: {},
         });
       }
-      const entry = courseMonthlyMap.get(item.courseId)!;
+      const entry = courseMonthlyMap.get(courseId)!;
       if (!entry.data[itemMonth]) {
         entry.data[itemMonth] = { revenue: 0, count: 0 };
       }
-      entry.data[itemMonth].revenue += Number(item.price);
+      entry.data[itemMonth].revenue += Number(transaction.amount || 0);
       entry.data[itemMonth].count += 1;
     }
 
@@ -218,41 +245,51 @@ export class TaxReportsService {
       return { courseName: '', coursePrice: 0, students: [] };
     }
 
-    // Find students who bought this course in this month
-    const orderItems = await this.prisma.orderItem.findMany({
+    const earningTransactions = await this.prisma.walletTransaction.findMany({
       where: {
-        courseId,
-        order: {
-          status: 'paid',
-          createdAt: { gte: startDate, lt: endDate },
-        },
+        type: WalletTransactionType.EARNING,
+        wallet: { userId: teacherId },
+        createdAt: { gte: startDate, lt: endDate },
+        idempotencyKey: { contains: `:${courseId}:` },
       },
+      select: {
+        amount: true,
+        createdAt: true,
+        referenceId: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const orderIds = earningTransactions
+      .map((transaction) => transaction.referenceId)
+      .filter(Boolean) as string[];
+    const orders = await this.prisma.order.findMany({
+      where: { id: { in: orderIds } },
       include: {
-        order: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                username: true,
-              },
-            },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            username: true,
           },
         },
       },
-      orderBy: { order: { createdAt: 'asc' } },
     });
+    const orderMap = new Map(orders.map((order) => [order.id, order]));
 
-    const students = orderItems.map((oi, index) => {
-      const user = oi.order.user;
+    const students = earningTransactions.map((transaction, index) => {
+      const order = transaction.referenceId ? orderMap.get(transaction.referenceId) : null;
+      const user = order?.user;
       return {
         stt: index + 1,
-        fullName: [user.lastName, user.firstName].filter(Boolean).join(' ') || user.username,
-        email: user.email,
-        purchaseDate: oi.order.createdAt,
-        amountPaid: Number(oi.price),
+        fullName: user
+          ? [user.lastName, user.firstName].filter(Boolean).join(' ') || user.username
+          : 'Học sinh',
+        email: user?.email ?? '',
+        purchaseDate: transaction.createdAt,
+        amountPaid: Number(transaction.amount || 0),
       };
     });
 

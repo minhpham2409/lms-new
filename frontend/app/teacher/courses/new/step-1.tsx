@@ -1,8 +1,11 @@
-import { BookOpen } from "lucide-react";
+import { BookOpen, BadgeDollarSign, ReceiptText, TrendingUp } from "lucide-react";
 
 export function Step1BasicInfo({ title, setTitle, description, setDescription, category, setCategory, level, setLevel, price, setPrice, allowPlatformPromotions, setAllowPlatformPromotions }: any) {
   const categories = ["Toán", "Lý", "Hóa", "Anh văn", "Ngữ văn", "Tin học", "Sinh học", "Lịch sử", "Ngoại ngữ khác"];
   const levels = ["Lớp 6", "Lớp 7", "Lớp 8", "Lớp 9", "Lớp 10", "Lớp 11", "Lớp 12", "Tất cả"];
+  const numericPrice = Math.max(0, Number(price) || 0);
+  const platformFee = Math.round(numericPrice * 0.2);
+  const teacherRevenue = numericPrice - platformFee;
 
   return (
     <div className="card-base animate-scale-in">
@@ -36,29 +39,29 @@ export function Step1BasicInfo({ title, setTitle, description, setDescription, c
           <div>
             <label className="block text-sm font-semibold mb-1.5">Giá tiền (VNĐ)</label>
             <input type="number" value={price} onChange={e => setPrice(e.target.value)} className="input-base" placeholder="0 = Miễn phí" />
-            {Number(price) > 0 && (
-              <div className="mt-3 p-4 rounded-lg border" style={{ background: "var(--muted)", borderColor: "var(--border)" }}>
-                <p className="text-xs font-bold mb-2.5 flex items-center gap-1.5" style={{ color: "var(--foreground-muted)" }}>
-                  💰 Chi tiết doanh thu dự kiến
-                </p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span style={{ color: "var(--foreground-muted)" }}>Giá bán cho học sinh</span>
-                    <span className="font-bold">{Number(price).toLocaleString("vi-VN")} ₫</span>
+            {numericPrice > 0 && (
+              <div className="mt-3 overflow-hidden rounded-lg border" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+                <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: "rgba(248,180,134,0.12)", color: "#F8B486" }}>
+                    <ReceiptText className="h-4 w-4" />
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span style={{ color: "#F8B486" }}>Phí nền tảng (20%)</span>
-                    <span className="font-semibold" style={{ color: "#F8B486" }}>
-                      −{Math.round(Number(price) * 0.2).toLocaleString("vi-VN")} ₫
-                    </span>
+                  <div>
+                    <p className="text-sm font-bold">Doanh thu dự kiến</p>
+                    <p className="text-xs" style={{ color: "var(--foreground-muted)" }}>Phí nền tảng cố định 20%</p>
                   </div>
-                  <div className="border-t pt-1.5 mt-1.5" style={{ borderColor: "var(--border)" }}>
-                    <div className="flex justify-between text-sm">
-                      <span className="font-bold" style={{ color: "#F8B486" }}>✅ Bạn nhận được</span>
-                      <span className="font-extrabold text-base" style={{ color: "#F8B486" }}>
-                        {Math.round(Number(price) * 0.8).toLocaleString("vi-VN")} ₫
-                      </span>
-                    </div>
+                </div>
+                <div className="space-y-3 p-4">
+                  <div className="flex items-center justify-between gap-4 text-sm">
+                    <span className="flex items-center gap-2" style={{ color: "var(--foreground-muted)" }}><BadgeDollarSign className="h-4 w-4" /> Giá bán</span>
+                    <span className="font-bold">{numericPrice.toLocaleString("vi-VN")} đ</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 text-sm">
+                    <span style={{ color: "var(--foreground-muted)" }}>Phí nền tảng</span>
+                    <span className="font-bold text-red-400">-{platformFee.toLocaleString("vi-VN")} đ</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 rounded-md px-3 py-2" style={{ background: "rgba(248,180,134,0.10)" }}>
+                    <span className="flex items-center gap-2 text-sm font-bold" style={{ color: "#F8B486" }}><TrendingUp className="h-4 w-4" /> Thực nhận</span>
+                    <span className="text-lg font-extrabold" style={{ color: "#F8B486" }}>{teacherRevenue.toLocaleString("vi-VN")} đ</span>
                   </div>
                 </div>
               </div>
