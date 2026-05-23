@@ -68,6 +68,11 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lms-backend:latest
     # No container_name — allows replicas to run with unique names
     expose:
       - "4000"
