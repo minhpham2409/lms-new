@@ -1,0 +1,92 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Đặt vấn đề}
+\label{sec:DatVanDe}
+
+Trong kỷ nguyên số hóa và sự phát triển mạnh mẽ của cuộc Cách mạng Công nghiệp 4.0, giáo dục trực tuyến (EdTech) đã trở thành một xu thế tất yếu và là một thành phần không thể thiếu của hệ thống giáo dục toàn cầu. Việc chuyển đổi từ mô hình lớp học truyền thống sang môi trường học tập số hóa không chỉ giúp xóa bỏ giới hạn về khoảng cách địa lý mà còn tối ưu hóa thời gian và chi phí cho cả người dạy lẫn người học. Theo các báo cáo thống kê quốc tế, quy mô thị trường hệ thống quản lý học tập (Learning Management System - LMS) toàn cầu đang tăng trưởng với tốc độ phi mã và dự kiến sẽ tiếp tục đạt mốc hàng chục tỷ đô-la trong những năm tới.
+
+Tại Việt Nam, nhu cầu tiếp cận tri thức chất lượng cao thông qua các khóa học trực tuyến ngày càng trở nên cấp thiết. Tuy nhiên, qua khảo sát thực tế, phần lớn các hệ thống LMS hiện nay vẫn đang đối mặt với những thách thức và hạn chế rất lớn:
+\begin{itemize}
+    \item \textbf{Thiếu sự tương tác và động lực học tập (Gamification):} Nhiều nền tảng học tập trực tuyến hiện tại chỉ đơn thuần là nơi lưu trữ tài liệu tĩnh và video bài giảng, dẫn đến tỷ lệ học viên bỏ dở khóa học giữa chừng rất cao do thiếu đi các cơ chế giữ chân hiệu quả (như chuỗi ngày học tập liên tục - streak, huy hiệu thành tích, hay bảng xếp hạng vinh danh).
+    \item \textbf{Khó khăn trong biên soạn học liệu cho giảng viên:} Để tạo ra các bộ câu hỏi trắc nghiệm (Quiz) chất lượng nhằm đánh giá học viên, giảng viên phải mất rất nhiều thời gian biên soạn thủ công từ các tài liệu bài giảng có sẵn (PDF, Word, Powerpoint), làm giảm hiệu suất giảng dạy và hạn chế khả năng đổi mới học liệu.
+    \item \textbf{Cơ chế thanh toán thủ công và quản lý tài chính chưa tối ưu:} Quy trình đối soát học phí tại nhiều đơn vị vẫn dựa trên việc kiểm tra thủ công lịch sử giao dịch ngân hàng, dễ xảy ra sai sót khi học viên chuyển khoản sai cú pháp, thừa hoặc thiếu tiền học phí. Đồng thời, cơ chế chia sẻ doanh thu và rút tiền của giảng viên chưa được tự động hóa minh bạch.
+    \item \textbf{Vai trò giám sát của phụ huynh bị bỏ ngỏ:} Phụ huynh đóng vai trò quan trọng trong việc đầu tư tài chính và định hướng học tập cho con cái, nhưng hầu hết các nền tảng học trực tuyến hiện tại đều chưa thiết kế một giao diện chuyên biệt cho phép phụ huynh trực tiếp theo dõi tiến độ, điểm số thực tế cũng như thanh toán học phí thay cho con một cách an toàn và bảo mật.
+\end{itemize}
+
+Xuất phát từ những đòi hỏi thực tiễn đó, đề tài \textbf{``Xây dựng hệ thống quản lý học tập trực tuyến toàn diện tích hợp trí tuệ nhân tạo (LMS)''} với tên gọi ứng dụng \textbf{HọcLộTrình (LumiLearn LMS)} được lựa chọn thực hiện. Đề tài tập trung nghiên cứu và phát triển một nền tảng quản lý học tập cấp doanh nghiệp (Enterprise-Grade) giải quyết triệt để các hạn chế trên bằng cách ứng dụng công nghệ hiện đại, tự động hóa tài chính và tích hợp trí tuệ nhân tạo thế hệ mới.
+
+\section{Mục tiêu và phạm vi đề tài}
+\label{sec:MucTieuPhamVi}
+
+\subsection{Mục tiêu đề tài}
+\label{subsec:MucTieu}
+
+\textbf{Mục tiêu tổng quát:}
+
+Nghiên cứu, phân tích, thiết kế và xây dựng hoàn chỉnh hệ thống quản lý học tập trực tuyến HọcLộTrình (LumiLearn LMS) có hiệu năng cao, hoạt động ổn định trên môi trường thực tế, tích hợp các công nghệ thông minh nhằm nâng cao trải nghiệm học tập và tối ưu hóa quy trình quản trị.
+
+\textbf{Mục tiêu cụ thể:}
+\begin{itemize}
+    \item \textbf{Đối với phía Học viên:} Xây dựng không gian học tập trực quan và sống động. Tích hợp cơ chế Gamification thông qua streak học tập, hệ thống huy hiệu (Badges) và cuộc đua xếp hạng thành tích nhằm kích thích tinh thần tự học. Cung cấp trình phát video thông minh hỗ trợ luồng truyền tải thích ứng HLS (HTTP Live Streaming) và theo dõi tiến độ xem đơn điệu (monotonic progress). Kích hoạt cơ chế cấp chứng chỉ PDF chuyên nghiệp tự động có mã xác minh duy nhất khi hoàn thành khóa học.
+    \item \textbf{Đối với phía Giảng viên:} Cung cấp bộ công cụ quản lý khóa học đa bước (soạn thảo chương mục, bài giảng, tài liệu đính kèm, bài tập tự luận). Đặc biệt, \textbf{tích hợp Trí tuệ nhân tạo (AI)} thông qua mô hình ngôn ngữ lớn để tự động hóa sinh bộ câu hỏi trắc nghiệm từ học liệu dạng file tải lên. Phát triển phân hệ Ví điện tử giảng viên tự động ghi nhận doanh thu theo cơ chế phân chia nền tảng và hỗ trợ yêu cầu rút tiền (payout) an toàn.
+    \item \textbf{Đối với phía Phụ huynh:} Thiết lập phân hệ giám sát đặc quyền (Parental Dashboard) cho phép liên kết tài khoản an toàn giữa phụ huynh và con cái dưới sự đồng thuận của hai bên. Phụ huynh có thể xem báo cáo chi tiết tiến độ học tập, điểm số, lịch sử thanh toán, thực hiện quét mã thanh toán học phí hộ con hoặc tạo yêu cầu hoàn trả tiền khi chuyển dư.
+    \item \textbf{Đối với phía Quản trị viên (Admin):} Xây dựng trang tổng quan giám sát tài chính và vận hành, kiểm duyệt nội dung khóa học giảng viên gửi lên, phê duyệt các yêu cầu thanh toán/rút tiền/hoàn tiền và kiểm soát các chỉ số an toàn hệ thống.
+\end{itemize}
+
+\subsection{Phạm vi đề tài}
+\label{subsec:PhamVi}
+
+Đề tài tập trung nghiên cứu thiết kế và triển khai cả hai thành phần chính của hệ thống bao gồm:
+\begin{enumerate}
+    \item \textbf{Kiến trúc Backend RESTful API:} Xây dựng trên nền tảng NestJS sử dụng ngôn ngữ TypeScript, kết nối cơ sở dữ liệu quan hệ PostgreSQL thông qua Prisma ORM. Tích hợp dịch vụ hàng đợi Bull Queue & Redis để xử lý các tác vụ nền bất đồng bộ hiệu năng cao.
+    \item \textbf{Kiến trúc Frontend Web Application:} Xây dựng bằng Next.js phiên bản 15 (App Router, React Server Components) giúp tối ưu hóa SEO và tốc độ tải trang, sử dụng Tailwind CSS v4 thiết kế hệ thống giao diện cao cấp thích ứng tự động giao diện sáng/tối (Light/Dark Mode).
+    \item \textbf{Tích hợp dịch vụ bên thứ ba (Third-party Integration):}
+    \begin{itemize}
+        \item Google Generative AI (Gemini 2.5-flash) cho việc bóc tách tài liệu và sinh Quiz có cấu trúc.
+        \item Cổng đối soát tự động SePay kết hợp với VietQR động phục vụ thanh toán tự động thời gian thực.
+        \item Công cụ xử lý media FFmpeg trên máy chủ phục vụ chuyển đổi định dạng HLS.
+    \end{itemize}
+\end{enumerate}
+
+\section{Định hướng giải pháp}
+\label{sec:DinhHuongGiaiPhap}
+
+Để hiện thực hóa các mục tiêu đã đề ra và đảm bảo hệ thống có khả năng mở rộng, bảo mật và đáp ứng lượng lớn người dùng đồng thời, đồ án định hướng áp dụng các giải pháp kỹ thuật tiên tiến sau:
+
+\begin{enumerate}
+    \item \textbf{Kiến trúc hướng sự kiện và xử lý tác vụ nền bất đồng bộ (Event-Driven Architecture):}
+    Nhằm giảm thiểu thời gian phản hồi API và tăng độ tin cậy của luồng xử lý chính, hệ thống áp dụng cơ chế hướng sự kiện thông qua bộ phát sự kiện nội bộ (\texttt{@nestjs/event-emitter}). Các tác vụ có khối lượng tính toán lớn hoặc phụ thuộc vào bên thứ ba như: gửi email thông báo, chuyển đổi luồng phát video HLS bằng FFmpeg, render chứng chỉ PDF học viên, hay ghi nhận ví chia sẻ doanh thu đều được chuyển giao cho hàng đợi nền \textbf{Bull Queue} sử dụng bộ nhớ lưu trữ \textbf{Redis} để xử lý bất đồng bộ.
+    
+    \item \textbf{Tự động hóa tài chính và cơ chế đảm bảo an toàn giao dịch:}
+    Hệ thống tích hợp giải pháp thanh toán tự động qua mã VietQR động đại diện cho hóa đơn. Khi nhận callback webhook từ cổng ngân hàng, backend thực hiện kiểm duyệt chữ ký an toàn dạng băm SHA256 HMAC và cơ chế chống xử lý lặp (\textbf{Idempotency Key Guard}) để ngăn chặn việc ghi nhận giao dịch trùng.
+    
+    Đặc biệt, hệ thống thiết kế thuật toán xử lý thông minh phân luồng số tiền nhận được:
+    \begin{itemize}
+        \item \emph{Đúng số tiền:} Tự động kích hoạt khóa học trong Prisma Transaction.
+        \item \emph{Chuyển thiếu tiền (Underpayment):} Ghi nhận số còn thiếu, tự động tạo mã giao dịch và mã VietQR mới yêu cầu thanh toán nốt số dư.
+        \item \emph{Chuyển dư tiền (Overpayment):} Kích hoạt khóa học bình thường, ghi nhận số dư thừa vào hệ thống và gửi thông báo khẩn cấp tới Phụ huynh để yêu cầu tạo lệnh hoàn tiền về tài khoản ngân hàng thụ hưởng.
+    \end{itemize}
+
+    \item \textbf{Ứng dụng Trí tuệ nhân tạo (AI) sinh bộ câu hỏi có cấu trúc:}
+    Tích hợp thư viện SDK chính thức của Google Generative AI (\texttt{gemini-2.5-flash}) nhằm tối ưu hóa chi phí và tốc độ phản hồi. Giảng viên có thể tải lên các định dạng văn bản đa dạng. Hệ thống tự động phân tích định dạng file bằng bộ phân tích riêng (\texttt{DocumentParserService}) bóc tách cấu trúc XML của tài liệu Office mà không cần các phần mềm trung gian nặng nề. Dữ liệu văn bản thô được kết hợp với prompt chuẩn hóa sư phạm và sơ đồ cấu trúc nghiêm ngặt (\texttt{Structured JSON Schema}) gửi lên Gemini API để cam kết kết quả trả về luôn khớp chính xác định dạng mảng câu hỏi trắc nghiệm tiếng Việt.
+
+    \item \textbf{Hệ thống Video Streaming HLS an toàn:}
+    Chặn đứng việc người dùng tải lậu nội dung giảng dạy bằng việc tích hợp FFmpeg băm cắt video MP4 thành các phân đoạn nhỏ dạng luồng \texttt{.ts} kèm file cấu hình phát \texttt{.m3u8}. Khi học viên truy cập bài giảng, hệ thống sử dụng Signed URL có thời hạn để tải luồng phân đoạn HLS về trình duyệt giúp bảo vệ bản quyền học liệu tối đa.
+\end{enumerate}
+
+\section{Bố cục đồ án}
+\label{sec:BoCucDoAn}
+
+Nội dung đồ án tốt nghiệp được tổ chức thành 6 chương chính với bố cục chi tiết như sau:
+
+\begin{itemize}
+    \item \textbf{CHƯƠNG 1. GIỚI THIỆU ĐỀ TÀI:} Trình bày bối cảnh đặt vấn đề thực tiễn của lĩnh vực EdTech, xác định rõ ràng mục tiêu, phạm vi nghiên cứu phát triển và đề xuất các định hướng giải pháp kỹ thuật cốt lõi áp dụng vào đồ án.
+    \item \textbf{CHƯƠNG 2. KHẢO SÁT VÀ PHÂN TÍCH YÊU CẦU:} Khảo sát thực trạng các phần mềm học trực tuyến hiện có, xác định ưu nhược điểm. Từ đó phân tích tổng quan chức năng hệ thống thông qua các biểu đồ Use Case tổng quát, Use Case phân rã, vẽ biểu đồ hoạt động mô tả chi tiết quy trình nghiệp vụ hệ thống và đặc tả chi tiết các tác nhân chính.
+    \item \textbf{CHƯƠNG 3. NỀN TẢNG LÝ THUYẾT VÀ CÔNG NGHỆ SỬ DỤNG:} Giới thiệu tổng quan về các nền tảng công nghệ, các framework, ngôn ngữ lập trình, hệ quản trị cơ sở dữ liệu và các công nghệ AI nâng cao được áp dụng để lập trình, vận hành và triển khai ứng dụng.
+    \item \textbf{CHƯƠNG 4. PHÂN TÍCH THIẾT KẾ, TRIỂN KHAI VÀ ĐÁNH GIÁ HỆ THỐNG:} Trình bày chi tiết về thiết kế kiến trúc phần mềm, cấu trúc gói dự án, thiết kế cơ sở dữ liệu quan hệ (sơ đồ ERD, thiết kế bảng dữ liệu, ràng buộc toàn vẹn), thiết kế chi tiết lớp, sơ đồ tuần tự (Sequence Diagram), thiết kế giao diện các màn hình của người dùng và các bước triển khai thử nghiệm hệ thống.
+    \item \textbf{CHƯƠNG 5. CÁC GIẢI PHÁP VÀ ĐÓNG GÓP NỔI BẬT:} Tập trung phân tích chuyên sâu các giải pháp kỹ thuật phức tạp được giải quyết thành công trong đồ án như: Tích hợp mô hình AI sinh cấu trúc dữ liệu Quiz, hệ thống tự động thanh toán đa luồng an toàn VietQR, cơ chế bảo vệ phiên đăng nhập JWT Rotation và luồng xử lý video streaming HLS.
+    \item \textbf{CHƯƠNG 6. KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN:} Đánh giá những kết quả khoa học và thực tiễn đạt được của đồ án tốt nghiệp, chỉ ra các điểm còn hạn chế của hệ thống và đề xuất phương hướng nghiên cứu nâng cấp hệ thống trong tương lai.
+\end{itemize}
+
+\end{document}
