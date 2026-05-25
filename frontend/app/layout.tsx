@@ -4,6 +4,14 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import {
+  JsonLd,
+  absoluteUrl,
+  createMetadata,
+  organizationJsonLd,
+  siteUrl,
+  websiteJsonLd,
+} from "@/lib/seo";
 
 const interFont = Inter({
   variable: "--font-plus-jakarta", // Keep the variable name to avoid breaking other CSS relying on it
@@ -19,21 +27,27 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  ...createMetadata({ path: "/" }),
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "LumiLearn — Nền tảng học tập thông minh",
+    default: "LumiLearn - Nền tảng học tập thông minh",
     template: "%s | LumiLearn",
   },
-  description:
-    "Nền tảng LMS kết nối giáo viên, học sinh và phụ huynh. Khóa học chất lượng cao, bài tập tương tác, theo dõi tiến độ thời gian thực.",
-  keywords: ["học online", "LMS", "e-learning", "học sinh cấp 2", "khóa học"],
+  applicationName: "LumiLearn",
   authors: [{ name: "LumiLearn" }],
-  openGraph: {
-    title: "LumiLearn — Nền tảng học tập thông minh",
-    description: "Nền tảng LMS kết nối giáo viên, học sinh và phụ huynh",
-    type: "website",
-    locale: "vi_VN",
+  creator: "LumiLearn",
+  publisher: "LumiLearn",
+  category: "education",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
   },
-  robots: { index: true, follow: true },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/images/lumilearn_logo_icon.png",
+  },
+  manifest: absoluteUrl("/manifest.webmanifest"),
 };
 
 export default function RootLayout({
@@ -45,6 +59,7 @@ export default function RootLayout({
         className={`${interFont.variable} ${jetBrainsMono.variable} antialiased`}
         style={{ fontFamily: "var(--font-plus-jakarta), system-ui, sans-serif" }}
       >
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <ThemeProvider>
           <AuthProvider>
             {children}
