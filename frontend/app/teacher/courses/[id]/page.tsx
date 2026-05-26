@@ -10,6 +10,7 @@ import {
   FileText, Eye, Loader2, CheckCircle2, Film, X, Edit,
 } from "lucide-react";
 import { toast } from "sonner";
+import { multipartUpload } from "@/lib/multipart-upload";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
@@ -64,58 +65,15 @@ export default function TeacherCourseEditPage() {
     setUploadPhase("uploading");
     setUploadProgress(0);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Use XMLHttpRequest for progress tracking
-      return new Promise((resolve) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", `${API}/upload/video`);
-        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
-        };
-
-        xhr.onload = async () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const data = JSON.parse(xhr.responseText);
-            if (data.url) {
-              setUploading(false);
-              resolve({ url: data.url, mediaAssetId: data.mediaAssetId });
-              return;
-            }
-
-            if (data.jobId) {
-              setUploadPhase("processing");
-              setUploadProgress(100);
-              const url = await waitForVideoJob(data.jobId);
-              setUploading(false);
-              resolve(url ? { url, mediaAssetId: data.mediaAssetId } : null);
-              return;
-            }
-
-            setUploading(false);
-            toast.error("Server không trả về URL video");
-            resolve(null);
-          } else {
-            setUploading(false);
-            toast.error("Lỗi upload video");
-            resolve(null);
-          }
-        };
-
-        xhr.onerror = () => {
-          setUploading(false);
-          toast.error("Lỗi kết nối");
-          resolve(null);
-        };
-
-        xhr.send(formData);
+      const result = await multipartUpload(file, token!, (p) => {
+        setUploadPhase(p.phase);
+        setUploadProgress(p.progress);
       });
-    } catch {
       setUploading(false);
-      toast.error("Lỗi upload");
+      return { url: result.url, mediaAssetId: result.mediaAssetId };
+    } catch (err: any) {
+      setUploading(false);
+      toast.error(err.message || "Lỗi upload");
       return null;
     }
   }

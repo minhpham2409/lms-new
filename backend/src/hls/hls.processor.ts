@@ -6,7 +6,8 @@ import { JobNames, QueueNames } from '../shared/queues';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface HlsConversionJobData {
-  filePath: string;
+  filePath?: string;  // Legacy: local file path from Multer upload
+  s3Key?: string;     // Presigned: S3 key of directly uploaded video
   originalName: string;
   filename: string;
   size: number;
@@ -29,10 +30,10 @@ export class HlsProcessor {
     await job.progress(5);
 
     try {
-      const result = await this.hlsService.convertAndUpload(
-        job.data.filePath,
-        job.data.originalName,
-      );
+      // Support both presigned URL flow (s3Key) and legacy Multer flow (filePath)
+      const result = job.data.s3Key
+        ? await this.hlsService.convertFromS3AndUpload(job.data.s3Key, job.data.originalName)
+        : await this.hlsService.convertAndUpload(job.data.filePath!, job.data.originalName);
 
       await job.progress(100);
       const payload = {

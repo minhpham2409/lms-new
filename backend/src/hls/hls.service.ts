@@ -129,6 +129,96 @@ export class HlsService {
     }
   }
 
+  /**
+   * Convert a video that was uploaded directly to S3 (via presigned URL).
+   * Downloads from S3 → converts locally → uploads HLS back to S3.
+   *
+   * @param s3Key - The S3 key of the uploaded video
+   * @param originalName - Original filename from the upload
+   * @returns HLS conversion result with S3 keys and public URL
+   */
+  async convertFromS3AndUpload(s3Key: string, originalName: string): Promise<HlsConversionResult> {
+    const videoId = randomUUID();
+    const ext = extname(originalName).toLowerCase() || '.mp4';
+    const tempFilePath = join(this.tempDir, `${videoId}${ext}`);
+
+    try {
+      // 1. Download from S3 to temp file
+      this.logger.log(`Downloading ${s3Key} from S3 for HLS conversion...`);
+      await this.storageService.downloadToFile(s3Key, tempFilePath);
+      this.logger.log(`Downloaded ${s3Key} to ${tempFilePath}`);
+
+      // 2. Use existing conversion logic (but skip re-uploading original since it's already on S3)
+      const hlsDir = join(this.tempDir, videoId);
+      let hlsKeys: string[] = [];
+
+      if (!existsSync(hlsDir)) {
+        mkdirSync(hlsDir, { recursive: true });
+      }
+
+      // 3. Run ffmpeg to convert to HLS
+      const manifestPath = join(hlsDir, 'index.m3u8');
+      const segmentPattern = join(hlsDir, 'segment_%03d.ts');
+
+      await execFileAsync('ffmpeg', [
+        '-i', tempFilePath,
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-crf', '23',
+        '-threads', '1', // Limit CPU/RAM on low-memory VPS
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-ac', '2',
+        '-start_number', '0',
+        '-hls_time', '10',
+        '-hls_list_size', '0',
+        '-hls_flags', 'independent_segments',
+        '-hls_segment_filename', segmentPattern,
+        '-f', 'hls',
+        manifestPath,
+      ], {
+        timeout: 600_000,
+      });
+
+      this.logger.log(`ffmpeg HLS conversion complete for video ${videoId}`);
+
+      // 4. Upload HLS files to S3
+      const hlsFiles = readdirSync(hlsDir);
+      const uploads: PutObjectInput[] = hlsFiles.map((file) => ({
+        key: `hls/${videoId}/${file}`,
+        body: readFileSync(join(hlsDir, file)),
+        contentType: getContentType(file),
+      }));
+      hlsKeys = uploads.map((upload) => upload.key);
+
+      await this.storageService.putManyObjects(uploads);
+      this.logger.log(`Uploaded ${uploads.length} HLS files for video ${videoId}`);
+
+      const hlsManifestKey = `hls/${videoId}/index.m3u8`;
+      const hlsUrl = this.storageService.getPublicUrl(hlsManifestKey);
+      const segmentCount = hlsFiles.filter((f) => f.endsWith('.ts')).length;
+
+      return {
+        videoId,
+        originalKey: s3Key, // Already on S3, use as-is
+        hlsManifestKey,
+        hlsUrl,
+        segmentCount,
+      };
+    } catch (error) {
+      this.logger.error(`HLS conversion from S3 failed for ${originalName}: ${(error as Error).message}`);
+      try {
+        await this.storageService.deletePrefix(`hls/${videoId}/`);
+      } catch { /* ignore cleanup errors */ }
+      throw new InternalServerErrorException(
+        `Video conversion failed: ${(error as Error).message}`,
+      );
+    } finally {
+      this.cleanupFile(tempFilePath);
+      this.cleanupTempDir(join(this.tempDir, videoId));
+    }
+  }
+
   private cleanupTempDir(dir: string): void {
     try {
       if (existsSync(dir)) {

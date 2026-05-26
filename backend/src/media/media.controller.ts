@@ -16,7 +16,7 @@ export class MediaController {
   ) {}
 
   @Get('videos/*path')
-  @ApiOperation({ summary: 'Stream protected video content' })
+  @ApiOperation({ summary: 'Redirect to signed S3 URL for protected video' })
   async streamVideo(
     @Param('path') path: string | string[],
     @Req() req: Request,
@@ -26,11 +26,12 @@ export class MediaController {
     if (!path) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
     await this.verifyVideoAccess(user, `videos/${path}`);
-    await this.pipeMedia(`videos/${path}`, req, res);
+    const signedUrl = await this.storageService.getSignedReadUrl(`videos/${path}`, 7200);
+    return res.redirect(signedUrl);
   }
 
   @Get('hls/*path')
-  @ApiOperation({ summary: 'Stream protected HLS video content' })
+  @ApiOperation({ summary: 'Stream protected HLS content (proxied for auth compatibility)' })
   async streamHls(
     @Param('path') path: string | string[],
     @Req() req: Request,
@@ -40,6 +41,9 @@ export class MediaController {
     if (!path) return res.status(400).send('Invalid media path');
     const user = this.verifyMediaAuth(req);
     await this.verifyVideoAccess(user, `hls/${path}`);
+    // HLS.js doesn't follow redirects properly with custom auth headers,
+    // so we still pipe HLS segments through the backend.
+    // However, segments are small (~2-5MB each) and streamed — no buffering.
     await this.pipeMedia(`hls/${path}`, req, res);
   }
 

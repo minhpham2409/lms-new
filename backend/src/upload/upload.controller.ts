@@ -74,6 +74,328 @@ export class UploadController {
     @InjectQueue(QueueNames.VIDEO) private readonly videoQueue: Queue,
   ) {}
 
+  // ─── Presigned URL Upload Flow ───────────────────────────────────────────────
+  // Optimized for low-memory VPS: browser uploads directly to S3,
+  // bypassing the backend entirely for large video files.
+
+  @Post('presign')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Get presigned URL for direct browser-to-S3 video upload' })
+  async getPresignedUploadUrl(
+    @Body() body: { fileName: string; fileSize: number; mimeType: string },
+    @GetUser() user: { id: string },
+  ) {
+    const { fileName, fileSize, mimeType } = body;
+    if (!fileName || !fileSize || !mimeType) {
+      throw new BadRequestException('fileName, fileSize, and mimeType are required');
+    }
+
+    // Validate file extension
+    const ext = extname(fileName).toLowerCase();
+    if (!ALLOWED_VIDEO_TYPES.includes(ext)) {
+      throw new BadRequestException(
+        `File type ${ext} not allowed. Allowed: ${ALLOWED_VIDEO_TYPES.join(', ')}`,
+      );
+    }
+
+    // Validate file size
+    if (fileSize > MAX_VIDEO_SIZE) {
+      throw new BadRequestException(
+        `File size ${Math.round(fileSize / 1024 / 1024)}MB exceeds limit of ${Math.round(MAX_VIDEO_SIZE / 1024 / 1024)}MB`,
+      );
+    }
+
+    // Generate S3 key and presigned URL
+    const fileId = randomUUID();
+    const s3Key = `videos/original/${fileId}${ext}`;
+    const contentType = getContentType(fileName);
+
+    const presignedUrl = await this.storageService.getSignedUploadUrl(
+      s3Key,
+      contentType,
+      1800, // 30 minutes
+    );
+
+    // Create MediaAsset to track upload
+    const mediaAsset = await (this.prisma as any).mediaAsset.create({
+      data: {
+        ownerId: user.id,
+        type: 'VIDEO',
+        status: 'PROCESSING',
+        storageKey: s3Key,
+        originalName: fileName,
+        mimeType: mimeType,
+        size: fileSize,
+      },
+    });
+
+    return {
+      presignedUrl,
+      s3Key,
+      mediaAssetId: mediaAsset.id,
+      expiresIn: 1800,
+    };
+  }
+
+  @Post('confirm')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Confirm presigned upload completed, trigger HLS conversion' })
+  async confirmPresignedUpload(
+    @Body() body: { mediaAssetId: string; s3Key: string },
+    @GetUser() user: { id: string },
+  ) {
+    const { mediaAssetId, s3Key } = body;
+    if (!mediaAssetId || !s3Key) {
+      throw new BadRequestException('mediaAssetId and s3Key are required');
+    }
+
+    // Verify the MediaAsset belongs to this user
+    const mediaAsset = await (this.prisma as any).mediaAsset.findUnique({
+      where: { id: mediaAssetId },
+    });
+    if (!mediaAsset || mediaAsset.ownerId !== user.id) {
+      throw new NotFoundException('MediaAsset not found');
+    }
+
+    // Verify the file exists on S3
+    const exists = await this.storageService.objectExists(s3Key);
+    if (!exists) {
+      throw new BadRequestException('File not found on S3. Upload may have failed.');
+    }
+
+    // Queue HLS conversion
+    try {
+      const job = await this.videoQueue.add(
+        JobNames.CONVERT_VIDEO_HLS,
+        {
+          s3Key,
+          originalName: mediaAsset.originalName,
+          filename: s3Key.split('/').pop() || mediaAsset.originalName,
+          size: mediaAsset.size,
+          mimetype: mediaAsset.mimeType,
+          mediaAssetId,
+        },
+        {
+          attempts: 1,
+          removeOnComplete: false,
+          removeOnFail: false,
+          timeout: 30 * 60 * 1000,
+        },
+      );
+
+      return {
+        jobId: String(job.id),
+        mediaAssetId,
+        status: 'processing',
+        format: 'hls-processing',
+      };
+    } catch (error) {
+      await (this.prisma as any).mediaAsset.update({
+        where: { id: mediaAssetId },
+        data: { status: 'FAILED', error: (error as Error).message },
+      }).catch(() => undefined);
+      throw new InternalServerErrorException(
+        `Failed to queue HLS conversion: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  // ─── S3 Multipart Upload (Chunked) ──────────────────────────────────────────
+  // Splits large video into 10-25MB chunks, uploads each directly to S3.
+  // Supports per-chunk retry and resume on network failure.
+
+  @Post('multipart/init')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Initialize multipart upload — splits video into chunks for direct S3 upload' })
+  async initMultipartUpload(
+    @Body() body: { fileName: string; fileSize: number; mimeType: string },
+    @GetUser() user: { id: string },
+  ) {
+    const { fileName, fileSize, mimeType } = body;
+    if (!fileName || !fileSize || !mimeType) {
+      throw new BadRequestException('fileName, fileSize, and mimeType are required');
+    }
+
+    const ext = extname(fileName).toLowerCase();
+    if (!ALLOWED_VIDEO_TYPES.includes(ext)) {
+      throw new BadRequestException(`File type ${ext} not allowed. Allowed: ${ALLOWED_VIDEO_TYPES.join(', ')}`);
+    }
+    if (fileSize > MAX_VIDEO_SIZE) {
+      throw new BadRequestException(`File exceeds ${Math.round(MAX_VIDEO_SIZE / 1024 / 1024)}MB limit`);
+    }
+
+    const fileId = randomUUID();
+    const s3Key = `videos/original/${fileId}${ext}`;
+    const contentType = getContentType(fileName);
+
+    // Create S3 multipart upload
+    const uploadId = await this.storageService.createMultipartUpload(s3Key, contentType);
+
+    // Calculate chunks (10MB per part, min 5MB for S3)
+    const chunkSize = 10 * 1024 * 1024; // 10MB
+    const totalParts = Math.ceil(fileSize / chunkSize);
+
+    // Create MediaAsset to track
+    const mediaAsset = await (this.prisma as any).mediaAsset.create({
+      data: {
+        ownerId: user.id,
+        type: 'VIDEO',
+        status: 'PROCESSING',
+        storageKey: s3Key,
+        originalName: fileName,
+        mimeType,
+        size: fileSize,
+      },
+    });
+
+    return {
+      uploadId,
+      s3Key,
+      mediaAssetId: mediaAsset.id,
+      chunkSize,
+      totalParts,
+    };
+  }
+
+  @Post('multipart/presign-part')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Get presigned URL for a single chunk (part)' })
+  async presignPart(
+    @Body() body: { s3Key: string; uploadId: string; partNumber: number; mediaAssetId: string },
+    @GetUser() user: { id: string },
+  ) {
+    const { s3Key, uploadId, partNumber, mediaAssetId } = body;
+    if (!s3Key || !uploadId || !partNumber || !mediaAssetId) {
+      throw new BadRequestException('s3Key, uploadId, partNumber, and mediaAssetId are required');
+    }
+    if (partNumber < 1 || partNumber > 10000) {
+      throw new BadRequestException('partNumber must be between 1 and 10000');
+    }
+
+    // Verify ownership — prevent unauthorized users from uploading to someone else's session
+    const mediaAsset = await (this.prisma as any).mediaAsset.findUnique({
+      where: { id: mediaAssetId },
+    });
+    if (!mediaAsset || mediaAsset.ownerId !== user.id) {
+      throw new NotFoundException('MediaAsset not found');
+    }
+
+    const presignedUrl = await this.storageService.getSignedPartUrl(
+      s3Key, uploadId, partNumber, 1800,
+    );
+
+    return { presignedUrl, partNumber };
+  }
+
+  @Post('multipart/complete')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Complete multipart upload — merge chunks on S3 and trigger HLS conversion' })
+  async completeMultipartUpload(
+    @Body() body: {
+      s3Key: string;
+      uploadId: string;
+      mediaAssetId: string;
+      parts: { PartNumber: number; ETag: string }[];
+    },
+    @GetUser() user: { id: string },
+  ) {
+    const { s3Key, uploadId, mediaAssetId, parts } = body;
+    if (!s3Key || !uploadId || !mediaAssetId || !parts?.length) {
+      throw new BadRequestException('s3Key, uploadId, mediaAssetId, and parts are required');
+    }
+
+    // Verify ownership
+    const mediaAsset = await (this.prisma as any).mediaAsset.findUnique({
+      where: { id: mediaAssetId },
+    });
+    if (!mediaAsset || mediaAsset.ownerId !== user.id) {
+      throw new NotFoundException('MediaAsset not found');
+    }
+
+    // Tell S3 to merge all parts into one object
+    try {
+      await this.storageService.completeMultipartUpload(s3Key, uploadId, parts);
+    } catch (error) {
+      await this.storageService.abortMultipartUpload(s3Key, uploadId);
+      await (this.prisma as any).mediaAsset.update({
+        where: { id: mediaAssetId },
+        data: { status: 'FAILED', error: 'S3 merge failed' },
+      }).catch(() => undefined);
+      throw new InternalServerErrorException('Failed to merge uploaded parts on S3');
+    }
+
+    // Queue HLS conversion
+    try {
+      const job = await this.videoQueue.add(
+        JobNames.CONVERT_VIDEO_HLS,
+        {
+          s3Key,
+          originalName: mediaAsset.originalName,
+          filename: s3Key.split('/').pop() || mediaAsset.originalName,
+          size: mediaAsset.size,
+          mimetype: mediaAsset.mimeType,
+          mediaAssetId,
+        },
+        {
+          attempts: 1,
+          removeOnComplete: false,
+          removeOnFail: false,
+          timeout: 30 * 60 * 1000,
+        },
+      );
+
+      return {
+        jobId: String(job.id),
+        mediaAssetId,
+        status: 'processing',
+        format: 'hls-processing',
+      };
+    } catch (error) {
+      await (this.prisma as any).mediaAsset.update({
+        where: { id: mediaAssetId },
+        data: { status: 'FAILED', error: (error as Error).message },
+      }).catch(() => undefined);
+      throw new InternalServerErrorException('Failed to queue HLS conversion');
+    }
+  }
+
+  @Post('multipart/abort')
+  @UseGuards(RolesGuard)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Abort multipart upload — cleanup uploaded parts from S3' })
+  async abortMultipartUpload(
+    @Body() body: { s3Key: string; uploadId: string; mediaAssetId: string },
+    @GetUser() user: { id: string },
+  ) {
+    const { s3Key, uploadId, mediaAssetId } = body;
+    if (!s3Key || !uploadId || !mediaAssetId) {
+      throw new BadRequestException('s3Key, uploadId, and mediaAssetId are required');
+    }
+
+    // Verify ownership — prevent unauthorized users from aborting others' uploads
+    const mediaAsset = await (this.prisma as any).mediaAsset.findUnique({
+      where: { id: mediaAssetId },
+    });
+    if (!mediaAsset || mediaAsset.ownerId !== user.id) {
+      throw new NotFoundException('MediaAsset not found');
+    }
+
+    await this.storageService.abortMultipartUpload(s3Key, uploadId);
+
+    await (this.prisma as any).mediaAsset.update({
+      where: { id: mediaAssetId },
+      data: { status: 'FAILED', error: 'Upload aborted by user' },
+    }).catch(() => undefined);
+
+    return { status: 'aborted' };
+  }
+
+  // ─── Legacy Upload Endpoints (Multer-based) ─────────────────────────────────
   @Post('video')
   @UseGuards(RolesGuard)
   @Roles('teacher', 'admin')

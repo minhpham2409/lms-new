@@ -11,6 +11,10 @@ import {
   CreateBucketCommand,
   HeadBucketCommand,
   PutBucketPolicyCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getContentType } from './storage.constants';
@@ -226,5 +230,117 @@ export class StorageService implements OnModuleInit {
     const ttl = expiresIn ?? this.signedUrlExpires;
     const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });
     return getSignedUrl(this.client, command, { expiresIn: ttl });
+  }
+
+  /**
+   * Generate a time-limited presigned URL for direct browser-to-S3 uploads.
+   * The browser can PUT the file directly to this URL without going through the backend.
+   */
+  async getSignedUploadUrl(key: string, contentType: string, expiresIn?: number): Promise<string> {
+    const ttl = expiresIn ?? 1800; // 30 minutes default
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ContentType: contentType,
+    });
+    return getSignedUrl(this.client, command, { expiresIn: ttl });
+  }
+
+  /**
+   * Download an S3 object to a local file path.
+   * Used by HLS processor to download uploaded videos for ffmpeg conversion.
+   */
+  async downloadToFile(key: string, destPath: string): Promise<void> {
+    const { createWriteStream } = await import('fs');
+    const { pipeline } = await import('stream/promises');
+
+    const response = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+
+    if (!response.Body) {
+      throw new Error(`S3 object ${key} has no body`);
+    }
+
+    const writeStream = createWriteStream(destPath);
+    await pipeline(response.Body as Readable, writeStream);
+  }
+
+  // ─── S3 Multipart Upload ────────────────────────────────────────────────────
+  // Enables chunked uploads: browser sends 10-25MB parts directly to S3,
+  // then backend tells S3 to merge them. Supports retry per-part.
+
+  /**
+   * Initialize a multipart upload on S3.
+   * Returns an uploadId that must be used for all subsequent part uploads.
+   */
+  async createMultipartUpload(key: string, contentType: string): Promise<string> {
+    const response = await this.client.send(
+      new CreateMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType,
+      }),
+    );
+    if (!response.UploadId) {
+      throw new Error('Failed to create multipart upload — no UploadId returned');
+    }
+    return response.UploadId;
+  }
+
+  /**
+   * Generate a presigned URL for uploading a single part.
+   * Browser PUTs the chunk directly to this URL.
+   */
+  async getSignedPartUrl(
+    key: string,
+    uploadId: string,
+    partNumber: number,
+    expiresIn = 1800,
+  ): Promise<string> {
+    const command = new UploadPartCommand({
+      Bucket: this.bucket,
+      Key: key,
+      UploadId: uploadId,
+      PartNumber: partNumber,
+    });
+    return getSignedUrl(this.client, command, { expiresIn });
+  }
+
+  /**
+   * Complete a multipart upload — S3 merges all parts into a single object.
+   * Parts must be provided in order with their ETag (returned by S3 after each PUT).
+   */
+  async completeMultipartUpload(
+    key: string,
+    uploadId: string,
+    parts: { PartNumber: number; ETag: string }[],
+  ): Promise<void> {
+    await this.client.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        UploadId: uploadId,
+        MultipartUpload: { Parts: parts },
+      }),
+    );
+  }
+
+  /**
+   * Abort a multipart upload — S3 deletes all uploaded parts.
+   * Call this if upload fails or user cancels.
+   */
+  async abortMultipartUpload(key: string, uploadId: string): Promise<void> {
+    try {
+      await this.client.send(
+        new AbortMultipartUploadCommand({
+          Bucket: this.bucket,
+          Key: key,
+          UploadId: uploadId,
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to abort multipart upload ${uploadId}: ${(error as Error).message}`);
+    }
   }
 }
