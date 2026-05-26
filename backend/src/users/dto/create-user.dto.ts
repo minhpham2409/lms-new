@@ -52,4 +52,10 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(UserRoleEnum)
   role?: UserRoleEnum;
+
+  @ApiPropertyOptional({ description: 'Teacher bio / description' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  bio?: string;
 }

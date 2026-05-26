@@ -118,7 +118,7 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   async createUser(createUserDto: CreateUserDto) {
-    const { email, password, role, username, firstName, lastName } = createUserDto as any;
+    const { email, password, role, username, firstName, lastName, bio } = createUserDto as any;
 
     const userExists = await this.userRepository.findByUsernameOrEmail(username, email);
     if (userExists) {
@@ -133,6 +133,7 @@ export class AdminService implements OnApplicationBootstrap {
       username,
       ...(firstName && { firstName }),
       ...(lastName && { lastName }),
+      ...(bio && { bio }),
     });
 
     const { password: _, ...result } = user;

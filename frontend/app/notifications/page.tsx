@@ -20,6 +20,7 @@ import {
   Trash2,
   XCircle,
   Zap,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,6 +33,7 @@ const typeConfig: Record<string, { icon: any; color: string; bg: string; border:
   error: { icon: XCircle, color: "#b91c1c", bg: "#fee2e2", border: "#fca5a5", label: "Lỗi" },
   achievement: { icon: Zap, color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd", label: "Thành tích" },
   reward: { icon: Gift, color: "#be185d", bg: "#fce7f3", border: "#f9a8d4", label: "Phần thưởng" },
+  teacher_application: { icon: UserPlus, color: "#c2410c", bg: "#fff7ed", border: "#fdba74", label: "Đăng ký GV" },
 };
 
 export default function NotificationsPage() {
@@ -40,6 +42,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [creatingTeacher, setCreatingTeacher] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !token) router.push("/auth/login");
@@ -201,7 +204,39 @@ export default function NotificationsPage() {
                             {isUnread && <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">Mới</span>}
                           </div>
                           <p className={`break-words text-sm ${isUnread ? "font-extrabold text-foreground" : "font-semibold text-foreground"}`}>{n.title}</p>
-                          <p className="mt-1 line-clamp-2 break-words text-sm leading-6 text-foreground-muted">{displayMessage}</p>
+
+                          {/* Teacher application: parsed info + action button */}
+                          {n.type === "teacher_application" ? (() => {
+                            let appData: any = null;
+                            try { appData = JSON.parse(n.message); } catch {}
+                            if (!appData) return <p className="mt-1 line-clamp-2 break-words text-sm leading-6 text-foreground-muted">{n.message}</p>;
+                            return (
+                              <div className="mt-2 space-y-1.5">
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                  {appData.fullName && <p><b className="text-foreground">Họ tên:</b> <span className="text-foreground-muted">{appData.fullName}</span></p>}
+                                  {appData.email && <p><b className="text-foreground">Email:</b> <span className="text-foreground-muted">{appData.email}</span></p>}
+                                  {appData.phone && <p><b className="text-foreground">SĐT:</b> <span className="text-foreground-muted">{appData.phone}</span></p>}
+                                  {appData.expertise && <p><b className="text-foreground">Chuyên môn:</b> <span className="text-foreground-muted">{appData.expertise}</span></p>}
+                                </div>
+                                {appData.experience && <p className="text-xs text-foreground-muted"><b className="text-foreground">Kinh nghiệm:</b> {appData.experience}</p>}
+                                {appData.message && <p className="text-xs text-foreground-muted italic">&quot;{appData.message}&quot;</p>}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const params = new URLSearchParams({ prefill: JSON.stringify(appData) });
+                                    router.push(`/admin?createTeacher=1&${params.toString()}`);
+                                  }}
+                                  disabled={creatingTeacher}
+                                  className="mt-2 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold text-white transition-colors bg-[#F8B486] hover:bg-[#e09a70]"
+                                >
+                                  <UserPlus className="w-3.5 h-3.5" />
+                                  Tạo tài khoản giáo viên
+                                </button>
+                              </div>
+                            );
+                          })() : (
+                            <p className="mt-1 line-clamp-2 break-words text-sm leading-6 text-foreground-muted">{displayMessage}</p>
+                          )}
                         </div>
                         <div className="flex flex-shrink-0 items-center gap-1">
                           <button

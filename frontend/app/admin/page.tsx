@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useAuth } from "@/components/auth/auth-state";
@@ -27,51 +27,123 @@ const statusIcons: Record<string, { color: string; Icon: any }> = {
 
 type Tab = "overview" | "revenue" | "users" | "courses" | "orders" | "coupons" | "payouts" | "queues" | "race" | "fee";
 
-function CreateTeacherModal({ onClose, onCreate }: { onClose: () => void; onCreate: (data: any) => Promise<void> }) {
-  const [form, setForm] = useState({ username: "", email: "", firstName: "", lastName: "", password: "" });
+function CreateTeacherModal({ onClose, onCreate, prefill }: {
+  onClose: () => void;
+  onCreate: (data: any) => Promise<void>;
+  prefill?: { fullName?: string; email?: string; phone?: string; expertise?: string; experience?: string; message?: string };
+}) {
+  // Auto-fill from teacher application if available
+  const nameParts = (prefill?.fullName || "").trim().split(/\s+/);
+  const autoLastName = nameParts.pop() || "";
+  const autoFirstName = nameParts.join(" ");
+  const autoUsername = (prefill?.email || "").split("@")[0].replace(/[^a-z0-9_]/gi, "").toLowerCase();
+
+  const [form, setForm] = useState({
+    username: autoUsername,
+    email: prefill?.email || "",
+    firstName: autoFirstName,
+    lastName: autoLastName,
+    password: "",
+    phone: prefill?.phone || "",
+    expertise: prefill?.expertise || "",
+    experience: prefill?.experience || "",
+    message: prefill?.message || "",
+  });
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.username || !form.email || !form.password) return;
     setSaving(true);
-    await onCreate({ ...form, role: "teacher" });
+    // Merge phone/expertise/experience/message into bio field
+    const bioParts = [
+      form.phone && `📞 SĐT: ${form.phone}`,
+      form.expertise && `🎓 Chuyên môn: ${form.expertise}`,
+      form.experience && `📝 Kinh nghiệm: ${form.experience}`,
+      form.message && `💬 ${form.message}`,
+    ].filter(Boolean);
+    const bio = bioParts.join("\n");
+    await onCreate({
+      username: form.username,
+      email: form.email,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      password: form.password,
+      role: "teacher",
+      ...(bio && { bio }),
+    });
     setSaving(false);
     onClose();
   }
 
+  const inputCls = "w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486] transition-colors";
+  const labelCls = "block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-[#2d2f31] border border-[#d1d7dc] dark:border-[#3e4143] rounded w-full max-w-md shadow-xl">
+      <div className="bg-white dark:bg-[#2d2f31] border border-[#d1d7dc] dark:border-[#3e4143] rounded-lg w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#d1d7dc] dark:border-[#3e4143]">
-          <h3 className="text-base font-bold text-[#2d2f31] dark:text-white">Tạo tài khoản giáo viên</h3>
+          <div>
+            {prefill && <p className="text-[10px] font-bold text-[#F8B486] uppercase tracking-wide">Từ đơn đăng ký</p>}
+            <h3 className="text-base font-bold text-[#2d2f31] dark:text-white">Tạo tài khoản giáo viên</h3>
+          </div>
           <button onClick={onClose} className="text-[#6a6f73] hover:text-[#2d2f31] dark:hover:text-white transition-colors">✕</button>
         </div>
+
         <form onSubmit={submit} className="p-6 space-y-4">
+          {/* Section: Thông tin cơ bản */}
+          <p className="text-xs font-bold text-[#6a6f73] uppercase tracking-wide">Thông tin tài khoản</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Họ *</label>
-              <input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} placeholder="Nguyễn" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
+              <label className={labelCls}>Họ</label>
+              <input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} placeholder="Nguyễn Văn" className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Tên *</label>
-              <input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} placeholder="Văn A" className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
+              <label className={labelCls}>Tên</label>
+              <input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} placeholder="A" className={inputCls} />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Username *</label>
+              <input value={form.username} onChange={e => setForm({...form, username: e.target.value})} placeholder="teacher_name" required className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Mật khẩu *</label>
+              <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Ít nhất 6 ký tự" required minLength={6} className={inputCls} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Email *</label>
+              <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="teacher@email.com" required className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Số điện thoại</label>
+              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="0912 345 678" className={inputCls} />
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-[#d1d7dc] dark:border-[#3e4143]" />
+
+          {/* Section: Hồ sơ giảng viên */}
+          <p className="text-xs font-bold text-[#6a6f73] uppercase tracking-wide">Hồ sơ giảng viên</p>
           <div>
-            <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Username *</label>
-            <input value={form.username} onChange={e => setForm({...form, username: e.target.value})} placeholder="teacher_name" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
+            <label className={labelCls}>Chuyên môn</label>
+            <input value={form.expertise} onChange={e => setForm({...form, expertise: e.target.value})} placeholder="Toán, Vật lý, Lập trình..." className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Email *</label>
-            <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="teacher@lumilearn.edu.vn" required className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
+            <label className={labelCls}>Kinh nghiệm giảng dạy</label>
+            <textarea value={form.experience} onChange={e => setForm({...form, experience: e.target.value})} placeholder="VD: 5 năm dạy THPT, có kênh YouTube 10K sub..." rows={2} className={`${inputCls} resize-none`} />
           </div>
           <div>
-            <label className="block text-xs font-bold mb-1 text-[#2d2f31] dark:text-white">Mật khẩu *</label>
-            <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Ít nhất 6 ký tự" required minLength={6} className="w-full px-3 py-2 border border-[#d1d7dc] dark:border-[#6a6f73] bg-transparent text-sm text-[#2d2f31] dark:text-white rounded outline-none focus:border-[#F8B486]" />
+            <label className={labelCls}>Giới thiệu / Ghi chú</label>
+            <textarea value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder="Thông tin thêm, link portfolio nếu có..." rows={3} className={`${inputCls} resize-none`} />
           </div>
+
           <div className="pt-2 flex gap-3">
-            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#FFCCAA] hover:bg-[#8710d8] text-white font-bold text-sm rounded transition-colors disabled:opacity-60">
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#FFCCAA] hover:bg-[#e09a70] text-white font-bold text-sm rounded transition-colors disabled:opacity-60">
               {saving ? "Đang tạo..." : "Tạo tài khoản giáo viên"}
             </button>
             <button type="button" onClick={onClose} className="px-4 py-2.5 border border-[#d1d7dc] dark:border-[#6a6f73] text-sm font-bold text-[#2d2f31] dark:text-white rounded hover:bg-[#f7f9fa] dark:hover:bg-[#3e4143] transition-colors">
@@ -143,12 +215,12 @@ function CreateCouponModal({ onClose, onCreate }: { onClose: () => void; onCreat
   );
 }
 
-export default function AdminPage() {
+function AdminPageInner() {
   const router = useRouter();
   const { user, token, isLoggedIn, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
   const [search, setSearch] = useState("");
-  const [showCreateTeacher, setShowCreateTeacher] = useState(false);
+  const [showCreateTeacher, setShowCreateTeacher] = useState<false | { prefill?: any }>(false);
   const [showCreateCoupon, setShowCreateCoupon] = useState(false);
 
   const [stats, setStats] = useState<any>(null);
@@ -176,6 +248,21 @@ export default function AdminPage() {
       else router.push("/dashboard");
     }
   }, [user, isLoggedIn, authLoading, router]);
+
+  // Auto-open create teacher modal when redirected from notifications
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('createTeacher') === '1') {
+      try {
+        const prefillRaw = searchParams.get('prefill');
+        const prefill = prefillRaw ? JSON.parse(prefillRaw) : undefined;
+        setShowCreateTeacher({ prefill });
+        // Clean URL after reading params
+        router.replace('/admin', { scroll: false });
+      } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   useEffect(() => {
     if (token && user?.role === "admin") fetchAll();
@@ -437,6 +524,7 @@ export default function AdminPage() {
         <CreateTeacherModal
           onClose={() => setShowCreateTeacher(false)}
           onCreate={async (data) => { await _createUser(data); }}
+          prefill={typeof showCreateTeacher === 'object' ? showCreateTeacher.prefill : undefined}
         />
       )}
       {showCreateCoupon && (
@@ -975,7 +1063,7 @@ export default function AdminPage() {
                     <h2 className="font-bold">Quản lý người dùng <span className="text-xs font-normal" style={{ color: "#6a6f73" }}>({filteredUsers.length} người)</span></h2>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setShowCreateTeacher(true)}
+                        onClick={() => setShowCreateTeacher({})}
                         className="flex items-center gap-1.5 px-4 py-2 bg-[#FFCCAA] hover:bg-[#8710d8] text-white text-xs font-bold rounded transition-colors whitespace-nowrap"
                       >
                         + Tạo giáo viên
@@ -1260,5 +1348,13 @@ export default function AdminPage() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}><div className="w-8 h-8 border-2 border-[#F8B486] border-t-transparent rounded-full animate-spin" /></div>}>
+      <AdminPageInner />
+    </Suspense>
   );
 }
