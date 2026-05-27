@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, FileQuestion, Loader2, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
+import { CheckCircle2, FileQuestion, ImagePlus, Loader2, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
@@ -10,14 +10,21 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 type Difficulty = "easy" | "medium" | "hard" | "mixed";
 
 const difficulties: { value: Difficulty; label: string }[] = [
-  { value: "mixed", label: "Trộn lẫn" },
   { value: "easy", label: "Dễ" },
-  { value: "medium", label: "Vừa" },
+  { value: "medium", label: "Trung bình" },
   { value: "hard", label: "Khó" },
+  { value: "mixed", label: "Trộn lẫn" },
 ];
 
+const difficultyColors: Record<Difficulty, string> = {
+  easy: "#10b981",
+  medium: "#f59e0b",
+  hard: "#ef4444",
+  mixed: "#a435f0",
+};
+
 function emptyQuestion() {
-  return { content: "", options: ["", "", "", ""], answer: "" };
+  return { content: "", imageUrl: "", options: ["", "", "", ""], answer: "" };
 }
 
 export function Step4Quizzes({ sections, setSections, token }: any) {
@@ -76,6 +83,25 @@ export function Step4Quizzes({ sections, setSections, token }: any) {
         .find((item: any) => item.section.id === activeLesson.sectionId && item.lesson.id === activeLesson.lessonId)
     : null;
 
+  async function uploadQuestionImage(sectionId: string, lessonId: string, questionIndex: number, file: File) {
+    if (!token) return toast.error("Chưa đăng nhập");
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const res = await fetch(`${API}/upload/image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!res.ok) throw new Error("Không tải được ảnh");
+      const data = await res.json();
+      updateQuestion(sectionId, lessonId, questionIndex, { imageUrl: data.url });
+      toast.success("Đã tải ảnh câu hỏi");
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi tải ảnh");
+    }
+  }
+
   async function generateWithAi() {
     if (!activeLesson) return;
     if (aiMode === "text" && !aiText.trim()) return toast.error("Vui lòng dán nội dung bài học");
@@ -112,6 +138,7 @@ export function Step4Quizzes({ sections, setSections, token }: any) {
       const questions = Array.isArray(generated)
         ? generated.map((item: any) => ({
             content: item.question || item.content || "",
+            imageUrl: item.imageUrl || "",
             options: Array.isArray(item.options) ? item.options.slice(0, 4) : ["", "", "", ""],
             answer: item.answer || "",
             difficulty: item.difficulty,
@@ -162,42 +189,48 @@ export function Step4Quizzes({ sections, setSections, token }: any) {
         )}
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h4 className="font-extrabold flex items-center gap-2"><Wand2 className="w-5 h-5 text-[#a435f0]" /> AI tạo quiz</h4>
-            <p className="text-sm mt-1" style={{ color: "#6a6f73" }}>{active.lesson.title || "Bài học"}</p>
+            <h4 className="font-extrabold flex items-center gap-2"><Wand2 className="w-5 h-5 text-[#a435f0]" /> Trợ lý AI Sinh Câu Hỏi</h4>
+            <p className="text-sm mt-1" style={{ color: "#6a6f73" }}>Upload file tài liệu hoặc dán nội dung bài giảng để AI sinh câu hỏi tự động.</p>
           </div>
           <button type="button" disabled={generating} onClick={() => setActiveLesson(null)} className="btn-ghost px-2 py-2 disabled:opacity-60"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="flex gap-2 mb-4">
-          <button type="button" disabled={generating} onClick={() => setAiMode("text")} className={aiMode === "text" ? "btn-primary text-sm disabled:opacity-60" : "btn-secondary text-sm disabled:opacity-60"}>Dán text</button>
-          <button type="button" disabled={generating} onClick={() => setAiMode("file")} className={aiMode === "file" ? "btn-primary text-sm disabled:opacity-60" : "btn-secondary text-sm disabled:opacity-60"}><Upload className="w-4 h-4" /> Upload file</button>
+          <button type="button" disabled={generating} onClick={() => setAiMode("file")} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-60 ${aiMode === "file" ? "bg-[#a435f0] text-white" : "bg-[var(--muted)] text-[#6a6f73]"}`}><Upload className="w-4 h-4 inline mr-1" /> Upload File</button>
+          <button type="button" disabled={generating} onClick={() => setAiMode("text")} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-60 ${aiMode === "text" ? "bg-[#a435f0] text-white" : "bg-[var(--muted)] text-[#6a6f73]"}`}>Dán Văn Bản</button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-[120px_1fr] mb-4">
-          <input disabled={generating} type="number" min={1} max={30} value={aiCount} onChange={(e) => setAiCount(Math.max(1, Math.min(30, Number(e.target.value) || 1)))} className="input-base disabled:opacity-60" />
-          <div className="flex gap-2 flex-wrap">
-            {difficulties.map((item) => (
-              <button key={item.value} type="button" disabled={generating} onClick={() => setAiDifficulty(item.value)} className={aiDifficulty === item.value ? "btn-primary text-xs disabled:opacity-60" : "btn-secondary text-xs disabled:opacity-60"}>
-                {item.label}
-              </button>
-            ))}
+        <div className="flex flex-col gap-4 sm:flex-row mb-4">
+          <div className="flex-1">
+            <label className="text-xs font-bold block mb-1">Số lượng câu hỏi</label>
+            <input disabled={generating} type="number" min={1} max={30} value={aiCount} onChange={(e) => setAiCount(Math.max(1, Math.min(30, Number(e.target.value) || 1)))} className="input-base w-full disabled:opacity-60" />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs font-bold block mb-1">Mức độ khó</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {difficulties.map((item) => (
+                <button key={item.value} type="button" disabled={generating} onClick={() => setAiDifficulty(item.value)} className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-60" style={{ background: aiDifficulty === item.value ? `${difficultyColors[item.value]}20` : "var(--muted)", color: aiDifficulty === item.value ? difficultyColors[item.value] : "#6a6f73", border: `1.5px solid ${aiDifficulty === item.value ? difficultyColors[item.value] : "transparent"}` }}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {aiMode === "text" ? (
-          <textarea disabled={generating} value={aiText} onChange={(e) => setAiText(e.target.value)} className="input-base w-full min-h-[220px] mb-4 disabled:opacity-60" placeholder="Dán nội dung bài học để Gemini tạo câu hỏi..." />
-        ) : (
-          <button type="button" disabled={generating} onClick={() => fileRef.current?.click()} className="w-full min-h-[180px] mb-4 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 disabled:opacity-60" style={{ borderColor: "var(--border)" }}>
+        {aiMode === "file" ? (
+          <button type="button" disabled={generating} onClick={() => fileRef.current?.click()} className="w-full min-h-[180px] mb-4 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 disabled:opacity-60 hover:border-[#a435f0] transition-colors" style={{ borderColor: "var(--border)" }}>
             <input ref={fileRef} disabled={generating} type="file" accept=".pdf,.docx,.pptx,.xlsx,.txt,.csv" className="hidden" onChange={(e) => setAiFile(e.target.files?.[0] || null)} />
             {aiFile ? <><CheckCircle2 className="w-8 h-8 text-green-500" /><span className="font-bold text-sm">{aiFile.name}</span></> : <><Upload className="w-8 h-8 text-[#a435f0]" /><span className="font-bold text-sm">Chọn file PDF, DOCX, PPTX, XLSX, TXT hoặc CSV</span></>}
           </button>
+        ) : (
+          <textarea disabled={generating} value={aiText} onChange={(e) => setAiText(e.target.value)} className="input-base w-full min-h-[220px] mb-4 disabled:opacity-60" placeholder="Dán nội dung tài liệu bài giảng tại đây..." />
         )}
 
         <div className="flex justify-end gap-3">
           <button type="button" disabled={generating} onClick={() => setActiveLesson(null)} className="btn-secondary disabled:opacity-60">Hủy</button>
-          <button type="button" onClick={generateWithAi} disabled={generating} className="btn-primary">
+          <button type="button" onClick={generateWithAi} disabled={generating || (aiMode === "text" ? !aiText.trim() : !aiFile)} className="btn-primary bg-gradient-to-r from-[#a435f0] to-[#5624d0] disabled:opacity-50">
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-            {generating ? "Đang sinh..." : "Sinh câu hỏi"}
+            {generating ? "AI đang phân tích..." : `Sinh ${aiCount} câu hỏi`}
           </button>
         </div>
       </div>
@@ -261,6 +294,21 @@ export function Step4Quizzes({ sections, setSections, token }: any) {
                             <button type="button" onClick={() => removeQuestion(section.id, lesson.id, qi)} className="btn-ghost px-2 py-1">
                               <Trash2 className="w-4 h-4" style={{ color: "#ef4444" }} />
                             </button>
+                          </div>
+                          <div className="mb-3">
+                            {question.imageUrl ? (
+                              <div className="relative inline-block">
+                                <img src={question.imageUrl} alt="Question" className="max-h-44 rounded-xl border border-[var(--border)]" />
+                                <button type="button" onClick={() => updateQuestion(section.id, lesson.id, qi, { imageUrl: "" })} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="flex items-center gap-2 text-sm text-[#6a6f73] cursor-pointer hover:text-[#a435f0] transition-colors">
+                                <ImagePlus className="w-4 h-4" /> Thêm hình ảnh câu hỏi
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadQuestionImage(section.id, lesson.id, qi, e.target.files[0]); }} />
+                              </label>
+                            )}
                           </div>
                           <textarea value={question.content} onChange={(e) => updateQuestion(section.id, lesson.id, qi, { content: e.target.value })} className="input-base w-full min-h-[70px] mb-3" placeholder="Nội dung câu hỏi" />
                           <div className="grid gap-2 md:grid-cols-2">

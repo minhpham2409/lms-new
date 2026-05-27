@@ -107,7 +107,7 @@ export default function CourseWizardPage() {
           return false;
         }
         const invalidIndex = questions.findIndex((q: any) =>
-          !q.content?.trim() ||
+          (!q.content?.trim() && !q.imageUrl) ||
           !Array.isArray(q.options) ||
           q.options.length !== 4 ||
           q.options.some((option: string) => !option.trim()) ||

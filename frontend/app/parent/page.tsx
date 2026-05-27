@@ -939,21 +939,23 @@ export default function ParentPage() {
 
       <div className="pt-20 pb-24">
         {/* Hero Header */}
-        <div className="bg-[#f7f9fa] dark:bg-[#2d2f31] pt-24 pb-16 mb-8 border-b border-border">
+        <div className="relative overflow-hidden pt-24 pb-16 mb-8 border-b border-border">
+          <div className="absolute inset-0 bg-[url('/images/hero_star_light.png')] bg-cover bg-center opacity-45" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#051025] via-[#051025]/85 to-[#0A1A35]/70" />
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative z-10">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
-                <h1 className="text-3xl font-bold mb-2">
+                <h1 className="text-3xl font-extrabold mb-2 text-[#F8FAFC]">
                   Phụ huynh Dashboard
                 </h1>
-                <p className="text-base font-medium text-gray-300">
+                <p className="text-base font-medium text-[#CBD5E1]">
                   Đồng hành cùng bước tiến học tập của con bạn mỗi ngày.
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={fetchAll}
-                  className="bg-white text-black px-5 py-2.5 shadow-sm hover:bg-gray-100 transition-all font-bold flex items-center gap-2 rounded"
+                  className="bg-[#F8B486] text-[#051025] px-5 py-2.5 shadow-sm hover:bg-[#FFCCAA] transition-all font-bold flex items-center gap-2 rounded-lg"
                 >
                   <RefreshCw className="w-4 h-4" /> Làm mới dữ liệu
                 </button>
@@ -1170,12 +1172,14 @@ export default function ParentPage() {
                         sub: "đã đăng ký",
                       },
                       {
-                        label: "Bài học xong",
+                        label: "Video đã xem",
                         value:
-                          childDashboard?.activity?.videoLessonsCompleted ?? 0,
+                          childDashboard?.activity?.videoLessonsStarted ??
+                          childDashboard?.activity?.videoLessonsCompleted ??
+                          0,
                         icon: CheckCircle2,
                         color: "#F8B486",
-                        sub: "hoàn thành",
+                        sub: "đã bắt đầu",
                       },
                       {
                         label: "Quiz đã làm",
@@ -1185,12 +1189,11 @@ export default function ParentPage() {
                         sub: "lần làm quiz",
                       },
                       {
-                        label: "Bài tập nộp",
-                        value:
-                          childDashboard?.activity?.assignmentSubmissions ?? 0,
+                        label: "Thành tích",
+                        value: childDashboard?.achievements?.length ?? 0,
                         icon: TrendingUp,
                         color: "#94A3B8",
-                        sub: "bài tập",
+                        sub: "huy hiệu",
                       },
                     ].map(({ label, value, icon: Icon, color, sub }) => (
                       <div key={label} className="bg-card border border-border p-4 shadow-sm text-center">
@@ -1335,8 +1338,9 @@ export default function ParentPage() {
                               icon: "🎬",
                               label: "Video đã xem",
                               value:
-                                childDashboard?.activity
-                                  ?.videoLessonsCompleted ?? 0,
+                                childDashboard?.activity?.videoLessonsStarted ??
+                                childDashboard?.activity?.videoLessonsCompleted ??
+                                0,
                               color: "text-blue-500",
                             },
                             {
@@ -1393,14 +1397,24 @@ export default function ParentPage() {
                             const stats = e.stats;
                             return stats && stats.totalLessons > 0 && stats.completedLessons >= stats.totalLessons;
                           });
-                          return completed.length === 0 ? (
+                          const badges = childDashboard?.achievements || [];
+                          return completed.length === 0 && badges.length === 0 ? (
                             <div className="text-center py-6">
-                              <p className="text-sm text-gray-500">
-                                Chưa hoàn thành khóa học nào
-                              </p>
+                              <p className="text-sm text-gray-500">Chưa có thành tích nào</p>
                             </div>
                           ) : (
                             <div className="space-y-3">
+                              {badges.slice(0, 6).map((badge: any) => (
+                                <div key={badge.id} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+                                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-2xl">
+                                    {badge.icon || "🏆"}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-bold">{badge.name}</p>
+                                    <p className="mt-0.5 text-[11px] text-gray-500">{badge.description || "Huy hiệu học tập"}</p>
+                                  </div>
+                                </div>
+                              ))}
                               {completed.map((e: any) => (
                                 <div
                                   key={e.id}
@@ -1867,53 +1881,61 @@ export default function ParentPage() {
                   ) : (
                     <div className="space-y-4">
                       {pendingOrders.map((order: any) => (
-                        <div key={order.id} className="bg-card border border-border p-6 shadow-sm">
-                          <div className="flex items-center justify-between mb-4">
+                        <div key={order.id} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                          <div className="flex flex-col gap-4 border-b border-border px-6 py-5 md:flex-row md:items-center md:justify-between">
                             <div>
-                              <p className="text-sm font-semibold">
-                                Đơn hàng #{order.id?.substring(0, 8)}
-                              </p>
-                              <p
-                                className="text-xs"
-                                style={{ color: "#6a6f73" }}
-                              >
-                                Từ: <strong>{order.childName || "Con"}</strong>{" "}
-                                •{" "}
-                                {order.createdAt
-                                  ? new Date(
-                                      order.createdAt,
-                                    ).toLocaleDateString("vi-VN")
-                                  : ""}
+                              <p className="text-xs font-bold uppercase tracking-wider text-primary">Thanh toán chờ xử lý</p>
+                              <h4 className="mt-1 text-lg font-extrabold">Đơn hàng #{order.id?.substring(0, 8).toUpperCase()}</h4>
+                              <p className="mt-1 text-xs text-foreground-muted">
+                                Học sinh: <strong>{order.childName || "Con"}</strong>
+                                {order.createdAt ? ` · ${new Date(order.createdAt).toLocaleDateString("vi-VN")}` : ""}
                               </p>
                             </div>
-                            <span className="badge badge-warning text-[10px]">
+                            <span className="w-fit rounded-full border border-[#F8B486]/30 bg-[#F8B486]/10 px-3 py-1 text-xs font-bold text-[#F8B486]">
                               Chờ thanh toán
                             </span>
                           </div>
-                          {order.items?.map((item: any) => (
-                            <p
-                              key={item.id}
-                              className="text-sm mb-1"
-                              style={{ color: "#6a6f73" }}
-                            >
-                              • {item.course?.title || "Khóa học"}
-                            </p>
-                          ))}
-                          <div className="text-center mt-4">
-                            <p className="text-2xl font-extrabold gradient-text mb-3">
-                              {(
-                                order.payment?.remainingAmount ||
-                                order.finalPrice ||
-                                order.totalPrice ||
-                                0
-                              ).toLocaleString()}{" "}
-                              ₫
-                            </p>
-                            {Number(order.payment?.paidAmount || 0) > 0 && (
-                              <div className="mb-3 text-xs rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-2">
-                                Đã nộp {Number(order.payment.paidAmount).toLocaleString("vi-VN")} ₫ · Còn thiếu {Number(order.payment.remainingAmount || 0).toLocaleString("vi-VN")} ₫
+
+                          <div className="grid gap-6 p-6 lg:grid-cols-[1fr_320px]">
+                            <div>
+                              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-foreground-muted">Khóa học trong đơn</p>
+                              <div className="space-y-3">
+                                {order.items?.map((item: any) => (
+                                  <div key={item.id} className="flex items-center gap-3 rounded-lg border border-border bg-[var(--background)] p-3">
+                                    <div className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-[var(--muted)]">
+                                      {item.course?.thumbnail ? (
+                                        <img src={item.course.thumbnail} alt={item.course?.title || "Khóa học"} className="h-full w-full object-cover" />
+                                      ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-primary">
+                                          <BookOpen className="h-5 w-5" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-bold">{item.course?.title || "Khóa học"}</p>
+                                      <p className="text-xs text-foreground-muted">Sẽ được kích hoạt sau khi hệ thống đối soát</p>
+                                    </div>
+                                    <p className="shrink-0 text-sm font-extrabold text-primary">{Number(item.price || 0).toLocaleString("vi-VN")} ₫</p>
+                                  </div>
+                                ))}
                               </div>
-                            )}
+                              {Number(order.payment?.paidAmount || 0) > 0 && (
+                                <div className="mt-4 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-sm">
+                                  Đã nộp <b>{Number(order.payment.paidAmount).toLocaleString("vi-VN")} ₫</b> · Còn thiếu <b>{Number(order.payment.remainingAmount || 0).toLocaleString("vi-VN")} ₫</b>
+                                </div>
+                              )}
+                              <div className="mt-5 rounded-lg border border-[#F8B486]/20 bg-[#F8B486]/10 px-4 py-3">
+                                <p className="flex items-center gap-2 text-xs font-bold text-[#F8B486]">
+                                  <CheckCircle2 className="h-4 w-4" /> Sau khi chuyển khoản đúng nội dung, hệ thống sẽ tự động kích hoạt khóa học
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="rounded-xl border border-border bg-[var(--background)] p-5 text-center">
+                              <p className="text-xs font-bold uppercase tracking-wider text-foreground-muted">Số tiền cần chuyển</p>
+                              <p className="mt-1 text-3xl font-extrabold gradient-text">
+                                {(order.payment?.remainingAmount || order.finalPrice || order.totalPrice || 0).toLocaleString("vi-VN")} ₫
+                              </p>
                             {order._qrData ? (
                               <>
                                 <div
@@ -1968,20 +1990,6 @@ export default function ParentPage() {
                                 <QrCode className="w-4 h-4" /> Tạo mã QR thanh toán
                               </button>
                             )}
-                            <div
-                              className="p-3 rounded-xl mt-2"
-                              style={{
-                                background: "rgba(248,180,134,0.08)",
-                                border: "1px solid rgba(248,180,134,0.2)",
-                              }}
-                            >
-                              <p
-                                className="text-xs font-medium flex items-center gap-1.5"
-                                style={{ color: "#F8B486" }}
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" /> Sau khi chuyển
-                                khoản đúng nội dung, hệ thống sẽ tự động kích hoạt khóa học
-                              </p>
                             </div>
                           </div>
                         </div>

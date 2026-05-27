@@ -120,6 +120,47 @@ export class ParentDashboardRepository {
     });
   }
 
+  /** Get all started video progress rows for linked child courses */
+  getStartedVideoProgress(childId: string, courseIds: string[]) {
+    if (courseIds.length === 0) return Promise.resolve([]);
+    return this.prisma.videoProgress.findMany({
+      where: {
+        userId: childId,
+        OR: [{ watchTime: { gt: 0 } }, { watchedPercentage: { gt: 0 } }, { completed: true }],
+        lesson: { section: { courseId: { in: courseIds } } },
+      },
+      select: {
+        id: true,
+        watchTime: true,
+        watchedPercentage: true,
+        completed: true,
+        updatedAt: true,
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+            section: {
+              select: {
+                courseId: true,
+                course: { select: { id: true, title: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  /** Get badges already earned by a child */
+  getChildBadges(childId: string) {
+    return this.prisma.userBadge.findMany({
+      where: { userId: childId },
+      include: { badge: true },
+      orderBy: { earnedAt: 'desc' },
+    });
+  }
+
   /** Get activity counts */
   async getActivityCounts(childId: string) {
     const [quizAttemptsCount, submissionCount] = await Promise.all([

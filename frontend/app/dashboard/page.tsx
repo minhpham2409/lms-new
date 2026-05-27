@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/auth-state";
 import {
   Loader2, PlayCircle, Clock, CheckCircle2, Award, AlertCircle, ClipboardList, MessageSquareText,
   CalendarDays, ChevronRight, GraduationCap, LayoutGrid, ListChecks,
-  TrendingUp
+  TrendingUp, X, UserRound, BookOpen
 } from "lucide-react";
 import { toast } from "sonner";
 import { studentLearningApi } from "@/lib/api-service";
@@ -31,6 +31,9 @@ interface EnrolledCourse {
   course: {
     id: string;
     title: string;
+    description?: string | null;
+    thumbnail?: string | null;
+    price?: number;
     author?: { firstName?: string; lastName?: string; username: string };
     _count?: { lessons: number };
     sections?: any[];
@@ -47,6 +50,7 @@ export default function DashboardPage() {
   const [achievements, setAchievements] = useState<any[]>([]);
   const [learningSummary, setLearningSummary] = useState<LearningSummary | null>(null);
   const [activeTab, setActiveTab] = useState<"courses" | "todos" | "feedback" | "stats" | "requests">("courses");
+  const [selectedCourse, setSelectedCourse] = useState<EnrolledCourse | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -152,6 +156,63 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       <Navbar />
 
+      {selectedCourse && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setSelectedCourse(null)}>
+          <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-[var(--card)] shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="relative min-h-40 border-b border-border bg-[var(--background-2)]">
+              {selectedCourse.course.thumbnail ? (
+                <img src={selectedCourse.course.thumbnail} alt={selectedCourse.course.title} className="absolute inset-0 h-full w-full object-cover opacity-70" />
+              ) : (
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(248,180,134,0.22),rgba(124,58,237,0.16))]" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--card)] via-[var(--card)]/55 to-transparent" />
+              <button onClick={() => setSelectedCourse(null)} className="absolute right-4 top-4 rounded-lg bg-black/40 p-2 text-white hover:bg-black/60">
+                <X className="h-4 w-4" />
+              </button>
+              <div className="relative z-10 flex min-h-40 flex-col justify-end p-6">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">Thông tin khóa học</p>
+                <h2 className="text-2xl font-extrabold">{selectedCourse.course.title}</h2>
+              </div>
+            </div>
+            <div className="grid gap-5 p-6 sm:grid-cols-[1fr_220px]">
+              <div>
+                <p className="text-sm leading-7 text-foreground-muted">
+                  {selectedCourse.course.description || "Khóa học chưa có mô tả chi tiết."}
+                </p>
+                <div className="mt-5 grid grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-border bg-[var(--muted)] p-3">
+                    <p className="text-lg font-extrabold text-primary">{Math.round(selectedCourse.progress)}%</p>
+                    <p className="text-[10px] font-bold uppercase text-foreground-muted">Tiến độ</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-[var(--muted)] p-3">
+                    <p className="text-lg font-extrabold text-primary">{selectedCourse.course.sections?.length || 0}</p>
+                    <p className="text-[10px] font-bold uppercase text-foreground-muted">Chương</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-[var(--muted)] p-3">
+                    <p className="text-lg font-extrabold text-primary">{selectedCourse.course.sections?.reduce((sum, sec) => sum + (sec.lessons?.length || 0), 0) || selectedCourse.course._count?.lessons || 0}</p>
+                    <p className="text-[10px] font-bold uppercase text-foreground-muted">Bài học</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border bg-[var(--background)] p-4">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <UserRound className="h-5 w-5" />
+                </div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">Giảng viên phụ trách</p>
+                <p className="mt-1 font-extrabold">
+                  {selectedCourse.course.author?.firstName
+                    ? `${selectedCourse.course.author.firstName} ${selectedCourse.course.author.lastName || ""}`.trim()
+                    : selectedCourse.course.author?.username || "Giáo viên"}
+                </p>
+                <Link href={`/courses/${selectedCourse.courseId}`} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">
+                  Vào khóa học <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="pt-28 pb-8 border-b border-border bg-[var(--background-2)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div>
@@ -233,10 +294,15 @@ export default function DashboardPage() {
                         const authorName = enrollment.course?.author?.firstName || enrollment.course?.author?.username || "Giáo viên";
                         const isCompleted = enrollment.progress >= 100;
                         return (
-                           <Link key={enrollment.id} href={`/courses/${enrollment.courseId}`} className="group">
+                           <button key={enrollment.id} type="button" onClick={() => setSelectedCourse(enrollment)} className="group text-left">
                               <div className="border border-border rounded-xl overflow-hidden h-full flex flex-col bg-[var(--card)] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
                                  <div className="aspect-video bg-[var(--background-2)] relative border-b border-border">
-                                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(232,154,100,0.18),rgba(59,130,246,0.14))]" />
+                                    {enrollment.course.thumbnail ? (
+                                      <img src={enrollment.course.thumbnail} alt={enrollment.course.title} className="absolute inset-0 h-full w-full object-cover opacity-75 transition-transform duration-500 group-hover:scale-105" />
+                                    ) : (
+                                      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(232,154,100,0.18),rgba(59,130,246,0.14))]" />
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                                     <div className="absolute left-4 top-4 rounded-full bg-black/30 px-2.5 py-1 text-xs font-bold text-white">
                                       {totalLessons} bài học
                                     </div>
@@ -248,7 +314,10 @@ export default function DashboardPage() {
                                  </div>
                                  <div className="p-5 flex-1 flex flex-col">
                                     <h3 className="font-extrabold mb-1 line-clamp-2 leading-tight group-hover:text-primary transition-colors">{enrollment.course?.title}</h3>
-                                    <p className="text-xs text-foreground-muted mb-5">Giảng viên {authorName}</p>
+                                    <p className="text-xs text-foreground-muted mb-3">Giảng viên {authorName}</p>
+                                    {enrollment.course.description && (
+                                      <p className="mb-5 line-clamp-2 text-sm leading-6 text-foreground-muted">{enrollment.course.description}</p>
+                                    )}
                                     
                                     <div className="mt-auto">
                                        <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden mb-2">
@@ -259,13 +328,13 @@ export default function DashboardPage() {
                                           {isCompleted && <span className="text-green-500 flex items-center gap-1"><Award className="w-3 h-3"/> Đã hoàn thành</span>}
                                        </div>
                                        <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm font-bold text-[var(--primary)]">
-                                         <span>Tiếp tục học</span>
+                                         <span>Xem chi tiết</span>
                                          <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                                        </div>
                                     </div>
                                  </div>
                               </div>
-                           </Link>
+                           </button>
                         )
                      })}
                   </div>
@@ -275,8 +344,8 @@ export default function DashboardPage() {
 
            {/* TAB: TODOS */}
            {activeTab === "todos" && (
-             <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-                <div className="space-y-3">
+             <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+                <div className="space-y-4">
                   {(learningSummary?.todos.length ?? 0) === 0 ? (
                     <div className="rounded-xl border border-border bg-[var(--card)] p-8 text-center shadow-sm">
                       <ClipboardList className="mx-auto mb-3 h-9 w-9 text-foreground-muted" />
@@ -284,25 +353,40 @@ export default function DashboardPage() {
                       <p className="mt-1 text-sm text-foreground-muted">Bài tập và quiz chưa làm sẽ xuất hiện tại đây.</p>
                     </div>
                   ) : learningSummary?.todos.map((item) => (
-                    <Link key={item.id} href={item.url} className="flex items-center justify-between gap-4 rounded-xl border border-border bg-[var(--card)] p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-                      <div className="min-w-0">
-                        <div className="mb-1 flex flex-wrap items-center gap-2">
-                          <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{item.type === "quiz" ? "Quiz" : "Bài tập"}</span>
-                          {item.dueDate && <span className="text-xs text-foreground-muted">Hạn: {new Date(item.dueDate).toLocaleDateString("vi-VN")}</span>}
+                    <Link key={item.id} href={item.url} className="group block overflow-hidden rounded-xl border border-border bg-[var(--card)] shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md">
+                      <div className="grid gap-4 p-5 sm:grid-cols-[56px_1fr_auto] sm:items-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          {item.type === "quiz" ? <ClipboardList className="h-6 w-6" /> : <BookOpen className="h-6 w-6" />}
                         </div>
-                        <h3 className="truncate font-bold">{item.title}</h3>
-                        <p className="truncate text-sm text-foreground-muted">{item.courseTitle} · {item.lessonTitle}</p>
+                        <div className="min-w-0">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{item.type === "quiz" ? "Quiz" : "Bài tập"}</span>
+                            {item.dueDate && <span className="rounded bg-[var(--muted)] px-2 py-0.5 text-xs font-semibold text-foreground-muted">Hạn {new Date(item.dueDate).toLocaleDateString("vi-VN")}</span>}
+                          </div>
+                          <h3 className="font-extrabold leading-tight">{item.title}</h3>
+                          <p className="mt-1 text-sm text-foreground-muted">{item.courseTitle} · {item.lessonTitle}</p>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                          <span>Làm ngay</span>
+                          <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </div>
                       </div>
-                      <span className="shrink-0 text-sm font-bold text-primary">Làm ngay</span>
                     </Link>
                   ))}
                 </div>
-                <div className="rounded-xl border border-border bg-[var(--card)] p-5 shadow-sm h-fit">
-                  <h3 className="mb-3 font-bold">Tổng quan học tập</h3>
+                <div className="h-fit rounded-xl border border-border bg-[var(--card)] p-5 shadow-sm">
+                  <h3 className="mb-4 font-extrabold">Tổng quan học tập</h3>
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between"><span className="text-foreground-muted">Khóa đang học</span><b>{learningSummary?.stats.activeCourses ?? activeCourses.length}</b></div>
-                    <div className="flex justify-between"><span className="text-foreground-muted">Việc cần làm</span><b>{learningSummary?.stats.pendingTasks ?? 0}</b></div>
-                    <div className="flex justify-between"><span className="text-foreground-muted">Đã hoàn thành</span><b>{learningSummary?.stats.completedCourses ?? 0}</b></div>
+                    {[
+                      ["Khóa đang học", learningSummary?.stats.activeCourses ?? activeCourses.length],
+                      ["Việc cần làm", learningSummary?.stats.pendingTasks ?? 0],
+                      ["Đã hoàn thành", learningSummary?.stats.completedCourses ?? 0],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex items-center justify-between rounded-lg bg-[var(--muted)] px-4 py-3">
+                        <span className="text-foreground-muted">{label}</span>
+                        <b className="text-primary">{value}</b>
+                      </div>
+                    ))}
                   </div>
                 </div>
              </div>

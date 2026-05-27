@@ -79,9 +79,11 @@ export class ParentsService {
     const enrollments = await this.dashboardRepository.getChildEnrollmentsDetailed(childId);
     const courseIds = enrollments.map(e => e.courseId);
 
-    const [sections, vpRows, activity] = await Promise.all([
+    const [sections, vpRows, startedVideoRows, badges, activity] = await Promise.all([
       this.dashboardRepository.getSectionLessonCounts(courseIds),
       this.dashboardRepository.getCompletedVideoLessons(childId, courseIds),
+      this.dashboardRepository.getStartedVideoProgress(childId, courseIds),
+      this.dashboardRepository.getChildBadges(childId),
       this.dashboardRepository.getActivityCounts(childId),
     ]);
 
@@ -126,7 +128,20 @@ export class ParentsService {
         quizAttempts: activity.quizAttemptsCount,
         assignmentSubmissions: activity.submissionCount,
         videoLessonsCompleted: vpRows.length,
+        videoLessonsStarted: startedVideoRows.length,
+        videoWatchTimeSeconds: startedVideoRows.reduce((sum, row) => sum + (row.watchTime || 0), 0),
       },
+      recentVideos: startedVideoRows.slice(0, 6),
+      achievements: badges.map(row => ({
+        id: row.badge.id,
+        code: row.badge.code,
+        name: row.badge.name,
+        description: row.badge.description,
+        icon: row.badge.icon,
+        category: row.badge.category,
+        tier: row.badge.tier,
+        earnedAt: row.earnedAt,
+      })),
     };
   }
 

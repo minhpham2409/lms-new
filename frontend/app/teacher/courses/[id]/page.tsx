@@ -262,15 +262,20 @@ export default function TeacherCourseEditPage() {
                 <input type="checkbox" checked={course?.allowPlatformPromotions ?? true} 
                        onChange={async (e) => {
                          const val = e.target.checked;
+                         const prev = course?.allowPlatformPromotions;
                          setCourse({ ...course, allowPlatformPromotions: val });
                          try {
-                           await fetch(`${API}/courses/${id}`, {
+                           const res = await fetch(`${API}/courses/${id}`, {
                              method: "PUT",
                              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                             body: JSON.stringify({ status: course?.status }),
+                             body: JSON.stringify({ allowPlatformPromotions: val }),
                            });
+                           if (!res.ok) throw new Error();
                            toast.success(val ? "Đã bật chạy khuyến mãi nền tảng" : "Đã tắt khuyến mãi nền tảng");
-                         } catch { toast.error("Lỗi cập nhật"); }
+                         } catch {
+                           setCourse({ ...course, allowPlatformPromotions: prev });
+                           toast.error("Lỗi cập nhật");
+                         }
                        }} 
                        className="hidden" />
                 {course?.allowPlatformPromotions ? "Khuyến mãi: Bật" : "Khuyến mãi: Tắt"}

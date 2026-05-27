@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/components/theme-provider";
@@ -29,7 +29,11 @@ const allNavLinks = [
   { href: "/about", label: "Giới thiệu", roles: null },
 ];
 
-export function Navbar() {
+type NavbarProps = {
+  forceTheme?: "dark" | "light";
+};
+
+export function Navbar({ forceTheme }: NavbarProps = {}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -85,14 +89,27 @@ export function Navbar() {
   const userRole = user?.role || null;
   const navLinks = allNavLinks.filter((l) => !l.roles || l.roles.includes(userRole));
   if (isLoggedIn && user) navLinks.push({ href: dashboardLink, label: "Dashboard", roles: null });
+  const effectiveTheme = forceTheme || theme;
+  const forcedDarkVars: CSSProperties = forceTheme === "dark" ? {
+    "--background": "#051025",
+    "--foreground": "#F8FAFC",
+    "--primary": "#F8B486",
+    "--primary-foreground": "#051025",
+    "--muted": "#0A1A35",
+    "--muted-foreground": "#94A3B8",
+    "--card": "#121E36",
+    "--border": "#1E2D4A",
+    "--destructive": "#F87171",
+  } as CSSProperties : {};
 
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       style={{
+        ...forcedDarkVars,
         background: scrolled
-          ? (theme === "dark" ? "rgba(5,16,37,0.95)" : "rgba(248,250,252,0.95)")
-          : (theme === "dark" ? "rgba(5,16,37,0.8)" : "rgba(248,250,252,0.8)"),
+          ? (effectiveTheme === "dark" ? "rgba(5,16,37,0.95)" : "rgba(248,250,252,0.95)")
+          : (effectiveTheme === "dark" ? "rgba(5,16,37,0.8)" : "rgba(248,250,252,0.8)"),
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
         borderBottom: scrolled ? `1px solid var(--border)` : "1px solid transparent",
@@ -135,7 +152,7 @@ export function Navbar() {
             <button onClick={toggle}
               className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors"
               style={{ color: "var(--muted-foreground)" }}>
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {effectiveTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
             {!loading && isLoggedIn && user ? (
@@ -218,7 +235,7 @@ export function Navbar() {
             ))}
             <div className="h-px my-2" style={{ background: "var(--border)" }} />
             <button onClick={toggle} className="block px-4 py-2.5 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>
-              {theme === "dark" ? "☀ Chế độ sáng" : "☾ Chế độ tối"}
+              {effectiveTheme === "dark" ? "☀ Chế độ sáng" : "☾ Chế độ tối"}
             </button>
             {!loading && isLoggedIn && user && (
               <div className="mt-2 space-y-1">

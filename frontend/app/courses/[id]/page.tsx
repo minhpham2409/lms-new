@@ -172,6 +172,7 @@ export default function CourseDetailPage() {
   }
 
   async function handleBuyNow() {
+    if (!course) return;
     if (!isLoggedIn) { router.push("/auth/login"); return; }
     if (user?.role === "student" && hasParent !== true) {
       toast.error("Bạn cần liên kết tài khoản phụ huynh trước khi mua khóa học!");
@@ -188,10 +189,13 @@ export default function CourseDetailPage() {
         body: JSON.stringify({ courseId: id }),
       }).catch(() => {});
 
+      // Strip coupon if course doesn't allow promotions
+      const effectiveCoupon = course.allowPlatformPromotions === false ? "" : buyNowCoupon.trim();
+
       const orderRes = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(buyNowCoupon.trim() ? { couponCode: buyNowCoupon.trim().toUpperCase() } : {}),
+        body: JSON.stringify(effectiveCoupon ? { couponCode: effectiveCoupon.toUpperCase() } : {}),
       });
       if (!orderRes.ok) {
         const err = await orderRes.json().catch(() => ({}));
@@ -225,6 +229,11 @@ export default function CourseDetailPage() {
 
   async function previewBuyNowCoupon() {
     if (!buyNowCoupon.trim()) return;
+    if (course?.allowPlatformPromotions === false) {
+      toast.error("Khóa học này không áp dụng mã giảm giá.");
+      setBuyNowCoupon("");
+      return;
+    }
     setBuyNowCouponLoading(true);
     setBuyNowCouponPreview(null);
     try {
