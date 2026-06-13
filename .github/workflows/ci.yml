@@ -146,7 +146,9 @@ jobs:
           script: |
             cd /opt/lms-new
             git pull origin main
-            docker compose up -d --build --remove-orphans
+            docker compose build backend
+            docker compose build frontend
+            docker compose up -d --no-build --remove-orphans
             docker compose restart nginx
             docker image prune -f
             echo "✅ Deploy completed at $(date)"

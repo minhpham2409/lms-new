@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   eslint: {
     // Lint rules are properly configured in eslint.config.mjs.
     // Errors will fail builds; warnings are allowed.
