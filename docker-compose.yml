@@ -43,8 +43,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     image: lms-backend:latest
-    ports:
-      - "4000:4000"
     environment:
       - DATABASE_URL=postgresql://lms:lms_password@postgres:5432/lms_db?schema=public
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
@@ -55,7 +53,7 @@ services:
       - BANK_ACCOUNT=${BANK_ACCOUNT:?BANK_ACCOUNT is required}
       - BANK_ACCOUNT_NAME=${BANK_ACCOUNT_NAME:?BANK_ACCOUNT_NAME is required}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-      - API_URL=${API_URL:-http://localhost:4000/api/v1}
+      - API_URL=/api/v1
       - GEMINI_API_KEY=${GEMINI_API_KEY:?GEMINI_API_KEY is required}
       - MEDIA_ORPHAN_TTL_HOURS=24
       - MEDIA_ORPHAN_CLEANUP_BATCH_SIZE=100
@@ -98,13 +96,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+        - NEXT_PUBLIC_API_URL=/api/v1
     image: lms-frontend:latest
     container_name: lms-frontend
-    ports:
-      - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+      - NEXT_PUBLIC_API_URL=/api/v1
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
     depends_on:
@@ -112,10 +108,10 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000 || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health || exit 1"]
       interval: 30s
-      timeout: 10s
-      retries: 3
+      timeout: 5s
+      retries: 5
       start_period: 30s
 
   nginx:
