@@ -1,22 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
-
-const interFont = Inter({
-  variable: "--font-plus-jakarta", // Keep the variable name to avoid breaking other CSS relying on it
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-});
-
-const jetBrainsMono = JetBrains_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin", "vietnamese"],
-  weight: ["400", "500"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -41,10 +27,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" className="dark" suppressHydrationWarning>
-      <body
-        className={`${interFont.variable} ${jetBrainsMono.variable} antialiased`}
-        style={{ fontFamily: "var(--font-plus-jakarta), system-ui, sans-serif" }}
-      >
+      <body className="antialiased">
         <ThemeProvider>
           <AuthProvider>
             {children}
